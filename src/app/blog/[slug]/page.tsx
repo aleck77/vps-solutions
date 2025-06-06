@@ -73,7 +73,6 @@ export default async function PostPage({ params }: PostPageProps) {
             priority
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
             className="object-cover"
-            data-ai-hint={post.dataAiHint as string || "technology abstract"}
           />
         </div>
 

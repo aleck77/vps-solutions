@@ -11,7 +11,6 @@ export const mockPosts: BlogPost[] = [
     excerpt: 'A beginner-friendly guide to integrating AI into your applications and workflows.',
     content: '<p>Full content about getting started with AI...</p><p>More details here.</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'artificial intelligence',
     tags: ['AI', 'Machine Learning', 'Beginners'],
   },
   {
@@ -24,7 +23,6 @@ export const mockPosts: BlogPost[] = [
     excerpt: 'Explore how no-code platforms are empowering creators to build powerful applications.',
     content: '<p>Detailed exploration of no-code platforms and their impact...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'visual programming',
     tags: ['No-code', 'App Development', 'Productivity'],
   },
   {
@@ -37,7 +35,6 @@ export const mockPosts: BlogPost[] = [
     excerpt: 'Dive into the latest trends and best practices in web development for 2024.',
     content: '<p>Comprehensive guide to modern web development...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'web development',
     tags: ['JavaScript', 'React', 'Next.js', 'CSS'],
   },
   {
@@ -50,7 +47,6 @@ export const mockPosts: BlogPost[] = [
     excerpt: 'Discover tools and strategies to automate repetitive tasks and boost efficiency.',
     content: '<p>Practical automation tips for small businesses...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'business automation',
     tags: ['Automation', 'Small Business', 'Productivity Tools'],
   },
   {
@@ -63,7 +59,6 @@ export const mockPosts: BlogPost[] = [
     excerpt: 'A curated list of indispensable tools that every developer should know.',
     content: '<p>List and review of top developer tools...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'developer tools',
     tags: ['Developer Tools', 'IDE', 'Version Control'],
   },
   {
@@ -76,7 +71,6 @@ export const mockPosts: BlogPost[] = [
     excerpt: 'A guide to navigating the options and selecting the best cloud hosting provider.',
     content: '<p>In-depth analysis of cloud hosting options...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'cloud server',
     tags: ['Cloud Hosting', 'VPS', 'IaaS', 'PaaS'],
   },
 ];

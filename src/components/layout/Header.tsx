@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Server, Briefcase, Newspaper, Users, Mail, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
 import * as React from 'react';
 
 const navLinks = [
@@ -44,9 +44,11 @@ export default function Header() {
             <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-card">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-8">
-                  <Link href="/" className="text-xl font-headline font-bold text-primary">
-                     VHost Solutions
-                  </Link>
+                  <SheetTitle asChild>
+                    <Link href="/" className="text-xl font-headline font-bold text-primary">
+                       VHost Solutions
+                    </Link>
+                  </SheetTitle>
                    <SheetClose asChild>
                       <Button variant="ghost" size="icon">
                         <X className="h-6 w-6" />

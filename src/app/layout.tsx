@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Inter, Poppins } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -10,9 +10,10 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
-const spaceGrotesk = Space_Grotesk({
+const poppins = Poppins({
   subsets: ['latin'],
-  variable: '--font-space-grotesk',
+  variable: '--font-poppins',
+  weight: ['400', '500', '600', '700'], // Added common weights for headlines
 });
 
 export const metadata: Metadata = {
@@ -26,13 +27,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
       <head>
-        {/* Keep existing font links if any, or remove if using next/font exclusively */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        {/* Removed direct Google Font links, next/font handles this */}
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen">
         <Header />

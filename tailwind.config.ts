@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['var(--font-inter)', 'sans-serif'], // Using CSS variable from next/font
+        headline: ['var(--font-poppins)', 'sans-serif'], // Using CSS variable from next/font
         code: ['monospace'],
       },
       colors: {

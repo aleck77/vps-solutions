@@ -19,36 +19,36 @@
     --border: 210 10% 88%;
     --input: 210 10% 92%;
 
-    --primary: 217 90% 61%; /* Medium blue #4285F4 */
+    --primary: 221 26% 14%; /* Dark Blue #1a202c */
     --primary-foreground: 210 20% 98%; /* Light color for text on primary */
 
     --secondary: 210 10% 90%;
-    --secondary-foreground: 217 90% 61%;
+    --secondary-foreground: 221 26% 14%; /* Dark Blue for text on secondary */
 
-    --accent: 141 58% 45%; /* Soft green #34A853 */
+    --accent: 209 62% 50%; /* Light Blue #3182ce */
     --accent-foreground: 210 20% 98%; /* Light color for text on accent */
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    --ring: 217 90% 61%;
+    --ring: 209 62% 50%; /* Light Blue for ring */
 
     --radius: 0.5rem;
 
-    --chart-1: 217 90% 61%;
-    --chart-2: 141 58% 45%;
+    --chart-1: 221 26% 14%; /* Dark Blue */
+    --chart-2: 209 62% 50%; /* Light Blue */
     --chart-3: 210 10% 50%;
     --chart-4: 30 80% 55%;
     --chart-5: 280 65% 60%;
 
     --sidebar-background: 210 20% 95%;
     --sidebar-foreground: 210 10% 23%;
-    --sidebar-primary: 217 90% 61%;
+    --sidebar-primary: 221 26% 14%;
     --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 141 58% 45%;
+    --sidebar-accent: 209 62% 50%;
     --sidebar-accent-foreground: 210 20% 98%;
     --sidebar-border: 210 10% 88%;
-    --sidebar-ring: 217 90% 61%;
+    --sidebar-ring: 209 62% 50%;
   }
 
   .dark {
@@ -67,34 +67,34 @@
     --border: 210 10% 30%;
     --input: 210 10% 35%;
 
-    --primary: 217 90% 61%;
+    --primary: 221 26% 14%; /* Dark Blue #1a202c */
     --primary-foreground: 210 20% 98%;
 
     --secondary: 210 10% 30%;
     --secondary-foreground: 210 20% 95%;
 
-    --accent: 141 58% 45%;
+    --accent: 209 62% 50%; /* Light Blue #3182ce */
     --accent-foreground: 210 20% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
 
-    --ring: 217 90% 61%;
+    --ring: 209 62% 50%; /* Light Blue for ring */
 
-    --chart-1: 217 90% 61%;
-    --chart-2: 141 58% 45%;
+    --chart-1: 221 26% 14%;
+    --chart-2: 209 62% 50%;
     --chart-3: 210 20% 70%;
     --chart-4: 30 80% 55%;
     --chart-5: 280 65% 60%;
     
     --sidebar-background: 210 10% 15%;
     --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 217 90% 61%;
+    --sidebar-primary: 221 26% 14%;
     --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 141 58% 45%;
+    --sidebar-accent: 209 62% 50%;
     --sidebar-accent-foreground: 210 20% 98%;
     --sidebar-border: 210 10% 30%;
-    --sidebar-ring: 217 90% 61%;
+    --sidebar-ring: 209 62% 50%;
   }
 }
 
@@ -104,7 +104,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Apply custom font to body for overall typography */
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;

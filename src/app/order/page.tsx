@@ -34,18 +34,53 @@ const orderFormSchema = z.object({
 type OrderFormValues = z.infer<typeof orderFormSchema>;
 
 // Server action placeholder for order processing
-async function processOrder(data: OrderFormValues) {
+async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan | undefined) {
   console.log('Processing order:', data);
+  const orderId = `VPS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+  if (!selectedPlanDetails) {
+    throw new Error('Selected plan details are missing.');
+  }
+
+  const webhookPayload = {
+    email: data.email,
+    name: data.name,
+    order_number: orderId,
+    source_amount: `${selectedPlanDetails.cpu}, ${selectedPlanDetails.ram} → $${selectedPlanDetails.priceMonthly.toFixed(2)}`,
+    // You might want to include companyName and paymentMethod if your n8n workflow can use them
+    // companyName: data.companyName,
+    // paymentMethod: data.paymentMethod,
+  };
+
   // Simulate API call to n8n backend
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  try {
+    const response = await fetch("https://n8n.artelegis.com.ua/webhook/brevo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(webhookPayload)
+    });
+
+    if (!response.ok) {
+      // Log more details for non-ok responses
+      const errorBody = await response.text();
+      console.error("Webhook response error:", response.status, errorBody);
+      throw new Error(`Webhook failed with status: ${response.status}. ${errorBody}`);
+    }
+    console.log("Order data sent to webhook successfully.");
+  } catch (error) {
+    console.error("Error sending data to webhook:", error);
+    throw new Error('Failed to communicate with the order processing service.');
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 1500)); // Keep simulation for UI feedback
   // Simulate success
-  return { success: true, orderId: `VPS-${Math.random().toString(36).substr(2, 9).toUpperCase()}` };
+  return { success: true, orderId: orderId };
 }
 
 export default function OrderPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const initialPlanId = searchParams.get('plan') || mockVpsPlans[0].id;
+  const initialPlanId = searchParams.get('plan') || (mockVpsPlans.length > 0 ? mockVpsPlans[0].id : '');
   
   const [selectedPlan, setSelectedPlan] = useState<VPSPlan | undefined>(
     mockVpsPlans.find(p => p.id === initialPlanId)
@@ -65,8 +100,13 @@ export default function OrderPage() {
   useEffect(() => {
     const planFromUrl = searchParams.get('plan');
     if (planFromUrl) {
+      const foundPlan = mockVpsPlans.find(p => p.id === planFromUrl);
       form.setValue('planId', planFromUrl);
-      setSelectedPlan(mockVpsPlans.find(p => p.id === planFromUrl));
+      setSelectedPlan(foundPlan);
+    } else if (mockVpsPlans.length > 0 && !form.getValues('planId')) {
+      // Set a default if no plan in URL and no planId already set
+      form.setValue('planId', mockVpsPlans[0].id);
+      setSelectedPlan(mockVpsPlans[0]);
     }
   }, [searchParams, form]);
   
@@ -82,13 +122,28 @@ export default function OrderPage() {
 
   async function onSubmit(data: OrderFormValues) {
     try {
-      const result = await processOrder(data);
+      const currentSelectedPlan = mockVpsPlans.find(p => p.id === data.planId);
+      if (!currentSelectedPlan) {
+        toast({
+          title: 'Error',
+          description: 'Selected plan not found. Please select a plan.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const result = await processOrder(data, currentSelectedPlan);
       if (result.success) {
         toast({
           title: 'Order Successful!',
           description: `Your VPS order (ID: ${result.orderId}) has been placed. We'll be in touch shortly.`,
         });
-        form.reset({ planId: data.planId, name: '', email: '', companyName: '', paymentMethod: undefined });
+        form.reset({ 
+            planId: data.planId, // Keep the selected plan
+            name: '', 
+            email: '', 
+            companyName: '', 
+            paymentMethod: undefined 
+        });
       } else {
         throw new Error('Order processing failed.');
       }
@@ -128,7 +183,7 @@ export default function OrderPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Select Plan</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Choose a VPS plan" />
@@ -137,7 +192,7 @@ export default function OrderPage() {
                         <SelectContent>
                           {mockVpsPlans.map((plan) => (
                             <SelectItem key={plan.id} value={plan.id}>
-                              {plan.name} - ${plan.priceMonthly}/mo
+                              {plan.name} ({plan.cpu}, {plan.ram}) - ${plan.priceMonthly.toFixed(2)}/mo
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -195,7 +250,7 @@ export default function OrderPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Payment Method</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a payment method" />
@@ -213,7 +268,7 @@ export default function OrderPage() {
                 />
 
                 <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6" disabled={form.formState.isSubmitting || !selectedPlan}>
-                  {form.formState.isSubmitting ? 'Processing...' : `Order Now & Pay $${selectedPlan?.priceMonthly || 0}/mo`}
+                  {form.formState.isSubmitting ? 'Processing...' : `Order Now & Pay $${selectedPlan?.priceMonthly.toFixed(2) || '0.00'}/mo`}
                 </Button>
               </form>
             </Form>
@@ -227,7 +282,7 @@ export default function OrderPage() {
               <CardDescription>Summary of your selected plan.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-3xl font-bold text-accent">${selectedPlan.priceMonthly}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+              <p className="text-3xl font-bold text-accent">${selectedPlan.priceMonthly.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
               <ul className="space-y-1 text-sm text-muted-foreground">
                 <li><strong>CPU:</strong> {selectedPlan.cpu}</li>
                 <li><strong>RAM:</strong> {selectedPlan.ram}</li>
@@ -246,9 +301,20 @@ export default function OrderPage() {
             </CardContent>
             <CardFooter>
                 <p className="text-xs text-muted-foreground">
-                    You will be charged ${selectedPlan.priceMonthly} monthly. You can cancel anytime.
+                    You will be charged ${selectedPlan.priceMonthly.toFixed(2)} monthly. You can cancel anytime.
                 </p>
             </CardFooter>
+          </Card>
+        )}
+         {!selectedPlan && mockVpsPlans.length > 0 && (
+          <Card className="sticky top-24 shadow-lg">
+            <CardHeader>
+              <CardTitle className="font-headline text-xl text-primary">Select a Plan</CardTitle>
+              <CardDescription>Choose a plan to see its details here.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Please select a VPS plan from the form to see its summary.</p>
+            </CardContent>
           </Card>
         )}
       </div>

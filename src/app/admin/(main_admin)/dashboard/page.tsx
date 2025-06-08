@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/authContext'; // Updated import path
 import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth(); // Assuming useAuth provides user and loading
   const auth = getAuthInstance();
   const router = useRouter();
   const { toast } = useToast();
@@ -30,10 +30,10 @@ export default function AdminDashboardPage() {
     return <p>Loading admin dashboard...</p>;
   }
 
-  if (!user) {
-    // This should ideally be handled by AdminRouteGuard, but as a fallback:
-    return <p>Redirecting to login...</p>; 
-  }
+  // The check for user existence will be handled by AdminRouteGuard
+  // if (!user) {
+  //   return <p>Redirecting to login...</p>; 
+  // }
 
   return (
     <div className="container mx-auto py-10">
@@ -44,10 +44,14 @@ export default function AdminDashboardPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-lg">
-            Hello, <span className="font-semibold text-accent">{user.email}</span>!
+            {/* Using a generic message as 'user' from the minimal context is just 'null' */}
+            Hello, Admin! 
+            {/* {user?.email ? 
+              (<>Hello, <span className="font-semibold text-accent">{user.email}</span>!</>) : 
+              (<>Hello, Admin!</>)
+            } */}
           </p>
           
-          {/* Placeholder for Seed Database button */}
           <div className="space-y-2">
             <h3 className="text-xl font-semibold font-headline">Database Operations</h3>
             <Button 

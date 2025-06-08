@@ -2,9 +2,9 @@
 'use server';
 
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc } from 'firebase/firestore';
-import { firestore } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase'; // Import getDb
 import type { BlogPost, Category } from '@/types';
-import {นั่งสมาธิ } from '@/lib/utils'; // Assuming slugify is here
+// import { slugify } from '@/lib/utils'; // slugify is in seed.ts for now, ensure utils if used here
 
 // Helper to convert Firestore Timestamps to JS Date objects or ISO strings in the post objects
 const processPostDocument = (documentSnapshot: any): BlogPost => {
@@ -12,16 +12,17 @@ const processPostDocument = (documentSnapshot: any): BlogPost => {
   return {
     ...data,
     id: documentSnapshot.id,
-    date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date), // Ensure date is a Date object
+    date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date), 
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt),
-  } as BlogPost; // Type assertion might be needed if date types are tricky
+  } as BlogPost; 
 };
 
 
 export async function getAllPublishedPosts(count?: number): Promise<BlogPost[]> {
+  const db = getDb();
   try {
-    const postsCollection = collection(firestore, 'posts');
+    const postsCollection = collection(db, 'posts');
     let q = query(postsCollection, where('published', '==', true), orderBy('date', 'desc'));
     if (count) {
       q = query(postsCollection, where('published', '==', true), orderBy('date', 'desc'), limit(count));
@@ -35,8 +36,9 @@ export async function getAllPublishedPosts(count?: number): Promise<BlogPost[]> 
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
+  const db = getDb();
   try {
-    const postsCollection = collection(firestore, 'posts');
+    const postsCollection = collection(db, 'posts');
     const q = query(postsCollection, where('slug', '==', slug), where('published', '==', true), limit(1));
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
@@ -50,11 +52,15 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
 }
 
 export async function getPostsByCategory(categorySlug: string): Promise<BlogPost[]> {
+  const db = getDb();
   try {
-    const postsCollection = collection(firestore, 'posts');
+    const postsCollection = collection(db, 'posts');
+    // Firestore slugs are usually lowercase. Ensure comparison is consistent.
+    // If categorySlug in DB is 'AI' but param is 'ai', this might fail.
+    // For now, assuming exact match or that slugs are consistently cased.
     const q = query(
       postsCollection,
-      where('category', '==', categorySlug),
+      where('category', '==', categorySlug), 
       where('published', '==', true),
       orderBy('date', 'desc')
     );
@@ -67,8 +73,9 @@ export async function getPostsByCategory(categorySlug: string): Promise<BlogPost
 }
 
 export async function getAllCategories(): Promise<Category[]> {
+  const db = getDb();
   try {
-    const categoriesCollection = collection(firestore, 'categories');
+    const categoriesCollection = collection(db, 'categories');
     const q = query(categoriesCollection, orderBy('name', 'asc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
@@ -78,11 +85,10 @@ export async function getAllCategories(): Promise<Category[]> {
   }
 }
 
-
-// You might also need a function to get posts for sitemap or static generation
 export async function getAllPostSlugs(): Promise<string[]> {
+  const db = getDb();
   try {
-    const postsCollection = collection(firestore, 'posts');
+    const postsCollection = collection(db, 'posts');
     const q = query(postsCollection, where('published', '==', true));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => doc.data().slug as string);
@@ -93,8 +99,9 @@ export async function getAllPostSlugs(): Promise<string[]> {
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
+  const db = getDb();
   try {
-    const categoriesRef = collection(firestore, 'categories');
+    const categoriesRef = collection(db, 'categories');
     const q = query(categoriesRef, where('slug', '==', slug), limit(1));
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
@@ -109,18 +116,13 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
   }
 }
 
-// If you had mockPosts for RecommendedPosts, you'll need a Firestore equivalent
 export async function getRecommendedPosts(currentPostId: string | null, count: number = 3): Promise<BlogPost[]> {
+  const db = getDb();
   try {
-    const postsCollection = collection(firestore, 'posts');
+    const postsCollection = collection(db, 'posts');
     let q;
 
     if (currentPostId) {
-       // Fetch posts other than the current one, ordered by date.
-       // Firestore doesn't support a direct "not equal" query combined with orderBy on a different field easily in all scenarios.
-       // A common workaround is to fetch more and filter, or to add a "random" field for more diverse recommendations.
-       // For simplicity, we'll just fetch recent posts and exclude the current one in code.
-       // This is not ideal for true "recommendations" but works for "other/recent posts".
       q = query(postsCollection, where('published', '==', true), orderBy('date', 'desc'), limit(count + 1));
     } else {
       q = query(postsCollection, where('published', '==', true), orderBy('date', 'desc'), limit(count));
@@ -140,22 +142,33 @@ export async function getRecommendedPosts(currentPostId: string | null, count: n
   }
 }
 
-// Helper for converting Firestore Timestamps and getting category details for BlogPost objects
 export const processPostDocWithCategory = async (docSnapshot: any): Promise<BlogPost> => {
+  const db = getDb();
   const postData = docSnapshot.data();
-  let categoryName = postData.category; // Assume it's a slug
+  let categoryName = postData.category; 
 
   if (postData.category) {
-    const categoryDoc = await getDoc(doc(firestore, "categories", postData.category)); // Assuming category field stores category ID
-    if (categoryDoc.exists()) {
-      categoryName = categoryDoc.data()?.name || postData.category;
-    }
+    // Assuming postData.category stores the category ID or SLUG that matches the category document ID or SLUG
+    // If it's an ID: const categoryRef = doc(db, "categories", postData.category);
+    // If it's a slug, we need to query by slug. For simplicity, let's assume it's a name/slug stored directly for now
+    // Or better, the category field on a post should be a reference or a slug that we can use to look up
+    // For this function, it seems it's trying to fetch category details, but `postData.category` is already a string (name/slug)
+    // So, the lookup might be redundant if the category name is already what we want.
+    // Let's assume 'category' field in postData is the slug. We'd need getCategoryBySlug if we want the full Category object.
+    // For now, this function just processes dates and returns the category string as is.
+    // If a full category object is needed, this function needs to be async and call getCategoryBySlug.
+    // The original function assumed category was an ID:
+    // const categoryDoc = await getDoc(doc(db, "categories", postData.category));
+    // if (categoryDoc.exists()) {
+    //   categoryName = categoryDoc.data()?.name || postData.category;
+    // }
+    // Let's keep it simple: category is already the slug string.
   }
 
   return {
     id: docSnapshot.id,
     ...postData,
-    category: categoryName, // Now it's the name or original slug if lookup failed
+    category: categoryName, 
     date: postData.date instanceof Timestamp ? postData.date.toDate() : new Date(postData.date),
     createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : new Date(postData.createdAt),
     updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : new Date(postData.updatedAt),

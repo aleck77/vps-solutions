@@ -1,15 +1,14 @@
 
-'use client'; // Required for useFormState and client-side interactions
+'use client'; 
 
 import PostCard from '@/components/blog/PostCard';
 import CategoryFilter from '@/components/blog/CategoryFilter';
-// Removed: import { mockPosts } from '@/data/posts'; // Data will come from Firestore
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import type { BlogPost } from '@/types';
 import { useEffect, useState } from 'react';
-import { getAllPublishedPosts } from '@/lib/firestoreBlog'; // To fetch posts
-import { Skeleton } from '@/components/ui/skeleton'; // For loading state
-import { useFormState, useFormStatus } from 'react-dom';
+import { getAllPublishedPosts } from '@/lib/firestoreBlog'; 
+import { Skeleton } from '@/components/ui/skeleton'; 
+import { useActionState, useFormStatus } from 'react-dom'; // Changed from useFormState
 import { subscribeToNewsletter } from '@/app/actions/newsletterActions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,8 +18,9 @@ import { useToast } from '@/hooks/use-toast';
 function NewsletterForm() {
   const { toast } = useToast();
   const initialState = { message: '', error: false };
-  const [state, formAction] = useFormState(subscribeToNewsletter, initialState);
-  const { pending } = useFormStatus();
+  // Updated to useActionState
+  const [state, formAction, isPending] = useActionState(subscribeToNewsletter, initialState);
+  // const { pending } = useFormStatus(); // useFormStatus is for form elements, isPending from useActionState is for the action itself
   const [email, setEmail] = useState('');
 
   useEffect(() => {
@@ -29,7 +29,7 @@ function NewsletterForm() {
         toast({ title: 'Subscription Failed', description: state.message, variant: 'destructive' });
       } else {
         toast({ title: 'Subscribed!', description: state.message });
-        setEmail(''); // Clear input on success
+        setEmail(''); 
       }
     }
   }, [state, toast]);
@@ -44,9 +44,10 @@ function NewsletterForm() {
         required 
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        disabled={isPending}
       />
-      <Button type="submit" className="w-full bg-accent text-accent-foreground p-2 rounded-md hover:bg-accent/90" disabled={pending}>
-        {pending ? 'Subscribing...' : 'Subscribe'}
+      <Button type="submit" className="w-full bg-accent text-accent-foreground p-2 rounded-md hover:bg-accent/90" disabled={isPending}>
+        {isPending ? 'Subscribing...' : 'Subscribe'}
       </Button>
     </form>
   );
@@ -65,7 +66,6 @@ export default function BlogPage() {
         setPosts(fetchedPosts);
       } catch (error) {
         console.error("Failed to fetch posts:", error);
-        // Optionally, set an error state here to show to the user
       }
       setIsLoading(false);
     }
@@ -99,7 +99,6 @@ export default function BlogPage() {
           ) : (
             <p className="text-center text-muted-foreground py-10">No blog posts found.</p>
           )}
-          {/* TODO: Add Pagination component here */}
         </div>
         <aside className="md:col-span-3 space-y-6">
           <RecommendedPosts currentPostId={null} />
@@ -119,15 +118,12 @@ function CardSkeleton() {
     <div className="flex flex-col space-y-3 p-4 border rounded-lg shadow-lg">
       <Skeleton className="h-48 w-full rounded-md" />
       <div className="space-y-2">
-        <Skeleton className="h-4 w-1/4" /> {/* Category tag */}
-        <Skeleton className="h-6 w-3/4" /> {/* Title */}
-        <Skeleton className="h-3 w-1/2" /> {/* Date/Author */}
-        <Skeleton className="h-12 w-full" /> {/* Excerpt */}
-        <Skeleton className="h-8 w-1/3" /> {/* Read more button */}
+        <Skeleton className="h-4 w-1/4" />
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-8 w-1/3" />
       </div>
     </div>
   );
 }
-
-// export const revalidate = 60; // Revalidate this page every 60 seconds if using SSR/ISR
-// For client-side fetching with useEffect, revalidate is not directly used here.

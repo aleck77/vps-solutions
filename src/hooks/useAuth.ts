@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, type ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getAuthInstance } from '@/lib/firebase';
@@ -38,10 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth]); // Removed 'isAdmin' from dependencies as it's set within this effect
+
+  const providerValue = { user, loading, isAdmin };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin }}>
+    <AuthContext.Provider value={providerValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -61,13 +63,16 @@ export function useAdminAuth() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!context.loading && !context.user) {
-      router.push('/admin/login');
+    if (!context.loading) {
+      if (!context.user) {
+        router.push('/admin/login');
+      }
+      // Add admin role check here if needed:
+      // else if (!context.isAdmin) { // Future check for admin role
+      //   // toast({ title: "Access Denied", description: "You do not have permission to access this page.", variant: "destructive" });
+      //   router.push('/');
+      // }
     }
-    // Add admin role check here if needed:
-    // if (!context.loading && context.user && !context.isAdmin) {
-    //   router.push('/'); // or some 'unauthorized' page
-    // }
   }, [context.user, context.loading, context.isAdmin, router]);
 
   return context;

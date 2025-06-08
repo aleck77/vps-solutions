@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -8,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { seedDatabaseAction } from '@/app/actions/adminActions'; // Import the server action
 
 export default function AdminDashboardPage() {
   const { user, loading } = useAuth();
   const auth = getAuthInstance();
   const router = useRouter();
   const { toast } = useToast();
+  const [isSeeding, setIsSeeding] = useState(false);
 
   console.log('[AdminDashboardPage] State update: user:', user, 'loading:', loading);
 
@@ -28,6 +31,23 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleSeedDatabase = async () => {
+    setIsSeeding(true);
+    try {
+      const result = await seedDatabaseAction();
+      if (result.success) {
+        toast({ title: 'Success!', description: result.message });
+      } else {
+        toast({ title: 'Error Seeding', description: result.message, variant: 'destructive' });
+      }
+    } catch (error: any) {
+      console.error('Error calling seedDatabaseAction:', error);
+      toast({ title: 'Operation Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   if (loading) {
     console.log('[AdminDashboardPage] Auth data is loading. Rendering loading message.');
     return (
@@ -38,13 +58,13 @@ export default function AdminDashboardPage() {
   }
 
   if (!user) {
-    // This should ideally not be reached if AdminRouteGuard is working and authContext updates correctly after login.
-    // If it is reached, it means user became null after being initially authenticated, or there's a race condition.
     console.log('[AdminDashboardPage] Auth data loaded, but no user found. Rendering user not found message.');
+    // This part should ideally not be reached if AdminRouteGuard is working correctly
+    // and already redirected to login. But as a fallback:
     return (
        <div className="flex min-h-screen items-center justify-center">
         <p className="text-xl font-semibold text-destructive">Admin Dashboard: User not found.</p>
-        <p className="text-muted-foreground">You might be redirected to login if authentication failed.</p>
+        <p className="text-muted-foreground">You might be redirected to login if authentication failed or is incomplete.</p>
       </div>
     );
   }
@@ -66,12 +86,13 @@ export default function AdminDashboardPage() {
             <h3 className="font-headline text-xl font-semibold">Database Operations</h3>
             <Button 
               variant="outline"
-              onClick={() => alert('Seed Database functionality to be implemented!')}
+              onClick={handleSeedDatabase}
+              disabled={isSeeding}
             >
-              Seed Database (Not Implemented)
+              {isSeeding ? 'Seeding...' : 'Seed Database'}
             </Button>
             <p className="text-sm text-muted-foreground">
-              This button will trigger the database seeding process. Ensure your Firestore rules allow admin writes.
+              This button will trigger the database seeding process. Check server console for logs.
             </p>
           </div>
 

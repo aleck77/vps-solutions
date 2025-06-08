@@ -1,7 +1,7 @@
 
 'use server';
 import { collection, doc, writeBatch, Timestamp, getDocs, query, limit } from 'firebase/firestore';
-import { firestore } from '@/lib/firebase'; // Ensure this path is correct
+import { db as firestore } from '@/lib/firebase'; // Corrected import: db as firestore
 import type { BlogPost, Category, BlogCategoryType } from '@/types';
 import { blogCategories } from '@/types'; // Import the actual array
 
@@ -95,7 +95,7 @@ export async function seedDatabase() {
   const postsQuery = query(postsCollection, limit(1));
   const postsSnapshot = await getDocs(postsQuery);
   if (!postsSnapshot.empty) {
-    console.log('Posts collection is not empty. Skipping posts seeding.');
+    console.log('[seedDatabase] Posts collection is not empty. Skipping posts seeding.');
   } else {
     const postsBatch = writeBatch(firestore);
     mockPostsData.forEach((postData) => {
@@ -111,14 +111,14 @@ export async function seedDatabase() {
       postsBatch.set(postRef, postToSeed);
     });
     await postsBatch.commit();
-    console.log(`${mockPostsData.length} posts have been seeded.`);
+    console.log(`[seedDatabase] ${mockPostsData.length} posts have been seeded.`);
   }
 
   // Check if categories collection is empty before seeding
   const categoriesQuery = query(categoriesCollection, limit(1));
   const categoriesSnapshot = await getDocs(categoriesQuery);
   if (!categoriesSnapshot.empty) {
-    console.log('Categories collection is not empty. Skipping categories seeding.');
+    console.log('[seedDatabase] Categories collection is not empty. Skipping categories seeding.');
   } else {
     const categoriesBatch = writeBatch(firestore);
     blogCategories.forEach((categoryName) => {
@@ -131,7 +131,7 @@ export async function seedDatabase() {
       categoriesBatch.set(categoryRef, categoryToSeed);
     });
     await categoriesBatch.commit();
-    console.log(`${blogCategories.length} categories have been seeded.`);
+    console.log(`[seedDatabase] ${blogCategories.length} categories have been seeded.`);
   }
 }
 

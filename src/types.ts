@@ -1,19 +1,20 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface BlogPost {
-  id?: string; // Firestore document ID, optional here as it's set by Firestore
+  id?: string; // Firestore document ID
   slug: string;
   title: string;
-  date: Timestamp; // Publication date
+  date: Date | Timestamp; // Changed to allow Date for client-side processing, Firestore will store Timestamp
   author: string;
-  category: string; // Should match a slug from Categories collection
+  category: string; // This will store the category SLUG
   excerpt: string;
   content: string;
   imageUrl: string;
   tags?: string[];
   published: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: Date | Timestamp;
+  updatedAt: Date | Timestamp;
 }
 
 export type BlogCategoryType = "AI" | "No-code" | "Webcode" | "Automation" | "Tools" | "Cloud Hosting";
@@ -41,3 +42,4 @@ export interface VPSPlan {
   priceMonthly: number;
   features: string[];
 }
+

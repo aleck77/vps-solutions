@@ -1,11 +1,41 @@
+
+'use client';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Cpu, HardDrive, Zap } from 'lucide-react';
 import { mockVpsPlans } from '@/data/vpsPlans';
+import { useEffect } from 'react';
+import { seedDatabase } from '@/lib/seed';
+import { testFirestoreConnection } from '@/lib/firestoreUtils'; // Added import
 
 export default function HomePage() {
+  useEffect(() => {
+    const checkConnectionAndSeed = async () => {
+      console.log("Testing Firestore connection...");
+      const connectionResult = await testFirestoreConnection();
+      if (connectionResult.success) {
+        console.log(connectionResult.message);
+        // If connection is successful, you can proceed with seeding.
+        // The call to seedDatabase() is intentionally left commented out.
+        // Please uncomment it MANUALLY when you are ready to seed.
+        // console.log("Attempting to seed database from HomePage...");
+        // try {
+        //   await seedDatabase(); 
+        //   console.log("Database seeding initiated or checked.");
+        // } catch (error) {
+        //   console.error("Error during seeding:", error);
+        // }
+      } else {
+        console.error("Firestore connection failed:", connectionResult.message);
+        // Handle connection failure (e.g., show an error to the user or prevent seeding)
+      }
+    };
+
+    checkConnectionAndSeed(); // Call the test function on component mount
+  }, []);
+
   return (
     <div className="space-y-16">
       {/* Hero Section */}

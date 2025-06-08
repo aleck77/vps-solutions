@@ -20,12 +20,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    // Ensure this is the correct place for serverActions based on your Next.js version
-    // For Next.js 14+, serverActions is often enabled by default or configured at the root.
-    // If serverActions is a root property:
-    // serverActions: true, 
-    // If it's under experimental:
-    // serverActions: true, // Or { bodySizeLimit: '2mb' } etc.
+    // serverActions: true, // serverActions is often enabled by default or configured at the root.
   },
   // For Next.js 14.0.4+ and 15+, allowedDevelopmentOrigins is a top-level property
   allowedDevelopmentOrigins: [

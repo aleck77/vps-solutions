@@ -8,7 +8,9 @@ import type { BlogPost } from '@/types';
 import { useEffect, useState } from 'react';
 import { getAllPublishedPosts } from '@/lib/firestoreBlog'; 
 import { Skeleton } from '@/components/ui/skeleton'; 
-import { useActionState, useFormStatus } from 'react-dom'; // Changed from useFormState
+// import { useFormState, useFormStatus } from 'react-dom'; // Changed from useFormState
+import { useActionState as useReactActionState } from 'react'; // Import from 'react' with an alias
+import { useFormStatus } from 'react-dom'; // useFormStatus is still from react-dom
 import { subscribeToNewsletter } from '@/app/actions/newsletterActions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,9 +20,9 @@ import { useToast } from '@/hooks/use-toast';
 function NewsletterForm() {
   const { toast } = useToast();
   const initialState = { message: '', error: false };
-  // Updated to useActionState
-  const [state, formAction, isPending] = useActionState(subscribeToNewsletter, initialState);
-  // const { pending } = useFormStatus(); // useFormStatus is for form elements, isPending from useActionState is for the action itself
+  // Updated to useActionState (now useReactActionState)
+  const [state, formAction, isPending] = useReactActionState(subscribeToNewsletter, initialState);
+  // const { pending } = useFormStatus(); // This would be for form elements, isPending from useActionState is for the action
   const [email, setEmail] = useState('');
 
   useEffect(() => {
@@ -66,6 +68,7 @@ export default function BlogPage() {
         setPosts(fetchedPosts);
       } catch (error) {
         console.error("Failed to fetch posts:", error);
+        // Optionally, set an error state here to display to the user
       }
       setIsLoading(false);
     }
@@ -99,8 +102,10 @@ export default function BlogPage() {
           ) : (
             <p className="text-center text-muted-foreground py-10">No blog posts found.</p>
           )}
+          {/* TODO: Add Pagination component here if many posts */}
         </div>
         <aside className="md:col-span-3 space-y-6">
+          {/* Consider fetching recommended posts from Firestore as well */}
           <RecommendedPosts currentPostId={null} />
           <div className="p-4 bg-muted rounded-lg shadow">
             <h3 className="font-semibold font-headline text-lg mb-2">Newsletter</h3>

@@ -1,11 +1,11 @@
 import PostCard from '@/components/blog/PostCard';
 import CategoryFilter from '@/components/blog/CategoryFilter';
-import { mockPosts } from '@/data/posts';
-import type { BlogPost, BlogCategory } from '@/types';
+import type { BlogPost } from '@/types'; // Removed unused BlogCategory as blogCategories is imported directly
 import { blogCategories } from '@/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
+import { getPostsByCategory } from '@/lib/firestoreBlog'; // Assuming this fetches from Firestore
 
 interface CategoryPageProps {
   params: {
@@ -13,22 +13,30 @@ interface CategoryPageProps {
   };
 }
 
-// Simulate fetching posts by category
-async function getPostsByCategory(categoryName: string): Promise<BlogPost[]> {
-  const normalizedCategoryName = categoryName.toLowerCase();
-  return mockPosts.filter(post => post.category.toLowerCase() === normalizedCategoryName);
-}
-
 export async function generateStaticParams() {
+  // Fetch categories from Firestore or use a predefined list
+  // For now, using the predefined list as in previous versions
   return blogCategories.map((category) => ({
-    categoryName: category.toLowerCase(),
+    categoryName: category.toLowerCase(), // Ensure slugs are lowercase
   }));
 }
 
+export async function generateMetadata({ params }: CategoryPageProps) {
+  const categoryName = params.categoryName;
+  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryName.toLowerCase()) || categoryName;
+  return {
+    title: `Blog Category: ${categoryTitle} | VHost Solutions`,
+    description: `Browse posts in the ${categoryTitle} category.`,
+  };
+}
+
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { categoryName } = params;
-  const posts = await getPostsByCategory(categoryName);
-  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryName) || categoryName;
+  // Directly use params.categoryName in the async call
+  const posts = await getPostsByCategory(params.categoryName.toLowerCase());
+
+  // After await, params.categoryName can be used for synchronous operations
+  const categoryNameForDisplay = params.categoryName;
+  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryNameForDisplay.toLowerCase()) || categoryNameForDisplay;
 
   return (
     <div className="space-y-12">
@@ -43,7 +51,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       
       <div className="grid md:grid-cols-12 gap-8">
         <div className="md:col-span-9">
-          <CategoryFilter currentCategory={categoryName} />
+          <CategoryFilter currentCategory={params.categoryName.toLowerCase()} />
           {posts.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post) => (
@@ -61,7 +69,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           {/* TODO: Add Pagination component here if many posts */}
         </div>
         <aside className="md:col-span-3 space-y-6">
-          <RecommendedPosts currentPostId={null} />
+          {/* Pass null or a relevant ID if applicable */}
+          <RecommendedPosts currentPostId={null} /> 
         </aside>
       </div>
     </div>

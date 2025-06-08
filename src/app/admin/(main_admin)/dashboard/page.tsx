@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useAuth } from '@/lib/authContext'; // Updated import path
+import { useAuth } from '@/lib/authContext';
 import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,12 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboardPage() {
-  const { user, loading } = useAuth(); // Assuming useAuth provides user and loading
+  const { user, loading } = useAuth();
   const auth = getAuthInstance();
   const router = useRouter();
   const { toast } = useToast();
+
+  console.log('[AdminDashboardPage] State update: user:', user, 'loading:', loading);
 
   const handleLogout = async () => {
     try {
@@ -27,33 +29,41 @@ export default function AdminDashboardPage() {
   };
 
   if (loading) {
-    return <p>Loading admin dashboard...</p>;
+    console.log('[AdminDashboardPage] Auth data is loading. Rendering loading message.');
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-xl font-semibold text-primary">Admin Dashboard: Loading user data...</p>
+      </div>
+    );
   }
 
-  // The check for user existence will be handled by AdminRouteGuard
-  // if (!user) {
-  //   return <p>Redirecting to login...</p>; 
-  // }
+  if (!user) {
+    // This should ideally not be reached if AdminRouteGuard is working and authContext updates correctly after login.
+    // If it is reached, it means user became null after being initially authenticated, or there's a race condition.
+    console.log('[AdminDashboardPage] Auth data loaded, but no user found. Rendering user not found message.');
+    return (
+       <div className="flex min-h-screen items-center justify-center">
+        <p className="text-xl font-semibold text-destructive">Admin Dashboard: User not found.</p>
+        <p className="text-muted-foreground">You might be redirected to login if authentication failed.</p>
+      </div>
+    );
+  }
 
+  console.log('[AdminDashboardPage] User is authenticated and data loaded. Rendering dashboard content for:', user.email);
   return (
     <div className="container mx-auto py-10">
-      <Card className="max-w-2xl mx-auto shadow-lg">
+      <Card className="mx-auto max-w-2xl shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-headline text-primary">Admin Dashboard</CardTitle>
+          <CardTitle className="font-headline text-3xl text-primary">Admin Dashboard</CardTitle>
           <CardDescription>Welcome to the VHost Solutions admin panel.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-lg">
-            {/* Using a generic message as 'user' from the minimal context is just 'null' */}
-            Hello, Admin! 
-            {/* {user?.email ? 
-              (<>Hello, <span className="font-semibold text-accent">{user.email}</span>!</>) : 
-              (<>Hello, Admin!</>)
-            } */}
+            Hello, <span className="font-semibold text-accent">{user.email}</span>!
           </p>
           
           <div className="space-y-2">
-            <h3 className="text-xl font-semibold font-headline">Database Operations</h3>
+            <h3 className="font-headline text-xl font-semibold">Database Operations</h3>
             <Button 
               variant="outline"
               onClick={() => alert('Seed Database functionality to be implemented!')}

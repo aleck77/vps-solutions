@@ -1,5 +1,6 @@
+
 import Link from 'next/link';
-import { Server, Briefcase, Newspaper, Users, Mail, Menu, X } from 'lucide-react';
+import { Server, Briefcase, Newspaper, Users, Mail, Menu, X, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
 import * as React from 'react';
@@ -10,6 +11,7 @@ const navLinks = [
   { href: '/order', label: 'Order VPS', icon: <Briefcase className="h-5 w-5" /> },
   { href: '/about', label: 'About Us', icon: <Users className="h-5 w-5" /> },
   { href: '/contact', label: 'Contact', icon: <Mail className="h-5 w-5" /> },
+  { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> }, // Added Admin link
 ];
 
 export default function Header() {
@@ -23,7 +25,7 @@ export default function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex space-x-4 items-center">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="text-foreground hover:text-primary transition-colors font-medium">
+            <Link key={link.label} href={link.href} className="text-foreground hover:text-primary transition-colors font-medium">
               {link.label}
             </Link>
           ))}
@@ -58,7 +60,7 @@ export default function Header() {
                 </div>
                 <nav className="flex flex-col space-y-4">
                   {navLinks.map((link) => (
-                    <SheetClose asChild key={link.href}>
+                    <SheetClose asChild key={link.label}>
                       <Link
                         href={link.href}
                         className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg"

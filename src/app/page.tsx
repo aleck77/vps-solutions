@@ -114,7 +114,7 @@ export default function HomePage() {
                 <CardContent className="flex-grow">
                   <p className="text-3xl font-bold mb-2">${plan.priceMonthly}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
                   <ul className="space-y-2 text-sm">
-                    {plan.features.slice(0,3).map((feature, index) => (
+                    {plan.features.slice(0, 3).map((feature, index) => (
                       <li key={index} className="flex items-center">
                         <CheckCircle className="h-4 w-4 text-accent mr-2" />
                         {feature}

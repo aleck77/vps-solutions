@@ -1,9 +1,11 @@
+
 import type { Metadata } from 'next';
 import { Inter, Poppins } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/hooks/useAuth'; // Import AuthProvider
 
 const inter = Inter({
   subsets: ['latin'],
@@ -13,7 +15,7 @@ const inter = Inter({
 const poppins = Poppins({
   subsets: ['latin'],
   variable: '--font-poppins',
-  weight: ['400', '500', '600', '700'], // Added common weights for headlines
+  weight: ['400', '500', '600', '700'], 
 });
 
 export const metadata: Metadata = {
@@ -29,15 +31,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
       <head>
-        {/* Removed direct Google Font links, next/font handles this */}
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow container mx-auto px-4 py-8">
-          {children}
-        </main>
-        <Footer />
-        <Toaster />
+        <AuthProvider> {/* Wrap with AuthProvider */}
+          <Header />
+          <main className="flex-grow container mx-auto px-4 py-8">
+            {children}
+          </main>
+          <Footer />
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

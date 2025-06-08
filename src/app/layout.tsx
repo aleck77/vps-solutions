@@ -1,22 +1,12 @@
 
 import type { Metadata } from 'next';
-import { Inter, Poppins } from 'next/font/google';
+// Removed Inter and Poppins imports as they are now commented out in globals.css
+// and tailwind.config.ts uses system fallbacks.
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/lib/authContext'; // Updated import path
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-});
-
-const poppins = Poppins({
-  subsets: ['latin'],
-  variable: '--font-poppins',
-  weight: ['400', '500', '600', '700'], 
-});
+import { AuthProvider } from '@/lib/authContext';
 
 export const metadata: Metadata = {
   title: 'VHost Solutions - Premier VPS Hosting',
@@ -29,11 +19,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+    <html lang="en">
       <head>
       </head>
-      <body className="font-body antialiased flex flex-col min-h-screen">
-        <AuthProvider> {/* Wrap with AuthProvider */}
+      {/* font-body and font-headline are applied via globals.css using Tailwind's @layer base */}
+      <body className="antialiased flex flex-col min-h-screen">
+        <AuthProvider>
           <Header />
           <main className="flex-grow container mx-auto px-4 py-8">
             {children}

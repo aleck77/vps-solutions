@@ -1,34 +1,95 @@
-// src/lib/authContext.tsx
+
 'use client';
 
+import type { User } from 'firebase/auth';
 import type { ReactNode } from 'react';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { getAuthInstance } from '@/lib/firebase'; 
+import { onAuthStateChanged } from 'firebase/auth';
 
-// 1. Define the context type
+console.log('[AuthProvider FileLevel] Context file parsing started. This should appear once per client bundle.');
+
 interface AuthContextType {
-  // Minimal context, can be expanded later
-  user: null; // Placeholder
+  user: User | null;
   loading: boolean;
   isAdmin: boolean;
 }
 
-// 2. Create the context with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 3. Create the AuthProvider component
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export function AuthProvider({ children }: { children: ReactNode }) {
+  console.log('%c[AuthProvider Component] Instance created/rendering starts.', 'color: blue; font-weight: bold;');
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authInstance, setAuthInstance] = useState<ReturnType<typeof getAuthInstance> | null>(null);
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  // Simulate a basic provider value
-  const providerValue: AuthContextType = {
-    user: null,
-    loading: true,
-    isAdmin: false,
-  };
+  useEffect(() => {
+    console.log('%c[AuthProvider Effect1] Mount: Initializing auth instance...', 'color: green;');
+    let isMounted = true;
+    try {
+      const instance = getAuthInstance(); // Get instance from firebase.ts
+      if (isMounted) {
+        setAuthInstance(instance);
+        console.log('%c[AuthProvider Effect1] authInstance successfully set in state.', 'color: green;');
+      }
+    } catch (error) {
+      console.error("[AuthProvider Effect1] CRITICAL ERROR initializing auth instance:", error);
+      if (isMounted) {
+        setLoading(false); // Ensure loading is false if auth init fails critically
+        console.log('%c[AuthProvider Effect1] Set loading to false due to auth instance init error.', 'color: red;');
+      }
+    }
+    return () => { 
+      isMounted = false;
+      console.log('%c[AuthProvider Effect1] Unmount.', 'color: green;');
+    };
+  }, []); // Runs once on mount
 
-  // This is the line that consistently causes a parsing error
+  useEffect(() => {
+    console.log(`%c[AuthProvider Effect2] Dependency change or mount. authInstance is: ${authInstance ? 'DEFINED' : 'NULL'}. Current loading state: ${loading}`, 'color: purple;');
+    
+    if (!authInstance) {
+      console.log('%c[AuthProvider Effect2] authInstance is NULL, cannot subscribe to onAuthStateChanged yet.', 'color: orange;');
+      // If authInstance is still null after a bit, it means Effect1 failed or getAuthInstance() is problematic
+      const timer = setTimeout(() => {
+        // Check loading state before forcing it to false to avoid redundant updates if it resolved some other way.
+        if (authInstance === null && loading) { 
+            console.warn('[AuthProvider Effect2 TIMEOUT] authInstance still null after 3s, forcing loading to false.');
+            setLoading(false);
+        }
+      }, 3000); // 3 second timeout
+      return () => {
+        console.log('%c[AuthProvider Effect2] Cleanup for timeout.', 'color: purple;');
+        clearTimeout(timer);
+      };
+    }
+
+    console.log('%c[AuthProvider Effect2] authInstance is DEFINED. Subscribing to onAuthStateChanged...', 'color: purple;');
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
+      console.log(`%c[AuthProvider Effect2] onAuthStateChanged Fired! currentUser: ${currentUser ? currentUser.email : null}`, 'color: blue; font-weight: bold;');
+      setUser(currentUser);
+      if (currentUser) {
+        // TODO: Implement proper admin check via custom claims
+        // console.log('[AuthProvider Effect2] User is present. Setting isAdmin to true (placeholder).');
+        setIsAdmin(true); // Placeholder
+      } else {
+        // console.log('[AuthProvider Effect2] User is null. Setting isAdmin to false.');
+        setIsAdmin(false);
+      }
+      console.log('%c[AuthProvider Effect2] Calling setLoading(false) from onAuthStateChanged.', 'color: blue; font-weight: bold;');
+      setLoading(false);
+    });
+
+    return () => {
+      console.log('%c[AuthProvider Effect2] Unsubscribing from onAuthStateChanged.', 'color: purple;');
+      unsubscribe();
+    };
+  }, [authInstance, loading]); // Added loading to dependency list for the timeout logic, and to re-evaluate if loading changes externally.
+
+  const providerValue = { user, loading, isAdmin };
+  // console.log(`[AuthProvider Component] Returning provider. Loading: ${loading}, User: ${user ? user.email : null}`);
+
   return (
     <AuthContext.Provider value={providerValue}>
       {children}
@@ -36,7 +97,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-// 4. Create the useAuth hook
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -45,10 +105,7 @@ export function useAuth() {
   return context;
 }
 
-// 5. Placeholder for useAdminAuth
 export function useAdminAuth() {
   const context = useAuth();
-  // Basic implementation, can be expanded
-  // In a real app, isAdmin would come from user claims or another source
-  return { ...context, isAdminUser: false }; // Dummy isAdminUser
+  return { ...context, isAdminUser: context.isAdmin };
 }

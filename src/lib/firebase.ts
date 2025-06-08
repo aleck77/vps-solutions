@@ -2,7 +2,7 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getAuth, type Auth } from 'firebase/auth'; // Import Firebase Auth
+import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,71 +16,55 @@ const firebaseConfig = {
 
 console.log("[firebase.ts] LOG: firebaseConfig.projectId at module load:", firebaseConfig.projectId);
 
-let appInstance: FirebaseApp | null = null;
-let authInstance: Auth | null = null;
-let firestoreInstance: Firestore | null = null;
+let app: FirebaseApp;
+let authModuleInstance: Auth; // Renamed to avoid conflict with local 'auth' variables
+let firestoreModuleInstance: Firestore; // Renamed
 
-function initializeFirebase(): void {
-  if (!appInstance) {
-    if (!firebaseConfig.projectId) {
-      const errorMessage = "[firebase.ts] CRITICAL_ERROR: Firebase projectId is UNDEFINED in firebaseConfig. Cannot initialize app. Check .env variables.";
-      console.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    if (getApps().length === 0) {
-      console.log("[firebase.ts] LOG: Initializing new Firebase app...");
-      appInstance = initializeApp(firebaseConfig);
-      console.log(`[firebase.ts] LOG: New Firebase app initialized. Project ID from app.options: ${appInstance.options.projectId}`);
-    } else {
-      console.log("[firebase.ts] LOG: Getting existing Firebase app...");
-      appInstance = getApp();
-      console.log(`[firebase.ts] LOG: Existing Firebase app retrieved. Project ID from app.options: ${appInstance.options.projectId}`);
-    }
+// Ensure Firebase app is initialized (primarily for client-side)
+if (typeof window !== 'undefined') {
+  if (getApps().length === 0) {
+    console.log("[firebase.ts] Initializing new Firebase app (client-side)...");
+    app = initializeApp(firebaseConfig);
+    console.log(`[firebase.ts] New Firebase app initialized. Project ID: ${app.options.projectId}`);
+  } else {
+    console.log("[firebase.ts] Getting existing Firebase app (client-side)...");
+    app = getApp();
+    console.log(`[firebase.ts] Existing Firebase app retrieved. Project ID: ${app.options.projectId}`);
+  }
+} else {
+  // Handle server-side/build time initialization if necessary
+  // This ensures 'app' is defined if this module is imported on the server during build
+  if (getApps().length === 0) {
+    console.log("[firebase.ts] Initializing Firebase app (server-side/build context)...");
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
   }
 }
 
-// Initialize app on module load to ensure it's ready
-try {
-  initializeFirebase();
-} catch (error) {
-  console.error("[firebase.ts] CRITICAL_ERROR: Failed to initialize Firebase app at module level:", error);
-}
+// Initialize services once app is guaranteed to be initialized
+authModuleInstance = getAuth(app);
+firestoreModuleInstance = getFirestore(app);
 
-// Function to get Firestore instance
+console.log("[firebase.ts] Firebase services (auth, firestore) module instances initialized/retrieved.");
+
 export function getDb(): Firestore {
-  if (!appInstance) {
-    initializeFirebase(); // Ensure app is initialized
+  if (!firestoreModuleInstance) {
+    console.warn("[firebase.ts] Firestore module instance not available at getDb call, re-initializing from app.");
+    firestoreModuleInstance = getFirestore(app);
   }
-  if (!appInstance) { // Double check after attempt
-      const errorMsg = "[firebase.ts] CRITICAL_ERROR: getDb() called but Firebase app is not properly initialized.";
-      console.error(errorMsg);
-      throw new Error(errorMsg);
-  }
-  if (!firestoreInstance) {
-    firestoreInstance = getFirestore(appInstance);
-  }
-  return firestoreInstance;
+  return firestoreModuleInstance;
 }
 
-// Function to get Auth instance
 export function getAuthInstance(): Auth {
-  if (!appInstance) {
-    initializeFirebase(); // Ensure app is initialized
+  if (!authModuleInstance) {
+    console.warn("[firebase.ts] Auth module instance not available at getAuthInstance call, re-initializing from app.");
+    authModuleInstance = getAuth(app);
   }
-   if (!appInstance) { // Double check after attempt
-      const errorMsg = "[firebase.ts] CRITICAL_ERROR: getAuthInstance() called but Firebase app is not properly initialized.";
-      console.error(errorMsg);
-      throw new Error(errorMsg);
-  }
-  if (!authInstance) {
-    authInstance = getAuth(appInstance);
-  }
-  return authInstance;
+  return authModuleInstance;
 }
 
-// For modules that might still expect a direct import of 'firestore' and 'app'
-// These are initialized once when the module loads.
-export const app = appInstance; // Export the app instance initialized at module load
-export const firestore = firestoreInstance || (appInstance ? getFirestore(appInstance) : {} as Firestore);
-export const auth = authInstance || (appInstance ? getAuth(appInstance) : {} as Auth);
+// Exporting the initialized instances directly for convenience
+// 'firebaseAuth' is an alias for authModuleInstance to avoid common variable name 'auth' conflicts
+// 'db' is an alias for firestoreModuleInstance
+export { app, authModuleInstance as firebaseAuth, firestoreModuleInstance as db };

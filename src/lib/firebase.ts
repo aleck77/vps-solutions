@@ -1,9 +1,8 @@
+
 // src/lib/firebase.ts
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
-import { getAnalytics, Analytics, isSupported } from "firebase/analytics";
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+// Temporarily remove other imports like getAuth, getStorage, getAnalytics to simplify
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,40 +15,33 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let auth: Auth;
 let firestore: Firestore;
-let storage: FirebaseStorage;
-let analytics: Analytics | undefined;
 
-if (typeof window !== 'undefined' && !getApps().length) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  firestore = getFirestore(app);
-  storage = getStorage(app);
-  if (isSupported()) {
-    analytics = getAnalytics(app);
+try {
+  if (!firebaseConfig.projectId) {
+    console.error("CRITICAL_ERROR_FIREBASE_INIT: Firebase projectId is missing in firebaseConfig. Check .env and NEXT_PUBLIC_FIREBASE_PROJECT_ID.");
+    // Assign dummy objects to prevent further errors down the line if possible, though this app won't work
+    app = {} as FirebaseApp;
+    firestore = {} as Firestore;
+  } else {
+    console.log("[firebase.ts] Initializing Firebase app...");
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    console.log(`[firebase.ts] Firebase app initialized. Project ID: ${app.options.projectId}`);
+    
+    firestore = getFirestore(app);
+    if (firestore && typeof firestore.settings === 'function') { // A basic check for a valid Firestore instance
+      console.log("[firebase.ts] Firestore instance appears VALID.");
+    } else {
+      console.error("CRITICAL_ERROR_FIREBASE_INIT: Firestore instance appears INVALID after getFirestore(app).");
+      firestore = {} as Firestore; // Assign dummy to prevent hard crash if possible
+    }
   }
-} else if (getApps().length > 0) {
-  app = getApp();
-  auth = getAuth(app);
-  firestore = getFirestore(app);
-  storage = getStorage(app);
-  if (typeof window !== 'undefined' && isSupported()) {
-    analytics = getAnalytics(app);
-  }
-} else {
-  // Fallback for server-side rendering or environments where Firebase might not be fully initialized.
-  // This helps prevent errors during build or server-side operations if Firebase isn't strictly needed there.
-  // You might need a more robust solution if you intend to use Firebase Admin SDK for SSR.
-  class MockAuth {}
-  class MockFirestore {}
-  class MockStorage {}
-  
-  app = {} as FirebaseApp; // Provide a minimal mock or handle appropriately
-  auth = new MockAuth() as Auth;
-  firestore = new MockFirestore() as Firestore;
-  storage = new MockStorage() as FirebaseStorage;
+} catch (error) {
+  console.error("CRITICAL_ERROR_FIREBASE_INIT: Error during Firebase initialization in firebase.ts:", error);
+  app = {} as FirebaseApp;
+  firestore = {} as Firestore;
 }
 
-
-export { app, auth, firestore, storage, analytics };
+// Export only app and firestore for now for debugging.
+// We will add back auth, storage, analytics later.
+export { app, firestore };

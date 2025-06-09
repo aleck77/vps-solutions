@@ -1,34 +1,37 @@
 
 import PostCard from '@/components/blog/PostCard';
 import CategoryFilter from '@/components/blog/CategoryFilter';
-import type { BlogPost } from '@/types'; // Removed unused BlogCategory as blogCategories is imported directly
+import type { BlogPost } from '@/types';
 import { blogCategories } from '@/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
-import { getPostsByCategory } from '@/lib/firestoreBlog'; // Assuming this fetches from Firestore
-import { notFound } from 'next/navigation'; // Ensure notFound is imported
+import { getPostsByCategory } from '@/lib/firestoreBlog';
+import { notFound } from 'next/navigation';
 
 interface CategoryPageProps {
   params: {
-    categoryName: string;
+    categoryName?: string; // Make categoryName optional in type to reflect reality
   };
 }
 
 export async function generateStaticParams() {
-  // Fetch categories from Firestore or use a predefined list
-  // For now, using the predefined list as in previous versions
   return blogCategories.map((category) => ({
-    categoryName: category.toLowerCase(), // Ensure slugs are lowercase
+    categoryName: category.toLowerCase(),
   }));
 }
 
 export async function generateMetadata({ params }: CategoryPageProps) {
-  if (!params || typeof params.categoryName !== 'string') {
-    return { title: 'Invalid Category | VHost Solutions Blog' };
+  const categoryNameParam = params?.categoryName;
+
+  if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
+    return {
+      title: 'Invalid Category | VHost Solutions Blog',
+      description: 'The requested blog category was not found or is invalid.',
+    };
   }
-  const categoryName = params.categoryName;
-  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryName.toLowerCase()) || categoryName;
+
+  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryNameParam.toLowerCase()) || categoryNameParam;
   return {
     title: `Blog Category: ${categoryTitle} | VHost Solutions`,
     description: `Browse posts in the ${categoryTitle} category.`,
@@ -36,16 +39,19 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  if (!params || !params.categoryName || typeof params.categoryName !== 'string') {
+  const categoryNameParam = params?.categoryName;
+
+  if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
     console.error('[CategoryPage] Invalid or missing categoryName in params:', params);
     notFound();
+    return null; // Explicitly return null after calling notFound
   }
 
-  const categorySlug = params.categoryName.toLowerCase();
+  const categorySlug = categoryNameParam.toLowerCase();
   const posts = await getPostsByCategory(categorySlug);
 
-  // Use categorySlug for display logic as well to ensure consistency
-  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categorySlug) || params.categoryName;
+  // Use the validated categoryNameParam for display logic
+  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categorySlug) || categoryNameParam;
 
   return (
     <div className="space-y-12">
@@ -78,7 +84,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           {/* TODO: Add Pagination component here if many posts */}
         </div>
         <aside className="md:col-span-3 space-y-6">
-          {/* Pass null or a relevant ID if applicable */}
           <RecommendedPosts currentPostId={null} /> 
         </aside>
       </div>

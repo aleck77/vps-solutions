@@ -20,10 +20,17 @@ const nextConfig: NextConfig = {
     ],
   },
  experimental: {
-    // Keeping allowedDevelopmentOrigins commented out as it might not be the primary issue
-    // and can cause "Unrecognized key(s)" if not configured correctly for the specific Next.js version/environment.
-    // We can revisit if CORS or WebSocket errors become primary blockers after auth is fixed.
-    // allowedDevelopmentOrigins: ["http://localhost:9002", "https://*.cloudworkstations.dev"],
+    // Разрешаем источники для HMR в среде IDX (Firebase Studio / Cloud Workstations)
+    // Добавляем как wildcard, так и специфичные порты/домены, которые могут использоваться
+    allowedDevelopmentOrigins: [
+        "http://localhost:3000", // Стандартный Next.js порт
+        "http://localhost:9002", // Порт, который мы используем в IDX
+        "https://*.cloudworkstations.dev", // Wildcard для Cloud Workstations
+        "https://*.googleusercontent.com", // Также может использоваться для превью
+        // Можно добавить и более конкретные, если они известны и стабильны:
+        // "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
+        // "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"
+    ],
   },
 };
 

@@ -9,7 +9,7 @@ import {
   SheetClose,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
+  SheetDescription, // Убедимся, что импортировано
 } from '@/components/ui/sheet';
 import * as React from 'react';
 
@@ -22,6 +22,7 @@ const navLinks = [
   { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> },
 ];
 
+// ID для связи SheetContent и SheetDescription
 const mobileMenuDescriptionId = "mobile-menu-description";
 
 export default function Header() {
@@ -53,10 +54,10 @@ export default function Header() {
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="right" 
+            <SheetContent
+              side="right"
               className="w-[300px] sm:w-[400px] bg-card p-0"
-              aria-describedby={mobileMenuDescriptionId}
+              aria-describedby={mobileMenuDescriptionId} // Связываем с описанием
             >
               <SheetHeader className="p-6 pb-4 border-b">
                 <div className="flex justify-between items-center">
@@ -72,8 +73,9 @@ export default function Header() {
                     </Button>
                   </SheetClose>
                 </div>
+                {/* Добавляем SheetDescription для доступности */}
                 <SheetDescription id={mobileMenuDescriptionId} className="sr-only">
-                  Mobile navigation menu
+                  Mobile navigation menu for VHost Solutions. Contains links to Home, Blog, Order VPS, About Us, Contact, and Admin pages.
                 </SheetDescription>
               </SheetHeader>
               <div className="p-6">

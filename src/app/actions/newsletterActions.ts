@@ -2,7 +2,7 @@
 'use server';
 
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
-import { firestore } from '@/lib/firebase';
+import { db as firestore } from '@/lib/firebase'; // Changed import: db as firestore
 import type { Subscriber } from '@/types';
 import { z } from 'zod';
 

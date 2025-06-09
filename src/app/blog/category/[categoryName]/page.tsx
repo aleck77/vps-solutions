@@ -11,18 +11,18 @@ import { notFound } from 'next/navigation';
 
 interface CategoryPageProps {
   params: {
-    categoryName?: string; // Make categoryName optional in type to reflect reality
+    categoryName?: string; // Оставляем опциональным для типа, но проверяем ниже
   };
 }
 
 export async function generateStaticParams() {
   return blogCategories.map((category) => ({
-    categoryName: category.toLowerCase(),
+    categoryName: category.toLowerCase(), // Убедимся, что слаги в нижнем регистре
   }));
 }
 
 export async function generateMetadata({ params }: CategoryPageProps) {
-  const categoryNameParam = params?.categoryName;
+  const categoryNameParam = params.categoryName; // Прямой доступ
 
   if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
     return {
@@ -39,18 +39,17 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const categoryNameParam = params?.categoryName;
+  const categoryNameParam = params.categoryName; // Прямой доступ
 
   if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
     console.error('[CategoryPage] Invalid or missing categoryName in params:', params);
     notFound();
-    return null; // Explicitly return null after calling notFound
+    return null; // ВАЖНО: Явный return null после notFound
   }
 
   const categorySlug = categoryNameParam.toLowerCase();
   const posts = await getPostsByCategory(categorySlug);
 
-  // Use the validated categoryNameParam for display logic
   const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categorySlug) || categoryNameParam;
 
   return (

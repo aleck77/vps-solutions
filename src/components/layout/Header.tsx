@@ -7,9 +7,9 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
-  SheetHeader, // Убедимся, что SheetHeader импортирован
+  SheetHeader,
   SheetTitle,
-  SheetDescription, // Добавлен импорт SheetDescription
+  SheetDescription,
 } from '@/components/ui/sheet';
 import * as React from 'react';
 
@@ -21,6 +21,8 @@ const navLinks = [
   { href: '/contact', label: 'Contact', icon: <Mail className="h-5 w-5" /> },
   { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> },
 ];
+
+const mobileMenuDescriptionId = "mobile-menu-description";
 
 export default function Header() {
   return (
@@ -51,8 +53,12 @@ export default function Header() {
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-card p-0"> {/* Убрали padding из SheetContent, т.к. он будет в SheetHeader и в div для контента */}
-              <SheetHeader className="p-6 pb-4 border-b"> {/* Добавлен padding и border-b для SheetHeader */}
+            <SheetContent 
+              side="right" 
+              className="w-[300px] sm:w-[400px] bg-card p-0"
+              aria-describedby={mobileMenuDescriptionId}
+            >
+              <SheetHeader className="p-6 pb-4 border-b">
                 <div className="flex justify-between items-center">
                   <SheetTitle asChild>
                     <Link href="/" className="text-xl font-headline font-bold text-primary">
@@ -66,9 +72,11 @@ export default function Header() {
                     </Button>
                   </SheetClose>
                 </div>
-                <SheetDescription className="sr-only">Mobile navigation menu</SheetDescription>
+                <SheetDescription id={mobileMenuDescriptionId} className="sr-only">
+                  Mobile navigation menu
+                </SheetDescription>
               </SheetHeader>
-              <div className="p-6"> {/* Обернули контент навигации в div с padding */}
+              <div className="p-6">
                 <nav className="flex flex-col space-y-3">
                   {navLinks.map((link) => (
                     <SheetClose asChild key={link.label}>

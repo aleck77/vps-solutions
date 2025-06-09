@@ -1,3 +1,4 @@
+
 import PostCard from '@/components/blog/PostCard';
 import CategoryFilter from '@/components/blog/CategoryFilter';
 import type { BlogPost } from '@/types'; // Removed unused BlogCategory as blogCategories is imported directly
@@ -6,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { getPostsByCategory } from '@/lib/firestoreBlog'; // Assuming this fetches from Firestore
+import { notFound } from 'next/navigation'; // Ensure notFound is imported
 
 interface CategoryPageProps {
   params: {
@@ -22,6 +24,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: CategoryPageProps) {
+  if (!params || typeof params.categoryName !== 'string') {
+    return { title: 'Invalid Category | VHost Solutions Blog' };
+  }
   const categoryName = params.categoryName;
   const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryName.toLowerCase()) || categoryName;
   return {
@@ -31,12 +36,16 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  // Directly use params.categoryName in the async call
-  const posts = await getPostsByCategory(params.categoryName.toLowerCase());
+  if (!params || !params.categoryName || typeof params.categoryName !== 'string') {
+    console.error('[CategoryPage] Invalid or missing categoryName in params:', params);
+    notFound();
+  }
 
-  // After await, params.categoryName can be used for synchronous operations
-  const categoryNameForDisplay = params.categoryName;
-  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryNameForDisplay.toLowerCase()) || categoryNameForDisplay;
+  const categorySlug = params.categoryName.toLowerCase();
+  const posts = await getPostsByCategory(categorySlug);
+
+  // Use categorySlug for display logic as well to ensure consistency
+  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categorySlug) || params.categoryName;
 
   return (
     <div className="space-y-12">
@@ -51,7 +60,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       
       <div className="grid md:grid-cols-12 gap-8">
         <div className="md:col-span-9">
-          <CategoryFilter currentCategory={params.categoryName.toLowerCase()} />
+          <CategoryFilter currentCategory={categorySlug} />
           {posts.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post) => (

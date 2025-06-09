@@ -9,15 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { seedDatabaseAction, setUserAdminClaimAction } from '@/app/actions/adminActions'; // Import actions
+import { seedDatabaseAction } from '@/app/actions/adminActions'; // setUserAdminClaimAction removed as button is removed
 
 export default function AdminDashboardPage() {
-  const { user, loading, isAdmin } = useAuth(); // Added isAdmin
+  const { user, loading, isAdmin } = useAuth();
   const auth = getAuthInstance();
   const router = useRouter();
   const { toast } = useToast();
   const [isSeeding, setIsSeeding] = useState(false);
-  const [isMakingAdmin, setIsMakingAdmin] = useState(false);
+  // Removed isMakingAdmin state as the button is removed
 
   console.log('[AdminDashboardPage] State update: user:', user, 'loading:', loading, 'isAdmin:', isAdmin);
 
@@ -51,33 +51,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleMakeAdmin = async () => {
-    // IMPORTANT: Replace 'YOUR_USER_UID_HERE' with the actual UID of the user you want to make admin.
-    // You can get this from the Firebase console > Authentication.
-    const uidToMakeAdmin = user?.uid; // Using current logged-in user's UID for simplicity now
-
-    if (!uidToMakeAdmin) {
-      toast({ title: 'Error', description: 'User UID not found. Cannot set admin claim.', variant: 'destructive' });
-      return;
-    }
-    setIsMakingAdmin(true);
-    console.log(`[AdminDashboardPage] Attempting to make user ${uidToMakeAdmin} an admin...`);
-    try {
-      const result = await setUserAdminClaimAction(uidToMakeAdmin);
-      console.log('[AdminDashboardPage] setUserAdminClaimAction result:', result);
-      if (result.success) {
-        toast({ title: 'Success!', description: `${result.message} Please log out and log back in for changes to take effect.` });
-      } else {
-        toast({ title: 'Error Setting Admin Claim', description: result.message, variant: 'destructive' });
-      }
-    } catch (error: any) {
-      console.error('[AdminDashboardPage] Error calling setUserAdminClaimAction:', error);
-      toast({ title: 'Operation Failed', description: error.message || 'An unexpected error occurred while setting admin claim.', variant: 'destructive' });
-    } finally {
-      setIsMakingAdmin(false);
-    }
-  };
-
+  // handleMakeAdmin function removed as the button is removed
 
   if (loading) {
     console.log('[AdminDashboardPage] Auth data is loading. Rendering loading message.');
@@ -118,30 +92,17 @@ export default function AdminDashboardPage() {
               <Button 
                 variant="outline"
                 onClick={handleSeedDatabase}
-                disabled={isSeeding}
+                disabled={isSeeding || !isAdmin} // Disable if not admin
                 className="mt-2"
               >
                 {isSeeding ? 'Seeding...' : 'Seed Database'}
               </Button>
               <p className="text-sm text-muted-foreground mt-1">
-                This button will trigger the database seeding process. Check server console for logs.
+                This button will trigger the database seeding process. (Requires admin rights)
               </p>
             </div>
 
-            <div>
-              <h3 className="font-headline text-xl font-semibold">Admin Rights (Test)</h3>
-              <Button
-                variant="outline"
-                onClick={handleMakeAdmin}
-                disabled={isMakingAdmin}
-                className="mt-2"
-              >
-                {isMakingAdmin ? 'Processing...' : 'Make Current User Admin (Test)'}
-              </Button>
-              <p className="text-sm text-muted-foreground mt-1">
-                Sets an admin claim for the currently logged-in user ({user.email}). You'll need to log out and log back in.
-              </p>
-            </div>
+            {/* Section for "Make Admin" button removed */}
           </div>
 
           <Button onClick={handleLogout} variant="destructive" className="w-full sm:w-auto mt-4">

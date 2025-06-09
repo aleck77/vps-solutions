@@ -6,10 +6,10 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose,
+  SheetClose, // SheetClose используется для элементов навигации
   SheetHeader,
   SheetTitle,
-  SheetDescription, // Убедимся, что импортировано
+  SheetDescription,
 } from '@/components/ui/sheet';
 import * as React from 'react';
 
@@ -57,23 +57,17 @@ export default function Header() {
             <SheetContent
               side="right"
               className="w-[300px] sm:w-[400px] bg-card p-0"
-              aria-describedby={mobileMenuDescriptionId} // Связываем с описанием
+              aria-describedby={mobileMenuDescriptionId} 
             >
               <SheetHeader className="p-6 pb-4 border-b">
-                <div className="flex justify-between items-center">
-                  <SheetTitle asChild>
-                    <Link href="/" className="text-xl font-headline font-bold text-primary">
-                      VHost Solutions
-                    </Link>
-                  </SheetTitle>
-                  <SheetClose asChild>
-                    <Button variant="ghost" size="icon">
-                      <X className="h-6 w-6" />
-                      <span className="sr-only">Close menu</span>
-                    </Button>
-                  </SheetClose>
-                </div>
-                {/* Добавляем SheetDescription для доступности */}
+                {/* Убрали div flex justify-between, так как явный SheetClose удален.
+                    Стандартный SheetClose от SheetContent сам себя позиционирует. */}
+                <SheetTitle asChild>
+                  <Link href="/" className="text-xl font-headline font-bold text-primary">
+                    VHost Solutions
+                  </Link>
+                </SheetTitle>
+                {/* SheetDescription для доступности */}
                 <SheetDescription id={mobileMenuDescriptionId} className="sr-only">
                   Mobile navigation menu for VHost Solutions. Contains links to Home, Blog, Order VPS, About Us, Contact, and Admin pages.
                 </SheetDescription>

@@ -8,21 +8,22 @@ import { Button } from '@/components/ui/button';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { getPostsByCategory } from '@/lib/firestoreBlog';
 import { notFound } from 'next/navigation';
+import { slugify } from '@/lib/utils'; // Imported slugify
 
 interface CategoryPageProps {
   params: {
-    categoryName?: string; // Оставляем опциональным для типа, но проверяем ниже
+    categoryName: string; 
   };
 }
 
 export async function generateStaticParams() {
   return blogCategories.map((category) => ({
-    categoryName: category.toLowerCase(), // Убедимся, что слаги в нижнем регистре
+    categoryName: slugify(category), // Use slugify here
   }));
 }
 
 export async function generateMetadata({ params }: CategoryPageProps) {
-  const categoryNameParam = params.categoryName; // Прямой доступ
+  const categoryNameParam = params.categoryName; 
 
   if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
     return {
@@ -30,8 +31,11 @@ export async function generateMetadata({ params }: CategoryPageProps) {
       description: 'The requested blog category was not found or is invalid.',
     };
   }
+  
+  // Find original category name by comparing slugified versions
+  const originalCategory = blogCategories.find(cat => slugify(cat) === categoryNameParam);
+  const categoryTitle = originalCategory || categoryNameParam; // Fallback to param if no exact match
 
-  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categoryNameParam.toLowerCase()) || categoryNameParam;
   return {
     title: `Blog Category: ${categoryTitle} | VHost Solutions`,
     description: `Browse posts in the ${categoryTitle} category.`,
@@ -39,18 +43,20 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const categoryNameParam = params.categoryName; // Прямой доступ
+  const categoryNameParam = params.categoryName; 
 
   if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
     console.error('[CategoryPage] Invalid or missing categoryName in params:', params);
     notFound();
-    return null; // ВАЖНО: Явный return null после notFound
+    return null; 
   }
 
-  const categorySlug = categoryNameParam.toLowerCase();
+  const categorySlug = categoryNameParam; // categoryNameParam is already a slug from generateStaticParams
   const posts = await getPostsByCategory(categorySlug);
 
-  const categoryTitle = blogCategories.find(cat => cat.toLowerCase() === categorySlug) || categoryNameParam;
+  // Find original category name by comparing slugified versions
+  const originalCategory = blogCategories.find(cat => slugify(cat) === categorySlug);
+  const categoryTitle = originalCategory || categorySlug; // Fallback to slug if no exact match
 
   return (
     <div className="space-y-12">

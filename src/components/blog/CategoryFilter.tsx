@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { blogCategories, type BlogCategory } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils'; // Imported slugify
 
 interface CategoryFilterProps {
   currentCategory?: string;
@@ -15,7 +15,8 @@ export default function CategoryFilter({ currentCategory }: CategoryFilterProps)
       <h3 className="text-lg font-semibold font-headline mb-3">Categories</h3>
       <div className="flex flex-wrap gap-2">
         {allCategories.map((category) => {
-          const categorySlug = category.toLowerCase();
+          // Use slugify for generating URL-friendly category slugs
+          const categorySlug = category === 'All' ? '' : slugify(category);
           const isActive = (!currentCategory && category === 'All') || currentCategory === categorySlug;
           const href = category === 'All' ? '/blog' : `/blog/category/${categorySlug}`;
           

@@ -1,10 +1,12 @@
-# VHost Solutions Next.js Project
+# Next.js Project with Firebase Studio
 
-This is a Next.js project for VHost Solutions, bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) and configured for use with Firebase Studio.
 
 ## Getting Started
 
-First, run the development server:
+First, ensure you have Node.js and npm (or yarn/pnpm) installed.
+
+Then, run the development server:
 
 ```bash
 npm run dev
@@ -14,7 +16,9 @@ yarn dev
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) (or the port specified by IDX, e.g., 9002) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) (or the port specified by your development environment, e.g., the port provided by Firebase Studio's IDX preview) with your browser to see the result.
+
+You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
 
 ## Learn More
 
@@ -27,8 +31,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Firebase Integration
 
-This project uses Firebase for backend services. Ensure your Firebase project is configured correctly and environment variables are set up.
+This project is intended to be used with Firebase services. Ensure your Firebase project is configured correctly.
 
 ## Deployment
 
-This project is configured for deployment on Firebase App Hosting.
+This project can be deployed to various platforms that support Next.js, including Firebase Hosting. Refer to the [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+If using Firebase App Hosting, an `apphosting.yaml` file is provided.

@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export interface BlogPost {
@@ -15,6 +14,7 @@ export interface BlogPost {
   published: boolean;
   createdAt: Date | Timestamp;
   updatedAt: Date | Timestamp;
+  dataAiHint?: string; // RESTORED
 }
 
 // For creating new posts, some fields are set by the server or have defaults
@@ -50,4 +50,3 @@ export interface VPSPlan {
   priceMonthly: number;
   features: string[];
 }
-

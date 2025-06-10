@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog'; // Assuming this fetches from Firestore
+import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog'; 
 
 interface PostPageProps {
   params: {
@@ -15,14 +15,13 @@ interface PostPageProps {
 }
 
 export async function generateStaticParams() {
-  const slugs = await getAllPostSlugs(); // Fetch slugs from Firestore
+  const slugs = await getAllPostSlugs(); 
   return slugs.map((slug) => ({
     slug: slug,
   }));
 }
 
 export async function generateMetadata({ params }: PostPageProps) {
-  // Directly use params.slug in the async call
   const post = await getPostBySlug(params.slug);
   if (!post) {
     return { title: 'Post Not Found' };
@@ -34,7 +33,6 @@ export async function generateMetadata({ params }: PostPageProps) {
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-  // Directly use params.slug in the async call
   const post = await getPostBySlug(params.slug);
 
   if (!post) {
@@ -51,10 +49,9 @@ export default async function PostPage({ params }: PostPageProps) {
               Back to Blog
             </Link>
           </Button>
-          {/* Ensure post.category is a string (slug) */}
           <Link href={`/blog/category/${post.category.toLowerCase()}`} className="text-accent font-semibold hover:underline">
             <div className="flex items-center text-sm">
-                <Tag className="h-4 w-4 mr-1" />{post.category} {/* Display category name/slug */}
+                <Tag className="h-4 w-4 mr-1" />{post.category}
             </div>
           </Link>
           <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">{post.title}</h1>
@@ -71,6 +68,7 @@ export default async function PostPage({ params }: PostPageProps) {
             fill
             priority
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+            data-ai-hint={post.dataAiHint || "technology article"}
             className="object-cover"
           />
         </div>
@@ -98,8 +96,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
       <Separator className="my-12" />
 
-      {/* Pass post.id if available, otherwise null or handle appropriately */}
-      <RecommendedPosts currentPostId={post.id || null} />
+      <RecommendedPosts currentPostId={post.id || null} currentPostContent={post.content} />
     </div>
   );
 }

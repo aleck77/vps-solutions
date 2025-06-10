@@ -42,7 +42,18 @@ export type RecommendRelevantPostsOutput = z.infer<
 export async function recommendRelevantPosts(
   input: RecommendRelevantPostsInput
 ): Promise<RecommendRelevantPostsOutput> {
-  return recommendRelevantPostsFlow(input);
+  try {
+    // Attempt to use the actual AI flow
+    return await recommendRelevantPostsFlow(input);
+  } catch (error) {
+    console.warn(
+      'AI-based recommendRelevantPostsFlow failed or Genkit might not be configured. Falling back to mock recommendations.',
+      error
+    );
+    // Fallback: return a few posts from availablePosts for mocking
+    const mockRecs = input.availablePosts.slice(0, 3);
+    return { recommendedPosts: mockRecs };
+  }
 }
 
 const analyzeRelevanceTool = ai.defineTool({
@@ -57,7 +68,7 @@ const analyzeRelevanceTool = ai.defineTool({
 }, async (input) => {
   // Dummy implementation - replace with actual relevance calculation logic
   // This could involve calling another LLM or using a vector database
-  console.log(`Calculating relevance for ${input.candidatePost}`);
+  console.log(`[AI Flow] Calculating relevance for: ${input.candidatePost.substring(0,50)}...`);
   return Math.random(); // Replace with actual relevance score
 });
 
@@ -85,7 +96,7 @@ const prompt = ai.definePrompt({
   Make sure the output is a valid JSON of the following type:
   {{json schema='RecommendRelevantPostsOutputSchema'}}
   `,
-  system: `You are a blog post recommendation engine. Recommend blog posts based on relevance to the current post and user history, using the analyzeRelevance tool.`, // Added system prompt to guide behavior
+  system: `You are a blog post recommendation engine. Recommend blog posts based on relevance to the current post and user history, using the analyzeRelevance tool. Return a maximum of 3 recommendations.`,
 });
 
 const recommendRelevantPostsFlow = ai.defineFlow(

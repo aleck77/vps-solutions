@@ -52,6 +52,7 @@ export default function AboutPage() {
             alt="VHost Solutions Team"
             width={600}
             height={400}
+            data-ai-hint="team office" 
             className="w-full h-auto object-cover"
           />
         </div>

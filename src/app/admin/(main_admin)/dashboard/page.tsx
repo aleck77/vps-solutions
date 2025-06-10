@@ -7,9 +7,11 @@ import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { seedDatabaseAction } from '@/app/actions/adminActions'; // setUserAdminClaimAction removed as button is removed
+import { seedDatabaseAction } from '@/app/actions/adminActions'; 
+import { Newspaper } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const { user, loading, isAdmin } = useAuth();
@@ -17,7 +19,6 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSeeding, setIsSeeding] = useState(false);
-  // Removed isMakingAdmin state as the button is removed
 
   console.log('[AdminDashboardPage] State update: user:', user, 'loading:', loading, 'isAdmin:', isAdmin);
 
@@ -51,7 +52,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // handleMakeAdmin function removed as the button is removed
 
   if (loading) {
     console.log('[AdminDashboardPage] Auth data is loading. Rendering loading message.');
@@ -88,11 +88,23 @@ export default function AdminDashboardPage() {
           
           <div className="space-y-4">
             <div>
+              <h3 className="font-headline text-xl font-semibold">Content Management</h3>
+              <Button asChild variant="outline" className="mt-2" disabled={!isAdmin}>
+                <Link href="/admin/posts" className="flex items-center">
+                  <Newspaper className="h-4 w-4 mr-2" />
+                  Manage Blog Posts
+                </Link>
+              </Button>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create, edit, and manage blog posts. (Requires admin rights)
+              </p>
+            </div>
+            <div>
               <h3 className="font-headline text-xl font-semibold">Database Operations</h3>
               <Button 
                 variant="outline"
                 onClick={handleSeedDatabase}
-                disabled={isSeeding || !isAdmin} // Disable if not admin
+                disabled={isSeeding || !isAdmin} 
                 className="mt-2"
               >
                 {isSeeding ? 'Seeding...' : 'Seed Database'}
@@ -101,8 +113,6 @@ export default function AdminDashboardPage() {
                 This button will trigger the database seeding process. (Requires admin rights)
               </p>
             </div>
-
-            {/* Section for "Make Admin" button removed */}
           </div>
 
           <Button onClick={handleLogout} variant="destructive" className="w-full sm:w-auto mt-4">
@@ -113,3 +123,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+

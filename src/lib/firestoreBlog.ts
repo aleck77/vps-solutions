@@ -12,10 +12,10 @@ const processPostDocument = (documentSnapshot: any): BlogPost => {
   return {
     ...data,
     id: documentSnapshot.id,
-    date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date), 
+    date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date),
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt),
-  } as BlogPost; 
+  } as BlogPost;
 };
 
 
@@ -31,6 +31,19 @@ export async function getAllPublishedPosts(count?: number): Promise<BlogPost[]> 
     return querySnapshot.docs.map(processPostDocument);
   } catch (error) {
     console.error("Error fetching all published posts:", error);
+    return [];
+  }
+}
+
+export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
+  const db = getDb();
+  try {
+    const postsCollection = collection(db, 'posts');
+    const q = query(postsCollection, orderBy('date', 'desc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(processPostDocument);
+  } catch (error) {
+    console.error("Error fetching all posts for admin:", error);
     return [];
   }
 }
@@ -60,7 +73,7 @@ export async function getPostsByCategory(categorySlug: string): Promise<BlogPost
     // For now, assuming exact match or that slugs are consistently cased.
     const q = query(
       postsCollection,
-      where('category', '==', categorySlug), 
+      where('category', '==', categorySlug),
       where('published', '==', true),
       orderBy('date', 'desc')
     );
@@ -127,10 +140,10 @@ export async function getRecommendedPosts(currentPostId: string | null, count: n
     } else {
       q = query(postsCollection, where('published', '==', true), orderBy('date', 'desc'), limit(count));
     }
-    
+
     const querySnapshot = await getDocs(q);
     const posts = querySnapshot.docs.map(processPostDocument);
-    
+
     if (currentPostId) {
       return posts.filter(post => post.id !== currentPostId).slice(0, count);
     }
@@ -145,7 +158,7 @@ export async function getRecommendedPosts(currentPostId: string | null, count: n
 export const processPostDocWithCategory = async (docSnapshot: any): Promise<BlogPost> => {
   const db = getDb();
   const postData = docSnapshot.data();
-  let categoryName = postData.category; 
+  let categoryName = postData.category;
 
   if (postData.category) {
     // Assuming postData.category stores the category ID or SLUG that matches the category document ID or SLUG
@@ -168,9 +181,10 @@ export const processPostDocWithCategory = async (docSnapshot: any): Promise<Blog
   return {
     id: docSnapshot.id,
     ...postData,
-    category: categoryName, 
+    category: categoryName,
     date: postData.date instanceof Timestamp ? postData.date.toDate() : new Date(postData.date),
     createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : new Date(postData.createdAt),
     updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : new Date(postData.updatedAt),
   } as BlogPost;
 };
+

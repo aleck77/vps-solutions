@@ -17,6 +17,14 @@ export interface BlogPost {
   updatedAt: Date | Timestamp;
 }
 
+// For creating new posts, some fields are set by the server or have defaults
+export type NewBlogPost = Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt'> & {
+  date: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+
 export type BlogCategoryType = "AI" | "No-code" | "Webcode" | "Automation" | "Tools" | "Cloud Hosting";
 export const blogCategories: BlogCategoryType[] = ["AI", "No-code", "Webcode", "Automation", "Tools", "Cloud Hosting"];
 
@@ -42,4 +50,3 @@ export interface VPSPlan {
   priceMonthly: number;
   features: string[];
 }
-

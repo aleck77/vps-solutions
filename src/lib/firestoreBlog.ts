@@ -1,10 +1,9 @@
 
 'use server';
 
-import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc } from 'firebase/firestore';
-import { getDb } from '@/lib/firebase'; // Import getDb
-import type { BlogPost, Category } from '@/types';
-// import { slugify } from '@/lib/utils'; // slugify is in seed.ts for now, ensure utils if used here
+import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc } from 'firebase/firestore';
+import { getDb } from '@/lib/firebase';
+import type { BlogPost, Category, NewBlogPost } from '@/types'; // Added NewBlogPost
 
 // Helper to convert Firestore Timestamps to JS Date objects or ISO strings in the post objects
 const processPostDocument = (documentSnapshot: any): BlogPost => {
@@ -55,7 +54,13 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     const q = query(postsCollection, where('slug', '==', slug), where('published', '==', true), limit(1));
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
-      return null;
+      // Try fetching non-published post if for admin or specific context
+      const qUnpublished = query(postsCollection, where('slug', '==', slug), limit(1));
+      const querySnapshotUnpublished = await getDocs(qUnpublished);
+      if (querySnapshotUnpublished.empty) {
+        return null;
+      }
+      return processPostDocument(querySnapshotUnpublished.docs[0]);
     }
     return processPostDocument(querySnapshot.docs[0]);
   } catch (error) {
@@ -68,12 +73,9 @@ export async function getPostsByCategory(categorySlug: string): Promise<BlogPost
   const db = getDb();
   try {
     const postsCollection = collection(db, 'posts');
-    // Firestore slugs are usually lowercase. Ensure comparison is consistent.
-    // If categorySlug in DB is 'AI' but param is 'ai', this might fail.
-    // For now, assuming exact match or that slugs are consistently cased.
     const q = query(
       postsCollection,
-      where('category', '==', categorySlug),
+      where('category', '==', categorySlug), // Assuming category is stored as a direct string/slug
       where('published', '==', true),
       orderBy('date', 'desc')
     );
@@ -102,7 +104,7 @@ export async function getAllPostSlugs(): Promise<string[]> {
   const db = getDb();
   try {
     const postsCollection = collection(db, 'posts');
-    const q = query(postsCollection, where('published', '==', true));
+    const q = query(postsCollection, where('published', '==', true)); // Only slugs of published posts for sitemap/SSG
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => doc.data().slug as string);
   } catch (error) {
@@ -160,31 +162,25 @@ export const processPostDocWithCategory = async (docSnapshot: any): Promise<Blog
   const postData = docSnapshot.data();
   let categoryName = postData.category;
 
-  if (postData.category) {
-    // Assuming postData.category stores the category ID or SLUG that matches the category document ID or SLUG
-    // If it's an ID: const categoryRef = doc(db, "categories", postData.category);
-    // If it's a slug, we need to query by slug. For simplicity, let's assume it's a name/slug stored directly for now
-    // Or better, the category field on a post should be a reference or a slug that we can use to look up
-    // For this function, it seems it's trying to fetch category details, but `postData.category` is already a string (name/slug)
-    // So, the lookup might be redundant if the category name is already what we want.
-    // Let's assume 'category' field in postData is the slug. We'd need getCategoryBySlug if we want the full Category object.
-    // For now, this function just processes dates and returns the category string as is.
-    // If a full category object is needed, this function needs to be async and call getCategoryBySlug.
-    // The original function assumed category was an ID:
-    // const categoryDoc = await getDoc(doc(db, "categories", postData.category));
-    // if (categoryDoc.exists()) {
-    //   categoryName = categoryDoc.data()?.name || postData.category;
-    // }
-    // Let's keep it simple: category is already the slug string.
-  }
-
   return {
     id: docSnapshot.id,
     ...postData,
-    category: categoryName,
+    category: categoryName, // This is already a slug
     date: postData.date instanceof Timestamp ? postData.date.toDate() : new Date(postData.date),
     createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : new Date(postData.createdAt),
     updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : new Date(postData.updatedAt),
   } as BlogPost;
 };
 
+// Function to add a new blog post
+export async function addBlogPost(postData: NewBlogPost): Promise<string | null> {
+  const db = getDb();
+  try {
+    const postsCollection = collection(db, 'posts');
+    const docRef = await addDoc(postsCollection, postData);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding new blog post:", error);
+    return null;
+  }
+}

@@ -45,7 +45,8 @@ async function PostsAdminPage() {
                     <TableCell className="font-medium">{post.title}</TableCell>
                     <TableCell>{post.category}</TableCell>
                     <TableCell>{post.author}</TableCell>
-                    <TableCell>{new Date(post.date as any).toLocaleDateString()}</TableCell>
+                    {/* post.date должен быть объектом Date благодаря processPostDocument */}
+                    <TableCell>{post.date.toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Badge variant={post.published ? 'default' : 'secondary'} className="flex items-center w-fit">
                         {post.published ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}

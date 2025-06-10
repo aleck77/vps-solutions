@@ -8,6 +8,7 @@ import { Timestamp } from 'firebase/firestore';
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost } from '@/lib/firestoreBlog';
 import type { NewBlogPost } from '@/types';
+import { slugify } from '@/lib/utils'; // Импортируем slugify
 
 interface CreatePostResult {
   success: boolean;
@@ -40,12 +41,13 @@ export async function createPostAction(
     : [];
 
   const now = Timestamp.now();
+  const categorySlug = slugify(category); // Преобразуем имя категории в слаг
 
   const newPostData: NewBlogPost = {
     title,
     slug,
     author,
-    category, // This is already the slug from the form
+    category: categorySlug, // Сохраняем слаг категории
     excerpt,
     content,
     imageUrl,
@@ -57,10 +59,6 @@ export async function createPostAction(
   };
 
   try {
-    // Check if slug already exists to prevent duplicates (optional but good practice)
-    // For simplicity, this check is omitted here but can be added by querying Firestore for the slug.
-    // If a post with the same slug exists, return an error.
-
     const postId = await addBlogPost(newPostData);
 
     if (postId) {
@@ -68,7 +66,7 @@ export async function createPostAction(
       revalidatePath(`/blog/${slug}`); // Revalidate the new post's page
       revalidatePath('/admin/posts'); // Revalidate admin posts list
       // Optionally, revalidate category pages if you have them dynamic based on posts
-      // revalidatePath(`/blog/category/${category}`);
+      revalidatePath(`/blog/category/${categorySlug}`); // Revalidate category page with slug
       
       // Redirect after successful creation
       // Note: redirect needs to be called outside of try/catch as it throws an error.
@@ -89,3 +87,4 @@ export async function createPostAction(
   // The redirect will prevent this return from being reached, but it's good for type safety.
   // return { success: true, message: 'Post created successfully!', postId: 'some-id' }; 
 }
+

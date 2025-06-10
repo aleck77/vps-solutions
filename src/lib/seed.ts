@@ -30,13 +30,13 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     tags: ['No-code', 'App Development', 'Productivity'],
   },
   {
-    slug: 'mastering-modern-webcode',
-    title: 'Mastering Modern Web Development Techniques',
+    slug: 'mastering-modern-vibe-coding',
+    title: 'Mastering Modern Vibe Coding Techniques',
     date: '2024-07-05',
     author: 'Code Master Flex',
-    category: 'Webcode',
-    excerpt: 'Dive into the latest trends and best practices in web development for 2024.',
-    content: '<p>Comprehensive guide to modern web development...</p>',
+    category: 'Vibe coding',
+    excerpt: 'Dive into the latest trends and best practices in vibe coding for 2024.',
+    content: '<p>Comprehensive guide to modern vibe coding...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: ['JavaScript', 'React', 'Next.js', 'CSS'],
   },
@@ -138,3 +138,4 @@ export async function seedDatabase() {
 // Example of how you might call this.
 // You'll need to trigger this manually once, e.g., from a temporary route or script.
 // seedDatabase().catch(console.error);
+

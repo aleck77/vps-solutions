@@ -25,8 +25,8 @@ export type NewBlogPost = Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedA
 };
 
 
-export type BlogCategoryType = "AI" | "No-code" | "Webcode" | "Automation" | "Tools" | "Cloud Hosting";
-export const blogCategories: BlogCategoryType[] = ["AI", "No-code", "Webcode", "Automation", "Tools", "Cloud Hosting"];
+export type BlogCategoryType = "AI" | "No-code" | "Vibe coding" | "Automation" | "Tools" | "Cloud Hosting";
+export const blogCategories: BlogCategoryType[] = ["AI", "No-code", "Vibe coding", "Automation", "Tools", "Cloud Hosting"];
 
 export interface Category {
   id?: string; // Firestore document ID
@@ -50,3 +50,4 @@ export interface VPSPlan {
   priceMonthly: number;
   features: string[];
 }
+

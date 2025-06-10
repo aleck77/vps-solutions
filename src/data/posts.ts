@@ -1,3 +1,4 @@
+
 import type { BlogPost } from '@/types';
 
 export const mockPosts: BlogPost[] = [
@@ -7,7 +8,7 @@ export const mockPosts: BlogPost[] = [
     title: 'Getting Started with AI in Your Projects',
     date: '2024-07-15',
     author: 'AI Enthusiast',
-    category: 'AI',
+    category: 'AI', // Slug will be 'ai'
     excerpt: 'A beginner-friendly guide to integrating AI into your applications and workflows.',
     content: '<p>Full content about getting started with AI...</p><p>More details here.</p>',
     imageUrl: 'https://placehold.co/600x400.png',
@@ -19,7 +20,7 @@ export const mockPosts: BlogPost[] = [
     title: 'The No-Code Revolution: Building Apps Without Code',
     date: '2024-07-10',
     author: 'No-Coder Jane',
-    category: 'No-code',
+    category: 'No-code', // Slug will be 'no-code'
     excerpt: 'Explore how no-code platforms are empowering creators to build powerful applications.',
     content: '<p>Detailed exploration of no-code platforms and their impact...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
@@ -27,13 +28,13 @@ export const mockPosts: BlogPost[] = [
   },
   {
     id: '3',
-    slug: 'mastering-modern-webcode',
-    title: 'Mastering Modern Web Development Techniques',
+    slug: 'mastering-modern-vibe-coding',
+    title: 'Mastering Modern Vibe Coding Techniques',
     date: '2024-07-05',
     author: 'Code Master Flex',
-    category: 'Webcode',
-    excerpt: 'Dive into the latest trends and best practices in web development for 2024.',
-    content: '<p>Comprehensive guide to modern web development...</p>',
+    category: 'Vibe coding', // Slug will be 'vibe-coding'
+    excerpt: 'Dive into the latest trends and best practices in vibe coding for 2024.',
+    content: '<p>Comprehensive guide to modern vibe coding...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: ['JavaScript', 'React', 'Next.js', 'CSS'],
   },
@@ -43,7 +44,7 @@ export const mockPosts: BlogPost[] = [
     title: 'Streamlining Your Small Business with Automation',
     date: '2024-06-28',
     author: 'Automation Ally',
-    category: 'Automation',
+    category: 'Automation', // Slug will be 'automation'
     excerpt: 'Discover tools and strategies to automate repetitive tasks and boost efficiency.',
     content: '<p>Practical automation tips for small businesses...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
@@ -55,7 +56,7 @@ export const mockPosts: BlogPost[] = [
     title: 'Top 10 Essential Tools for Developers in 2024',
     date: '2024-06-20',
     author: 'Tool Time Tim',
-    category: 'Tools',
+    category: 'Tools', // Slug will be 'tools'
     excerpt: 'A curated list of indispensable tools that every developer should know.',
     content: '<p>List and review of top developer tools...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
@@ -67,10 +68,11 @@ export const mockPosts: BlogPost[] = [
     title: 'Choosing the Right Cloud Hosting for Your Needs',
     date: '2024-06-15',
     author: 'Cloudy McCloudface',
-    category: 'Cloud Hosting',
+    category: 'Cloud Hosting', // Slug will be 'cloud-hosting'
     excerpt: 'A guide to navigating the options and selecting the best cloud hosting provider.',
     content: '<p>In-depth analysis of cloud hosting options...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
     tags: ['Cloud Hosting', 'VPS', 'IaaS', 'PaaS'],
   },
 ];
+

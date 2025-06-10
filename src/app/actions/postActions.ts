@@ -6,9 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore';
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
-import { addBlogPost } from '@/lib/firestoreBlog';
-import type { NewBlogPost } from '@/types';
-import { slugify } from '@/lib/utils'; // Импортируем slugify
+import { addBlogPost, updateBlogPost } from '@/lib/firestoreBlog';
+import type { NewBlogPost, BlogPost } from '@/types';
+import { slugify } from '@/lib/utils';
 
 interface CreatePostResult {
   success: boolean;
@@ -17,11 +17,12 @@ interface CreatePostResult {
   errors?: z.ZodIssue[];
 }
 
+interface UpdatePostResult extends CreatePostResult {}
+
 export async function createPostAction(
   prevState: CreatePostResult | undefined,
   formData: PostFormValues
 ): Promise<CreatePostResult> {
-  // Validate form data against the Zod schema
   const validatedFields = postFormSchema.safeParse(formData);
 
   if (!validatedFields.success) {
@@ -35,25 +36,24 @@ export async function createPostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
-  // Process tags: split string by comma, trim whitespace, filter out empty strings
   const processedTags = tags
     ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
     : [];
 
   const now = Timestamp.now();
-  const categorySlug = slugify(category); // Преобразуем имя категории в слаг
+  const categorySlug = slugify(category);
 
   const newPostData: NewBlogPost = {
     title,
     slug,
     author,
-    category: categorySlug, // Сохраняем слаг категории
+    category: categorySlug,
     excerpt,
     content,
     imageUrl,
     tags: processedTags,
     published,
-    date: now, // Use current date for new posts
+    date: now, 
     createdAt: now,
     updatedAt: now,
   };
@@ -62,14 +62,10 @@ export async function createPostAction(
     const postId = await addBlogPost(newPostData);
 
     if (postId) {
-      revalidatePath('/blog'); // Revalidate blog listing page
-      revalidatePath(`/blog/${slug}`); // Revalidate the new post's page
-      revalidatePath('/admin/posts'); // Revalidate admin posts list
-      // Optionally, revalidate category pages if you have them dynamic based on posts
-      revalidatePath(`/blog/category/${categorySlug}`); // Revalidate category page with slug
-      
-      // Redirect after successful creation
-      // Note: redirect needs to be called outside of try/catch as it throws an error.
+      revalidatePath('/blog');
+      revalidatePath(`/blog/${slug}`);
+      revalidatePath('/admin/posts');
+      revalidatePath(`/blog/category/${categorySlug}`);
     } else {
       return { success: false, message: 'Failed to create post in database.' };
     }
@@ -82,9 +78,75 @@ export async function createPostAction(
     return { success: false, message };
   }
   
-  // Redirect must be called outside try/catch
   redirect('/admin/posts');
-  // The redirect will prevent this return from being reached, but it's good for type safety.
-  // return { success: true, message: 'Post created successfully!', postId: 'some-id' }; 
 }
 
+
+export async function updatePostAction(
+  postId: string,
+  prevState: UpdatePostResult | undefined,
+  formData: PostFormValues
+): Promise<UpdatePostResult> {
+  if (!postId) {
+    return { success: false, message: 'Post ID is missing. Cannot update post.' };
+  }
+
+  const validatedFields = postFormSchema.safeParse(formData);
+
+  if (!validatedFields.success) {
+    console.error('Validation errors for update:', validatedFields.error.flatten().fieldErrors);
+    return {
+      success: false,
+      message: 'Validation failed. Please check the form for errors.',
+      errors: validatedFields.error.issues,
+    };
+  }
+
+  const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
+
+  const processedTags = tags
+    ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+    : [];
+  
+  const categorySlug = slugify(category);
+
+  // We construct a Partial<BlogPost> because not all fields might be directly from form,
+  // and `updatedAt` is handled by Firestore. `date` and `createdAt` are not changed on update.
+  const postUpdateData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>> & { category: string } = {
+    title,
+    slug,
+    author,
+    category: categorySlug,
+    excerpt,
+    content,
+    imageUrl,
+    tags: processedTags,
+    published,
+    // `updatedAt` will be set by `updateBlogPost` using serverTimestamp
+    // `date` (original publication date) and `createdAt` are usually not updated.
+  };
+
+
+  try {
+    const success = await updateBlogPost(postId, postUpdateData);
+
+    if (success) {
+      revalidatePath('/blog');
+      revalidatePath(`/blog/${slug}`); // Revalidate the updated post's page
+      revalidatePath(`/admin/posts`); // Revalidate admin posts list
+      revalidatePath(`/admin/posts/edit/${postId}`); // Revalidate the edit page itself
+      revalidatePath(`/blog/category/${categorySlug}`);
+    } else {
+      return { success: false, message: 'Failed to update post in database.' };
+    }
+  } catch (error) {
+    console.error('Error updating post:', error);
+    let message = 'An unexpected error occurred while updating the post.';
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    return { success: false, message };
+  }
+  
+  redirect('/admin/posts');
+}

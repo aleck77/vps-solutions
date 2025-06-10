@@ -1,9 +1,10 @@
 
 'use server';
 
-import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getDb } from '@/lib/firebase';
 import type { BlogPost, Category, NewBlogPost } from '@/types'; // Added NewBlogPost
+import type { PostFormValues } from '@/lib/schemas'; // Import PostFormValues
 
 // Helper to convert Firestore Timestamps to JS Date objects or ISO strings in the post objects
 const processPostDocument = (documentSnapshot: any): BlogPost => {
@@ -69,6 +70,23 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   }
 }
 
+export async function getPostByIdForEditing(postId: string): Promise<BlogPost | null> {
+  const db = getDb();
+  try {
+    const postRef = doc(db, 'posts', postId);
+    const docSnap = await getDoc(postRef);
+    if (!docSnap.exists()) {
+      console.log(`No post found with ID: ${postId}`);
+      return null;
+    }
+    return processPostDocument(docSnap);
+  } catch (error) {
+    console.error(`Error fetching post by ID ${postId}:`, error);
+    return null;
+  }
+}
+
+
 export async function getPostsByCategory(categorySlug: string): Promise<BlogPost[]> {
   const db = getDb();
   try {
@@ -93,7 +111,7 @@ export async function getAllCategories(): Promise<Category[]> {
     const categoriesCollection = collection(db, 'categories');
     const q = query(categoriesCollection, orderBy('name', 'asc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+    return querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Category));
   } catch (error) {
     console.error("Error fetching all categories:", error);
     return [];
@@ -106,7 +124,7 @@ export async function getAllPostSlugs(): Promise<string[]> {
     const postsCollection = collection(db, 'posts');
     const q = query(postsCollection, where('published', '==', true)); // Only slugs of published posts for sitemap/SSG
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data().slug as string);
+    return querySnapshot.docs.map(docSnap => docSnap.data().slug as string);
   } catch (error) {
     console.error("Error fetching all post slugs:", error);
     return [];
@@ -182,5 +200,21 @@ export async function addBlogPost(postData: NewBlogPost): Promise<string | null>
   } catch (error) {
     console.error("Error adding new blog post:", error);
     return null;
+  }
+}
+
+// Function to update an existing blog post
+export async function updateBlogPost(postId: string, postData: Partial<BlogPost>): Promise<boolean> {
+  const db = getDb();
+  try {
+    const postRef = doc(db, 'posts', postId);
+    await updateDoc(postRef, {
+      ...postData,
+      updatedAt: serverTimestamp(), // Use serverTimestamp for updatedAt
+    });
+    return true;
+  } catch (error) {
+    console.error(`Error updating blog post ${postId}:`, error);
+    return false;
   }
 }

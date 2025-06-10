@@ -45,7 +45,6 @@ async function PostsAdminPage() {
                     <TableCell className="font-medium">{post.title}</TableCell>
                     <TableCell>{post.category}</TableCell>
                     <TableCell>{post.author}</TableCell>
-                    {/* post.date должен быть объектом Date благодаря processPostDocument */}
                     <TableCell>{post.date.toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Badge variant={post.published ? 'default' : 'secondary'} className="flex items-center w-fit">
@@ -55,7 +54,6 @@ async function PostsAdminPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" asChild>
-                        {/* Placeholder Link - will go to /admin/posts/edit/[postId] */}
                         <Link href={`/admin/posts/edit/${post.id}`}> 
                           <FilePenLine className="h-4 w-4 mr-1" /> Edit
                         </Link>

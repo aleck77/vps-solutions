@@ -41,7 +41,6 @@ export default function NewPostPage() {
 
   const [imagePrompt, setImagePrompt] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  // generatedImageDataUri now directly holds the value for the form.watch('imageUrl')
   const [imageGenError, setImageGenError] = useState<string | null>(null);
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -150,24 +149,24 @@ export default function NewPostPage() {
       return;
     }
     setIsGeneratingImage(true);
-    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Reset while generating
+    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); 
     setImageGenError(null);
     try {
       const result = await generatePostImage({ prompt: imagePrompt });
       if (result.imageDataUri) {
-        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true }); // Set Data URI in form
+        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true }); 
         toast({ title: 'Success', description: 'Image generated! Now you can upload it or clear it.' });
       } else {
         setImageGenError(result.error || 'Image generation failed: No image data received.');
         toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
-        form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Reset to placeholder on error
+        form.setValue('imageUrl', 'https://placehold.co/600x400.png'); 
       }
     } catch (error: any) {
       console.error('Error generating image:', error);
       const errMsg = error.message || 'Unknown error during image generation.';
       setImageGenError(errMsg);
       toast({ title: 'AI Image Error', description: errMsg, variant: 'destructive' });
-      form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Reset to placeholder on error
+      form.setValue('imageUrl', 'https://placehold.co/600x400.png'); 
     } finally {
       setIsGeneratingImage(false);
     }
@@ -207,35 +206,51 @@ export default function NewPostPage() {
         body: JSON.stringify(payload),
       });
 
+      const responseText = await response.text();
+      console.log('[handleUploadGeneratedImage] Raw response from n8n:', responseText);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status}` }));
-        throw new Error(errorData.error || `Upload failed with status: ${response.status}`);
+        let errorDetail = `HTTP error! status: ${response.status}. Raw Response: ${responseText.substring(0, 500)}`;
+        try {
+          const errorJson = JSON.parse(responseText);
+          errorDetail = errorJson.error || errorJson.message || JSON.stringify(errorJson);
+        } catch (e) {
+          // Not JSON, errorDetail already contains raw response snippet
+        }
+        throw new Error(`Upload failed: ${errorDetail}`);
       }
 
-      const result = await response.json();
-
-      if (result.success && result.imageUrl) {
-        form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
-        toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('[handleUploadGeneratedImage] Parsed n8n response:', result);
+      } catch (jsonError: any) {
+        console.error('[handleUploadGeneratedImage] Failed to parse n8n response as JSON:', jsonError.message);
+        throw new Error(`Upload failed: Could not parse JSON response from server. Server said: ${responseText.substring(0,500)}`);
+      }
+      
+      if (typeof result.success === 'boolean') {
+        if (result.success) {
+          if (result.imageUrl) {
+            form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
+            toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
+          } else {
+            toast({ title: 'Upload Acknowledged', description: result.message || 'n8n confirmed receipt, processing. Image URL not automatically updated.' });
+          }
+        } else {
+          // success: false
+          throw new Error(result.error || result.message || 'Upload failed: n8n reported an error. Check n8n logs and raw response above.');
+        }
       } else {
-        // If n8n returns success:true but no imageUrl, it means it's processing. We can leave the Data URI for now or clear.
-        // For simplicity, if imageUrl isn't returned, we'll assume it's still the Data URI or an issue.
-        if (result.message) {
-            toast({ title: 'Upload Info', description: result.message });
-        }
-        if (!result.imageUrl && result.success) {
-            // Keep Data URI for now, or clear if n8n confirms processing.
-            // For now, let's leave the Data URI. User can clear if needed.
-            toast({ title: 'Upload Started', description: 'n8n confirmed receipt, processing in background.'});
-        }
-        if (!result.success) {
-             throw new Error(result.error || 'Upload failed: Invalid response from server.');
-        }
+         console.error('[handleUploadGeneratedImage] n8n response JSON does not have a boolean "success" field. Response:', result);
+         throw new Error('Upload failed: Invalid response structure from server. Expected a "success" field. Check raw response above.');
       }
+
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      setUploadError(error.message || 'An unknown error occurred during upload.');
-      toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
+      const detailedError = error.message || 'An unknown error occurred during upload.';
+      setUploadError(detailedError);
+      toast({ title: 'Upload Failed', description: detailedError, variant: 'destructive' });
     } finally {
       setIsUploadingImage(false);
     }
@@ -268,7 +283,6 @@ export default function NewPostPage() {
           <CardDescription>Fill in the details below to add a new post to the blog. Use AI helpers for title, content and image generation.</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* AI Title Generation Section */}
           <div className="space-y-4 mb-8 p-4 border rounded-lg shadow-sm bg-muted/30">
             <Label htmlFor="ai-title-topic" className="font-semibold text-lg">AI Title Helper</Label>
             <div className="flex items-end gap-2">
@@ -387,7 +401,6 @@ export default function NewPostPage() {
                   </FormItem>
                 )}
               />
-              {/* AI Image Generation & Upload Section */}
               <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
                 <Label className="font-semibold text-lg">AI Image Helper</Label>
                 <div className="flex items-end gap-2">
@@ -452,7 +465,6 @@ export default function NewPostPage() {
                     {uploadError && <p className="text-sm text-destructive mt-2">{uploadError}</p>}
                   </div>
                 )}
-                 {/* Preview for the final imageUrl (placeholder or uploaded http/https URL) */}
                 {currentImageUrl && currentImageUrl.startsWith('http') && (
                     <div className="mt-3">
                         <p className="text-sm font-medium mb-1">Current Image URL Preview:</p>
@@ -462,7 +474,7 @@ export default function NewPostPage() {
                             width={200} 
                             height={150} 
                             className="rounded-md border object-cover" 
-                            key={currentImageUrl} // Add key to force re-render on URL change
+                            key={currentImageUrl}
                             data-ai-hint="current preview"
                             onError={(e) => {
                                 const target = e.target as HTMLImageElement;

@@ -19,7 +19,7 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
   const [postsToShow, setPostsToShow] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
-  const [initialFetchDone, setInitialFetchDone] = useState(false); // Flag for first fetch
+  const [initialFetchDone, setInitialFetchDone] = useState(false); 
 
   // Effect 1: Fetch all posts once on mount
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
       } catch (error) {
         console.error("[RecommendedPosts Effect1] Failed to fetch all posts:", error);
         if (isMounted) {
-          setAllPosts([]); // Ensure allPosts is an array even on error
+          setAllPosts([]); 
         }
       } finally {
         if (isMounted) {
@@ -57,19 +57,20 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
   // Effect 2: Process posts for recommendations once allPosts are fetched
   useEffect(() => {
     let isMounted = true;
-    console.log('[RecommendedPosts Effect2] Running. initialFetchDone:', initialFetchDone, 'allPosts count:', allPosts.length);
-
+    
     if (!initialFetchDone) {
       console.log('[RecommendedPosts Effect2] Initial fetch not done yet. Aborting this run.');
-      return; // Wait for the first effect to complete
+      return; 
     }
+
+    console.log('[RecommendedPosts Effect2] Running. initialFetchDone:', initialFetchDone, 'allPosts count:', allPosts.length);
+    // Set loading to true when we start processing for recommendations
+    // This ensures skeleton shows if allPosts changes and triggers this effect again.
+    setIsLoading(true); 
 
     async function fetchRecommendationsAndFallbacks() {
       if (!isMounted) return;
       
-      // Ensure isLoading is true at the start of this processing step if it's not already.
-      // This is important if this effect re-runs due to prop changes after initial load.
-      if (!isLoading) setIsLoading(true); 
       console.log('[RecommendedPosts Effect2 fetchRecommendationsAndFallbacks] Starting. Current post content available:', !!currentPostContent);
 
       try {
@@ -80,26 +81,22 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
         if (allPosts.length === 0) {
             console.log('[RecommendedPosts Effect2] No posts in allPosts. Setting empty recommendations.');
             if(isMounted) setPostsToShow([]);
-            return; // No posts to recommend from or fallback to
+            return; 
         }
         
-        // Determine if we should even attempt AI call
-        // For example, if currentPostContent is empty and no other context, AI might not be useful
-        // Or if availablePostsForAI is empty (only one post in total, which is the current one)
         if (!currentPostContent && availablePostsForAI.length === 0) {
              console.log('[RecommendedPosts Effect2] No current content and no other posts for AI context. Using direct fallback.');
-             const recentPosts = allPosts // Use allPosts directly since availablePostsForAI would be empty
-              .filter(p => p.id !== currentPostId) // Still filter current
+             const recentPosts = allPosts 
+              .filter(p => p.id !== currentPostId) 
               .sort((a, b) => new Date(b.date as any).getTime() - new Date(a.date as any).getTime())
               .slice(0, 3);
             if (isMounted) setPostsToShow(recentPosts);
             return;
         }
 
-
         const input: RecommendRelevantPostsInput = {
           currentPostContent: currentPostContent || '',
-          userHistory: [], // Mocking user history
+          userHistory: [], 
           availablePosts: availablePostsForAI,
         };
         
@@ -129,8 +126,6 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
           }
         }
       } catch (error) {
-        // This catch is for errors within fetchRecommendationsAndFallbacks itself,
-        // not necessarily from the AI call if it's handled inside recommendRelevantPosts
         console.error('[RecommendedPosts Effect2] Error during recommendation/fallback logic:', error);
         if (isMounted) {
           console.log('[RecommendedPosts Effect2] Falling back to recent posts due to error in logic.');
@@ -144,7 +139,10 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
       } finally {
         if (isMounted) {
           setIsLoading(false);
-          console.log('[RecommendedPosts Effect2] setIsLoading(false) in finally. Posts to show:', postsToShow.length);
+          // Log current postsToShow state *after* potential setPostsToShow and setIsLoading(false)
+          // Need to use a callback with setPostsToShow to log the "next" state accurately here,
+          // or rely on the re-render log. The current log here will show postsToShow *before* this update.
+          console.log('[RecommendedPosts Effect2] setIsLoading(false) in finally. postsToShow at this point in closure:', postsToShow.length);
         }
       }
     }
@@ -155,11 +153,9 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
       isMounted = false;
       console.log('[RecommendedPosts Effect2] Unmounted.');
     };
-  // Dependencies: run when initial fetch is done, or when relevant props/allPosts change
   }, [initialFetchDone, allPosts, currentPostId, currentPostContent]);
 
 
-  // This console log helps see the final state before rendering
   console.log('[RecommendedPosts Render] isLoading:', isLoading, 'postsToShow:', postsToShow.length);
 
   if (isLoading) {
@@ -187,10 +183,18 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
     );
   }
 
-  if (postsToShow.length === 0) {
-    console.log('[RecommendedPosts Render] Rendering NULL (no posts to show).');
+  if (postsToShow.length === 0 && initialFetchDone) { // only return null if fetch is done and still no posts
+    console.log('[RecommendedPosts Render] Rendering NULL (initial fetch done, no posts to show).');
     return null;
   }
+  
+  // If initial fetch is not done, and we are not loading (which implies an issue or very fast initial state),
+  // still show skeleton or nothing to avoid flashing content. But isLoading should cover this.
+  if (!initialFetchDone && !isLoading) {
+    console.warn('[RecommendedPosts Render] Rendering NULL (initial fetch NOT done, but not loading - unusual state).');
+    return null; 
+  }
+
 
   console.log('[RecommendedPosts Render] Rendering ACTUAL posts.');
   return (
@@ -226,3 +230,4 @@ export default function RecommendedPosts({ currentPostId, currentPostContent }: 
     </Card>
   );
 }
+

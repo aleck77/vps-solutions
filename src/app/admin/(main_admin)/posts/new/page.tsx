@@ -10,6 +10,7 @@ import { slugify } from '@/lib/utils';
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { createPostAction } from '@/app/actions/postActions';
 import { blogCategories } from '@/types';
+import Image from 'next/image'; // For image preview
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,10 +21,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Link from 'next/link';
-import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
 
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent } from '@/ai/flows/generate-post-content-flow';
+import { generatePostImage } from '@/ai/flows/generate-post-image-flow.ts';
 
 
 export default function NewPostPage() {
@@ -36,6 +38,12 @@ export default function NewPostPage() {
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
   const [isGeneratingTitles, setIsGeneratingTitles] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
+  const [imageGenError, setImageGenError] = useState<string | null>(null);
+
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postFormSchema),
@@ -59,7 +67,11 @@ export default function NewPostPage() {
     if (titleValue && !form.formState.dirtyFields.slug) {
       form.setValue('slug', slugify(titleValue), { shouldValidate: true });
     }
-  }, [titleValue, form]);
+    // Update image prompt when title changes, if image prompt is empty or matches old title
+    if (titleValue && (!imagePrompt || imagePrompt === slugify(form.getValues('title')) /* crude check if it was auto-set */)) {
+      setImagePrompt(titleValue);
+    }
+  }, [titleValue, form, imagePrompt]);
   
 
   useEffect(() => {
@@ -86,7 +98,13 @@ export default function NewPostPage() {
     setGeneratedTitles([]);
     try {
       const result = await generatePostTitle({ topic: topicForTitle, count: 3 });
-      setGeneratedTitles(result.titles);
+      if (result.titles && result.titles.length > 0 && !result.titles[0].startsWith("AI title generation failed")) {
+        setGeneratedTitles(result.titles);
+      } else if (result.titles && result.titles[0].startsWith("AI title generation failed")) {
+        toast({ title: 'AI Error', description: result.titles[0], variant: 'destructive' });
+      } else {
+         toast({ title: 'AI Error', description: 'Failed to generate titles: No titles returned.', variant: 'destructive' });
+      }
     } catch (error: any) {
       console.error('Error generating titles:', error);
       toast({ title: 'AI Error', description: `Failed to generate titles: ${error.message || 'Unknown error'}`, variant: 'destructive' });
@@ -97,7 +115,8 @@ export default function NewPostPage() {
 
   const handleSelectTitle = (selectedTitle: string) => {
     form.setValue('title', selectedTitle, { shouldValidate: true });
-    setGeneratedTitles([]); // Clear suggestions after selection
+    setImagePrompt(selectedTitle); // Also update image prompt
+    setGeneratedTitles([]); 
   };
 
   const handleGenerateContent = async () => {
@@ -109,14 +128,44 @@ export default function NewPostPage() {
     setIsGeneratingContent(true);
     try {
       const result = await generatePostContent({ title: currentTitle, length: 'medium', outputFormat: 'plaintext' });
-      form.setValue('content', result.content, { shouldValidate: true });
-      // Optionally set excerpt too, e.g., first N words/sentences of content
-      // form.setValue('excerpt', result.content.substring(0, 150) + '...', { shouldValidate: true });
+       if (result.content && !result.content.startsWith("AI content generation failed")) {
+        form.setValue('content', result.content, { shouldValidate: true });
+      } else {
+        toast({ title: 'AI Error', description: result.content || 'Failed to generate content.', variant: 'destructive' });
+      }
     } catch (error: any) {
       console.error('Error generating content:', error);
       toast({ title: 'AI Error', description: `Failed to generate content: ${error.message || 'Unknown error'}`, variant: 'destructive' });
     } finally {
       setIsGeneratingContent(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim()) {
+      toast({ title: 'Info', description: 'Please enter a topic or prompt for the image.', variant: 'default' });
+      return;
+    }
+    setIsGeneratingImage(true);
+    setGeneratedImageDataUri(null);
+    setImageGenError(null);
+    try {
+      const result = await generatePostImage({ prompt: imagePrompt });
+      if (result.imageDataUri) {
+        setGeneratedImageDataUri(result.imageDataUri);
+        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true });
+        toast({ title: 'Success', description: 'Image generated and URL updated!' });
+      } else {
+        setImageGenError(result.error || 'Image generation failed: No image data received.');
+        toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
+      }
+    } catch (error: any) {
+      console.error('Error generating image:', error);
+      const errMsg = error.message || 'Unknown error during image generation.';
+      setImageGenError(errMsg);
+      toast({ title: 'AI Image Error', description: errMsg, variant: 'destructive' });
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -137,7 +186,7 @@ export default function NewPostPage() {
             <PlusCircle className="h-7 w-7 mr-3 text-accent" />
             Create New Blog Post
           </CardTitle>
-          <CardDescription>Fill in the details below to add a new post to the blog. Use AI helpers for title and content generation.</CardDescription>
+          <CardDescription>Fill in the details below to add a new post to the blog. Use AI helpers for title, content and image generation.</CardDescription>
         </CardHeader>
         <CardContent>
           {/* AI Title Generation Section */}
@@ -145,7 +194,7 @@ export default function NewPostPage() {
             <Label htmlFor="ai-title-topic" className="font-semibold text-lg">AI Title Helper</Label>
             <div className="flex items-end gap-2">
               <div className="flex-grow">
-                <Label htmlFor="ai-title-topic" className="text-sm">Topic or Keywords</Label>
+                <Label htmlFor="ai-title-topic" className="text-sm">Topic or Keywords for Title</Label>
                 <Input 
                   id="ai-title-topic"
                   placeholder="e.g., 'Next.js server components', 'AI in marketing'" 
@@ -245,15 +294,54 @@ export default function NewPostPage() {
                   <FormItem>
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
-                      <Input type="url" placeholder="https://example.com/image.jpg" {...field} disabled={isPendingSubmit}/>
+                      <Input type="url" placeholder="https://example.com/image.jpg" {...field} value={generatedImageDataUri || field.value} disabled={isPendingSubmit || isGeneratingImage}/>
                     </FormControl>
                      <FormDescription>
-                      URL of the main image for the post. Use https://placehold.co/ for placeholders.
+                      URL of the main image for the post. Use https://placehold.co/ or generate with AI.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {/* AI Image Generation Section */}
+              <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
+                <Label className="font-semibold text-lg">AI Image Helper</Label>
+                <div className="flex items-end gap-2">
+                  <div className="flex-grow">
+                    <Label htmlFor="ai-image-prompt" className="text-sm">Image Topic/Prompt (auto-fills from title)</Label>
+                    <Input 
+                      id="ai-image-prompt"
+                      placeholder="e.g., 'A futuristic cityscape', 'Abstract art representing data'" 
+                      value={imagePrompt}
+                      onChange={(e) => setImagePrompt(e.target.value)}
+                      disabled={isGeneratingImage || isPendingSubmit}
+                    />
+                  </div>
+                  <Button 
+                    type="button" 
+                    onClick={handleGenerateImage} 
+                    disabled={isGeneratingImage || !imagePrompt.trim() || isPendingSubmit}
+                    variant="outline"
+                    className="bg-accent/10 hover:bg-accent/20 border-accent/30"
+                  >
+                    {isGeneratingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                    )}
+                    Generate Image
+                  </Button>
+                </div>
+                {isGeneratingImage && <p className="text-sm text-muted-foreground">Generating image, please wait... This can take a few moments.</p>}
+                {imageGenError && <p className="text-sm text-destructive">{imageGenError}</p>}
+                {generatedImageDataUri && !isGeneratingImage && (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium mb-1">Generated Image Preview:</p>
+                    <Image src={generatedImageDataUri} alt="Generated AI preview" width={200} height={150} className="rounded-md border object-cover" />
+                  </div>
+                )}
+              </div>
+
 
               <FormField
                 control={form.control}
@@ -371,7 +459,7 @@ export default function NewPostPage() {
                  <Button type="button" variant="outline" onClick={() => router.push('/admin/posts')} disabled={isPendingSubmit}>
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPendingSubmit}>
+                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPendingSubmit || isGeneratingImage || isGeneratingContent || isGeneratingTitles}>
                   {isPendingSubmit ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -389,5 +477,3 @@ export default function NewPostPage() {
     </div>
   );
 }
-
-    

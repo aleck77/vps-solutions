@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog'; 
+import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 
 interface PostPageProps {
   params: {
@@ -43,12 +44,15 @@ export default async function PostPage({ params }: PostPageProps) {
     <div className="max-w-4xl mx-auto">
       <article className="space-y-8">
         <header className="space-y-4">
-          <Button variant="outline" size="sm" asChild className="mb-6">
-            <Link href="/blog" className="flex items-center">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Blog
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2 items-center mb-6">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/blog" className="flex items-center">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Blog
+              </Link>
+            </Button>
+            <EditPostLinkClient postId={post.id} />
+          </div>
           <Link href={`/blog/category/${post.category.toLowerCase()}`} className="text-accent font-semibold hover:underline">
             <div className="flex items-center text-sm">
                 <Tag className="h-4 w-4 mr-1" />{post.category}

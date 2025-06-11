@@ -105,13 +105,12 @@ export default function BlogPage() {
           {/* TODO: Add Pagination component here if many posts */}
         </div>
         <aside className="md:col-span-3 space-y-6">
-          {/* Consider fetching recommended posts from Firestore as well */}
-          <RecommendedPosts currentPostId={null} />
           <div className="p-4 bg-muted rounded-lg shadow">
             <h3 className="font-semibold font-headline text-lg mb-2">Newsletter</h3>
             <p className="text-sm text-muted-foreground mb-3">Stay updated with our latest articles and offers.</p>
             <NewsletterForm />
           </div>
+          <RecommendedPosts currentPostId={null} /> 
         </aside>
       </div>
     </div>

@@ -33,7 +33,7 @@ const testBasicGenerationFlow = ai.defineFlow(
         config: { temperature: 0.7 },
       });
 
-      const resultText = response.text(); // Correct v1.x syntax
+      const resultText = response.text; // CORRECTED: Genkit 1.x syntax
 
       if (resultText === null || resultText === undefined || resultText.trim() === "") {
         console.warn('[TestBasicGenerationFlow] ai.generate() returned null, undefined, or empty text output.');

@@ -9,6 +9,7 @@ import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog'; // Added getPostByIdForEditing
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
+import { getDb } from '@/lib/firebase'; // Added import for getDb
 
 interface CreatePostResult {
   success: boolean;
@@ -181,8 +182,9 @@ export async function deletePostAction(
     if (!postToDelete) {
       return { success: false, message: 'Post not found, cannot delete.' };
     }
-
-    await deleteDoc(doc(postToDelete.id!, 'posts')); // Using db from firestoreBlog which uses getDb()
+    
+    const db = getDb(); // Get Firestore instance
+    await deleteDoc(doc(db, 'posts', postId)); // Corrected call to doc()
 
     // Revalidate paths
     revalidatePath('/admin/posts');
@@ -208,3 +210,4 @@ export async function deletePostAction(
     };
   }
 }
+

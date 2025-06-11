@@ -37,11 +37,11 @@ export async function createPostAction(
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
   const processedTags = tags
-    ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+    ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
 
   const now = Timestamp.now();
-  const categorySlug = slugify(category);
+  const categorySlug = slugify(category); // Category is already expected to be a name, slugify it here
 
   const newPostData: NewBlogPost = {
     title,
@@ -53,7 +53,7 @@ export async function createPostAction(
     imageUrl,
     tags: processedTags,
     published,
-    date: now, 
+    date: now,
     createdAt: now,
     updatedAt: now,
   };
@@ -66,6 +66,7 @@ export async function createPostAction(
       revalidatePath(`/blog/${slug}`);
       revalidatePath('/admin/posts');
       revalidatePath(`/blog/category/${categorySlug}`);
+      processedTags.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
     } else {
       return { success: false, message: 'Failed to create post in database.' };
     }
@@ -77,7 +78,7 @@ export async function createPostAction(
     }
     return { success: false, message };
   }
-  
+
   redirect('/admin/posts');
 }
 
@@ -105,10 +106,10 @@ export async function updatePostAction(
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
   const processedTags = tags
-    ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+    ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
-  
-  const categorySlug = slugify(category);
+
+  const categorySlug = slugify(category); // Category is already expected to be a name, slugify it here
 
   // We construct a Partial<BlogPost> because not all fields might be directly from form,
   // and `updatedAt` is handled by Firestore. `date` and `createdAt` are not changed on update.
@@ -128,16 +129,29 @@ export async function updatePostAction(
 
 
   try {
-    const success = await updateBlogPost(postId, postUpdateData);
+    // Fetch old post to compare tags and categories for revalidation
+    const oldPost = await updateBlogPost(postId, postUpdateData, true); // Request old post data
 
-    if (success) {
+    if (oldPost) {
       revalidatePath('/blog');
       revalidatePath(`/blog/${slug}`); // Revalidate the updated post's page
-      revalidatePath(`/admin/posts`); // Revalidate admin posts list
-      revalidatePath(`/admin/posts/edit/${postId}`); // Revalidate the edit page itself
+      if (oldPost.slug !== slug) {
+        revalidatePath(`/blog/${oldPost.slug}`); // Revalidate old slug path if changed
+      }
+      revalidatePath(`/admin/posts`);
+      revalidatePath(`/admin/posts/edit/${postId}`);
       revalidatePath(`/blog/category/${categorySlug}`);
+      if (oldPost.category !== categorySlug) {
+        revalidatePath(`/blog/category/${oldPost.category}`);
+      }
+
+      const oldTags = oldPost.tags || [];
+      const newTags = processedTags;
+      const allTagsToRevalidate = new Set([...oldTags, ...newTags]);
+      allTagsToRevalidate.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
+
     } else {
-      return { success: false, message: 'Failed to update post in database.' };
+      return { success: false, message: 'Failed to update post in database or retrieve old post data.' };
     }
   } catch (error) {
     console.error('Error updating post:', error);
@@ -147,6 +161,6 @@ export async function updatePostAction(
     }
     return { success: false, message };
   }
-  
+
   redirect('/admin/posts');
 }

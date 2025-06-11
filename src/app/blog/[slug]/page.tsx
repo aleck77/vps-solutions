@@ -1,13 +1,15 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import type { BlogPost } from '@/types';
-import { CalendarDays, UserCircle, Tag, ArrowLeft } from 'lucide-react';
+import { CalendarDays, UserCircle, Tag, ArrowLeft, TagsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog'; 
+import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
+import { Badge } from '@/components/ui/badge'; // For tag display
 
 interface PostPageProps {
   params: {
@@ -16,7 +18,7 @@ interface PostPageProps {
 }
 
 export async function generateStaticParams() {
-  const slugs = await getAllPostSlugs(); 
+  const slugs = await getAllPostSlugs();
   return slugs.map((slug) => ({
     slug: slug,
   }));
@@ -30,6 +32,7 @@ export async function generateMetadata({ params }: PostPageProps) {
   return {
     title: `${post.title} | VHost Solutions Blog`,
     description: post.excerpt,
+    keywords: post.tags?.join(', '),
   };
 }
 
@@ -72,7 +75,7 @@ export default async function PostPage({ params }: PostPageProps) {
             fill
             priority
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
-            data-ai-hint={post.dataAiHint || "technology article"}
+            data-ai-hint={post.title.split(' ').slice(0,2).join(' ') || post.category || "article"}
             className="object-cover"
           />
         </div>
@@ -85,13 +88,18 @@ export default async function PostPage({ params }: PostPageProps) {
         />
 
         {post.tags && post.tags.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-2">TAGS:</h3>
+          <div className="mt-8 pt-6 border-t">
+            <h3 className="text-lg font-semibold text-muted-foreground mb-3 flex items-center">
+              <TagsIcon className="h-5 w-5 mr-2 text-primary" />
+              Tags
+            </h3>
             <div className="flex flex-wrap gap-2">
-              {post.tags.map(tag => (
-                <Link key={tag} href={`/blog/tag/${tag.toLowerCase()}`} className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded hover:bg-primary/10 hover:text-primary transition-colors">
-                  #{tag}
-                </Link>
+              {post.tags.map(tagSlug => (
+                <Button key={tagSlug} variant="outline" size="sm" asChild>
+                  <Link href={`/blog/tag/${tagSlug}`}>
+                    #{tagSlug.replace(/-/g, ' ')} {/* Display slightly nicer */}
+                  </Link>
+                </Button>
               ))}
             </div>
           </div>

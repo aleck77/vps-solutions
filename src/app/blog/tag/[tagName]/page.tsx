@@ -1,0 +1,89 @@
+
+import PostCard from '@/components/blog/PostCard';
+import CategoryFilter from '@/components/blog/CategoryFilter'; // Can be reused or a new TagFilter created
+import type { BlogPost } from '@/types';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import RecommendedPosts from '@/components/blog/RecommendedPosts';
+import { getPostsByTag, getAllUniqueTagSlugs } from '@/lib/firestoreBlog';
+import { notFound } from 'next/navigation';
+import { unslugify } from '@/lib/utils'; // For displaying tag name nicely
+
+interface TagPageProps {
+  params: {
+    tagName: string; // This will be a tag slug
+  };
+}
+
+export async function generateStaticParams() {
+  const tagSlugs = await getAllUniqueTagSlugs();
+  return tagSlugs.map((slug) => ({
+    tagName: slug,
+  }));
+}
+
+export async function generateMetadata({ params }: TagPageProps) {
+  const tagSlug = params.tagName;
+  const displayName = unslugify(tagSlug);
+  return {
+    title: `Posts tagged with "${displayName}" | VHost Solutions Blog`,
+    description: `Browse all blog posts tagged with "${displayName}" on VHost Solutions.`,
+  };
+}
+
+export default async function TagPage({ params }: TagPageProps) {
+  const tagSlug = params.tagName;
+
+  if (!tagSlug) {
+    notFound();
+    return null;
+  }
+
+  const posts = await getPostsByTag(tagSlug);
+  const displayName = unslugify(tagSlug);
+
+  return (
+    <div className="space-y-12">
+      <section className="text-center py-12 bg-primary/5 rounded-lg">
+        <h1 className="text-4xl font-bold font-headline text-primary mb-4">
+          Tag: {displayName}
+        </h1>
+        <p className="text-xl text-foreground max-w-2xl mx-auto">
+          Showing posts tagged with "{displayName}".
+        </p>
+      </section>
+
+      <div className="grid md:grid-cols-12 gap-8">
+        <div className="md:col-span-9">
+          {/* We might want a TagFilter component later, or just list posts */}
+          {/* <CategoryFilter /> Can be adapted or removed for tag pages */}
+          <div className="mb-8">
+            <Button variant="outline" asChild>
+                <Link href="/blog">View All Posts</Link>
+            </Button>
+          </div>
+          {posts.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground mb-4">No blog posts found with this tag.</p>
+              <Button asChild variant="outline">
+                <Link href="/blog">Back to All Posts</Link>
+              </Button>
+            </div>
+          )}
+          {/* TODO: Add Pagination component here if many posts */}
+        </div>
+        <aside className="md:col-span-3 space-y-6">
+          <RecommendedPosts currentPostId={null} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+export const revalidate = 60; // Revalidate tag pages every 60 seconds

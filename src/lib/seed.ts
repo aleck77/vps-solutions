@@ -4,9 +4,10 @@ import { collection, doc, writeBatch, Timestamp, getDocs, query, limit } from 'f
 import { db as firestore } from '@/lib/firebase'; // Corrected import: db as firestore
 import type { BlogPost, Category, BlogCategoryType } from '@/types';
 import { blogCategories } from '@/types'; // Import the actual array
+import { slugify } from '@/lib/utils'; // Import slugify
 
 // Define mockPosts structure directly here or import if it's substantial
-const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 'published'> & { date: string, category: BlogCategoryType }[] = [
+const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 'published' | 'tags' | 'category'> & { date: string, category: BlogCategoryType, tags: string[] }[] = [
   {
     slug: 'getting-started-with-ai',
     title: 'Getting Started with AI in Your Projects',
@@ -16,7 +17,8 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     excerpt: 'A beginner-friendly guide to integrating AI into your applications and workflows.',
     content: '<p>Full content about getting started with AI...</p><p>More details here.</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    tags: ['AI', 'Machine Learning', 'Beginners'],
+    tags: ['AI', 'Machine Learning', 'Beginners Guide'],
+    dataAiHint: 'artificial intelligence',
   },
   {
     slug: 'no-code-revolution',
@@ -27,7 +29,8 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     excerpt: 'Explore how no-code platforms are empowering creators to build powerful applications.',
     content: '<p>Detailed exploration of no-code platforms and their impact...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    tags: ['No-code', 'App Development', 'Productivity'],
+    tags: ['No-code', 'App Development', 'Productivity Tools'],
+    dataAiHint: 'visual programming',
   },
   {
     slug: 'mastering-modern-vibe-coding',
@@ -38,7 +41,8 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     excerpt: 'Dive into the latest trends and best practices in vibe coding for 2024.',
     content: '<p>Comprehensive guide to modern vibe coding...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    tags: ['JavaScript', 'React', 'Next.js', 'CSS'],
+    tags: ['JavaScript', 'React Framework', 'Next.js Guide', 'CSS Styling'],
+    dataAiHint: 'web development',
   },
   {
     slug: 'automation-for-small-business',
@@ -49,7 +53,8 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     excerpt: 'Discover tools and strategies to automate repetitive tasks and boost efficiency.',
     content: '<p>Practical automation tips for small businesses...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    tags: ['Automation', 'Small Business', 'Productivity Tools'],
+    tags: ['Automation Software', 'Small Business Tips', 'Productivity Hacks'],
+    dataAiHint: 'business automation',
   },
   {
     slug: 'essential-developer-tools',
@@ -60,7 +65,8 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     excerpt: 'A curated list of indispensable tools that every developer should know.',
     content: '<p>List and review of top developer tools...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    tags: ['Developer Tools', 'IDE', 'Version Control'],
+    tags: ['Developer Tools', 'Software Development IDE', 'Version Control Systems'],
+    dataAiHint: 'coding tools',
   },
   {
     slug: 'choosing-cloud-hosting',
@@ -71,20 +77,11 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     excerpt: 'A guide to navigating the options and selecting the best cloud hosting provider.',
     content: '<p>In-depth analysis of cloud hosting options...</p>',
     imageUrl: 'https://placehold.co/600x400.png',
-    tags: ['Cloud Hosting', 'VPS', 'IaaS', 'PaaS'],
+    tags: ['Cloud Hosting Services', 'VPS Hosting', 'Infrastructure as a Service', 'Platform as a Service'],
+    dataAiHint: 'server hosting',
   },
 ];
 
-
-function slugify(text: string): string {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(/[^\w-]+/g, '') // Remove all non-word chars
-    .replace(/--+/g, '-'); // Replace multiple - with single -
-}
 
 export async function seedDatabase() {
   const postsCollection = collection(firestore, 'posts');
@@ -100,9 +97,12 @@ export async function seedDatabase() {
     const postsBatch = writeBatch(firestore);
     mockPostsData.forEach((postData) => {
       const postRef = doc(postsCollection); // Auto-generate ID
+      const processedTags = postData.tags.map(tag => slugify(tag.trim())).filter(tag => tag.length > 0);
       const postToSeed: BlogPost = {
         ...postData,
+        slug: slugify(postData.title), // Ensure slug is consistent if title changes
         category: slugify(postData.category), // Store category as slug
+        tags: processedTags,
         date: Timestamp.fromDate(new Date(postData.date)),
         published: true,
         createdAt: now,
@@ -121,21 +121,18 @@ export async function seedDatabase() {
     console.log('[seedDatabase] Categories collection is not empty. Skipping categories seeding.');
   } else {
     const categoriesBatch = writeBatch(firestore);
-    blogCategories.forEach((categoryName) => {
+    // Create a Set to ensure unique category names before slugifying and seeding
+    const uniqueCategoryNames = new Set(blogCategories);
+    uniqueCategoryNames.forEach((categoryName) => {
       const categoryRef = doc(categoriesCollection); // Auto-generate ID
       const categoryToSeed: Category = {
-        name: categoryName,
-        slug: slugify(categoryName),
-        id: categoryRef.id, // Store the auto-generated ID if needed, or let Firestore handle it
+        name: categoryName, // Store original name
+        slug: slugify(categoryName), // Store slugified name
+        id: categoryRef.id,
       };
       categoriesBatch.set(categoryRef, categoryToSeed);
     });
     await categoriesBatch.commit();
-    console.log(`[seedDatabase] ${blogCategories.length} categories have been seeded.`);
+    console.log(`[seedDatabase] ${uniqueCategoryNames.size} categories have been seeded.`);
   }
 }
-
-// Example of how you might call this.
-// You'll need to trigger this manually once, e.g., from a temporary route or script.
-// seedDatabase().catch(console.error);
-

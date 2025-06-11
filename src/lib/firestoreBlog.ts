@@ -5,6 +5,7 @@ import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getD
 import { getDb } from '@/lib/firebase';
 import type { BlogPost, Category, NewBlogPost } from '@/types'; // Added NewBlogPost
 import type { PostFormValues } from '@/lib/schemas'; // Import PostFormValues
+import { slugify } from '@/lib/utils';
 
 // Helper to convert Firestore Timestamps to JS Date objects or ISO strings in the post objects
 const processPostDocument = (documentSnapshot: any): BlogPost => {
@@ -15,6 +16,7 @@ const processPostDocument = (documentSnapshot: any): BlogPost => {
     date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date),
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt),
+    tags: data.tags || [], // Ensure tags is always an array
   } as BlogPost;
 };
 
@@ -52,18 +54,19 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   const db = getDb();
   try {
     const postsCollection = collection(db, 'posts');
-    const q = query(postsCollection, where('slug', '==', slug), where('published', '==', true), limit(1));
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
-      // Try fetching non-published post if for admin or specific context
-      const qUnpublished = query(postsCollection, where('slug', '==', slug), limit(1));
-      const querySnapshotUnpublished = await getDocs(qUnpublished);
-      if (querySnapshotUnpublished.empty) {
-        return null;
-      }
-      return processPostDocument(querySnapshotUnpublished.docs[0]);
+    // First try to get published post
+    const qPublished = query(postsCollection, where('slug', '==', slug), where('published', '==', true), limit(1));
+    const querySnapshotPublished = await getDocs(qPublished);
+    if (!querySnapshotPublished.empty) {
+      return processPostDocument(querySnapshotPublished.docs[0]);
     }
-    return processPostDocument(querySnapshot.docs[0]);
+    // If not found, try to get any post by slug (for admin preview or direct access to unpublished)
+    const qAny = query(postsCollection, where('slug', '==', slug), limit(1));
+    const querySnapshotAny = await getDocs(qAny);
+    if (querySnapshotAny.empty) {
+      return null;
+    }
+    return processPostDocument(querySnapshotAny.docs[0]);
   } catch (error) {
     console.error(`Error fetching post by slug ${slug}:`, error);
     return null;
@@ -93,7 +96,7 @@ export async function getPostsByCategory(categorySlug: string): Promise<BlogPost
     const postsCollection = collection(db, 'posts');
     const q = query(
       postsCollection,
-      where('category', '==', categorySlug), // Assuming category is stored as a direct string/slug
+      where('category', '==', categorySlug),
       where('published', '==', true),
       orderBy('date', 'desc')
     );
@@ -105,13 +108,58 @@ export async function getPostsByCategory(categorySlug: string): Promise<BlogPost
   }
 }
 
+export async function getPostsByTag(tagSlug: string): Promise<BlogPost[]> {
+  const db = getDb();
+  try {
+    const postsCollection = collection(db, 'posts');
+    const q = query(
+      postsCollection,
+      where('tags', 'array-contains', tagSlug),
+      where('published', '==', true),
+      orderBy('date', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(processPostDocument);
+  } catch (error) {
+    console.error(`Error fetching posts by tag ${tagSlug}:`, error);
+    return [];
+  }
+}
+
+export async function getAllUniqueTagSlugs(): Promise<string[]> {
+  const db = getDb();
+  try {
+    const postsCollection = collection(db, 'posts');
+    const q = query(postsCollection, where('published', '==', true));
+    const querySnapshot = await getDocs(q);
+    const allTags = new Set<string>();
+    querySnapshot.docs.forEach(docSnap => {
+      const post = docSnap.data() as BlogPost;
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+    return Array.from(allTags);
+  } catch (error) {
+    console.error("Error fetching all unique tag slugs:", error);
+    return [];
+  }
+}
+
+
 export async function getAllCategories(): Promise<Category[]> {
   const db = getDb();
   try {
     const categoriesCollection = collection(db, 'categories');
+    // Categories are few, so a simple query and sort by name is fine.
+    // If they grow, consider storing slug in category doc and querying by that if needed.
     const q = query(categoriesCollection, orderBy('name', 'asc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Category));
+    return querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      name: docSnap.data().name,
+      slug: docSnap.data().slug || slugify(docSnap.data().name), // Ensure slug exists
+    } as Category));
   } catch (error) {
     console.error("Error fetching all categories:", error);
     return [];
@@ -122,7 +170,7 @@ export async function getAllPostSlugs(): Promise<string[]> {
   const db = getDb();
   try {
     const postsCollection = collection(db, 'posts');
-    const q = query(postsCollection, where('published', '==', true)); // Only slugs of published posts for sitemap/SSG
+    const q = query(postsCollection, where('published', '==', true));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(docSnap => docSnap.data().slug as string);
   } catch (error) {
@@ -178,15 +226,15 @@ export async function getRecommendedPosts(currentPostId: string | null, count: n
 export const processPostDocWithCategory = async (docSnapshot: any): Promise<BlogPost> => {
   const db = getDb();
   const postData = docSnapshot.data();
-  let categoryName = postData.category;
 
   return {
     id: docSnapshot.id,
     ...postData,
-    category: categoryName, // This is already a slug
+    category: postData.category, // This is already a slug
     date: postData.date instanceof Timestamp ? postData.date.toDate() : new Date(postData.date),
     createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : new Date(postData.createdAt),
     updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : new Date(postData.updatedAt),
+    tags: postData.tags || [], // Ensure tags is always an array
   } as BlogPost;
 };
 
@@ -195,7 +243,10 @@ export async function addBlogPost(postData: NewBlogPost): Promise<string | null>
   const db = getDb();
   try {
     const postsCollection = collection(db, 'posts');
-    const docRef = await addDoc(postsCollection, postData);
+    const docRef = await addDoc(postsCollection, {
+        ...postData,
+        tags: postData.tags || [] // Ensure tags field is always present, even if empty
+    });
     return docRef.id;
   } catch (error) {
     console.error("Error adding new blog post:", error);
@@ -204,17 +255,33 @@ export async function addBlogPost(postData: NewBlogPost): Promise<string | null>
 }
 
 // Function to update an existing blog post
-export async function updateBlogPost(postId: string, postData: Partial<BlogPost>): Promise<boolean> {
+export async function updateBlogPost(
+  postId: string,
+  postData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>>,
+  returnOldPost: boolean = false
+): Promise<BlogPost | boolean> {
   const db = getDb();
+  const postRef = doc(db, 'posts', postId);
+  let oldPostData: BlogPost | null = null;
+
   try {
-    const postRef = doc(db, 'posts', postId);
+    if (returnOldPost) {
+      const oldDocSnap = await getDoc(postRef);
+      if (oldDocSnap.exists()) {
+        oldPostData = processPostDocument(oldDocSnap);
+      }
+    }
+
     await updateDoc(postRef, {
       ...postData,
-      updatedAt: serverTimestamp(), // Use serverTimestamp for updatedAt
+      tags: postData.tags || [], // Ensure tags field is always present
+      updatedAt: serverTimestamp(),
     });
-    return true;
+
+    return returnOldPost && oldPostData ? oldPostData : true;
   } catch (error) {
     console.error(`Error updating blog post ${postId}:`, error);
     return false;
   }
 }
+

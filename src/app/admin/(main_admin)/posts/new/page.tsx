@@ -10,7 +10,7 @@ import { slugify } from '@/lib/utils';
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { createPostAction } from '@/app/actions/postActions';
 import { blogCategories } from '@/types';
-import Image from 'next/image'; // For image preview
+import Image from 'next/image'; 
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,11 +21,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Link from 'next/link';
-import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon, UploadCloud } from 'lucide-react';
 
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent } from '@/ai/flows/generate-post-content-flow';
 import { generatePostImage } from '@/ai/flows/generate-post-image-flow.ts';
+
+
+// Helper function to convert Data URI to Blob
+function dataURItoBlob(dataURI: string): Blob {
+  const byteString = atob(dataURI.split(',')[1]);
+  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: mimeString });
+}
 
 
 export default function NewPostPage() {
@@ -43,6 +56,9 @@ export default function NewPostPage() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
 
   const form = useForm<PostFormValues>({
@@ -62,13 +78,13 @@ export default function NewPostPage() {
   });
 
   const titleValue = form.watch('title');
+  const currentImageUrl = form.watch('imageUrl'); // Watch imageUrl to update preview
 
   useEffect(() => {
     if (titleValue && !form.formState.dirtyFields.slug) {
       form.setValue('slug', slugify(titleValue), { shouldValidate: true });
     }
-    // Update image prompt when title changes, if image prompt is empty or matches old title
-    if (titleValue && (!imagePrompt || imagePrompt === slugify(form.getValues('title')) /* crude check if it was auto-set */)) {
+    if (titleValue && (!imagePrompt || imagePrompt === slugify(form.getValues('title')))) {
       setImagePrompt(titleValue);
     }
   }, [titleValue, form, imagePrompt]);
@@ -115,7 +131,7 @@ export default function NewPostPage() {
 
   const handleSelectTitle = (selectedTitle: string) => {
     form.setValue('title', selectedTitle, { shouldValidate: true });
-    setImagePrompt(selectedTitle); // Also update image prompt
+    setImagePrompt(selectedTitle); 
     setGeneratedTitles([]); 
   };
 
@@ -147,14 +163,15 @@ export default function NewPostPage() {
       return;
     }
     setIsGeneratingImage(true);
-    setGeneratedImageDataUri(null);
+    setGeneratedImageDataUri(null); // Clear previous Data URI
+    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Reset form field to placeholder
     setImageGenError(null);
     try {
       const result = await generatePostImage({ prompt: imagePrompt });
       if (result.imageDataUri) {
         setGeneratedImageDataUri(result.imageDataUri);
-        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true });
-        toast({ title: 'Success', description: 'Image generated and URL updated!' });
+        // Don't set form.setValue('imageUrl') here, user must upload it first
+        toast({ title: 'Success', description: 'Image generated! Now you can upload it.' });
       } else {
         setImageGenError(result.error || 'Image generation failed: No image data received.');
         toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
@@ -166,6 +183,60 @@ export default function NewPostPage() {
       toast({ title: 'AI Image Error', description: errMsg, variant: 'destructive' });
     } finally {
       setIsGeneratingImage(false);
+    }
+  };
+
+  const handleUploadGeneratedImage = async () => {
+    if (!generatedImageDataUri) {
+      toast({ title: 'Info', description: 'Please generate an image first.', variant: 'default' });
+      return;
+    }
+    if (!form.getValues('title')) {
+      toast({ title: 'Info', description: 'Please provide a title for the post first (used for filename).', variant: 'default' });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setUploadError(null);
+
+    try {
+      const blob = dataURItoBlob(generatedImageDataUri);
+      const postTitleSlug = slugify(form.getValues('title') || 'untitled');
+      const timestamp = Date.now();
+      const filename = `${postTitleSlug}-${timestamp}.png`; // Example filename
+      const imageFile = new File([blob], filename, { type: blob.type });
+
+      const formData = new FormData();
+      formData.append('imageFile', imageFile);
+      formData.append('postTitle', form.getValues('title')); // Send title for context
+      // Add any other data your n8n webhook might need
+
+      const response = await fetch('https://n8n.artelegis.com.ua/webhook/wp', {
+        method: 'POST',
+        body: formData,
+        // Headers are not explicitly set for FormData; browser handles Content-Type
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+        throw new Error(errorData.error || `Upload failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.imageUrl) {
+        form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
+        setGeneratedImageDataUri(null); // Clear Data URI as it's now uploaded
+        toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
+      } else {
+        throw new Error(result.error || 'Upload failed: Invalid response from server.');
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      setUploadError(error.message || 'An unknown error occurred during upload.');
+      toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -295,20 +366,20 @@ export default function NewPostPage() {
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
                       <Input 
-                        type="text" // Changed from "url" to "text"
-                        placeholder="https://placehold.co/600x400.png or generated Data URI" 
-                        {...field} // Rely on RHF for value
-                        disabled={isPendingSubmit || isGeneratingImage}
+                        type="text" 
+                        placeholder="https://placehold.co/600x400.png or uploaded image URL" 
+                        {...field} 
+                        disabled={isPendingSubmit || isGeneratingImage || isUploadingImage}
                       />
                     </FormControl>
                      <FormDescription>
-                      URL of the main image for the post. Use https://placehold.co/ or generate with AI.
+                      URL of the main image. Generate with AI then upload, or paste a URL.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {/* AI Image Generation Section */}
+              {/* AI Image Generation & Upload Section */}
               <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
                 <Label className="font-semibold text-lg">AI Image Helper</Label>
                 <div className="flex items-end gap-2">
@@ -319,13 +390,13 @@ export default function NewPostPage() {
                       placeholder="e.g., 'A futuristic cityscape', 'Abstract art representing data'" 
                       value={imagePrompt}
                       onChange={(e) => setImagePrompt(e.target.value)}
-                      disabled={isGeneratingImage || isPendingSubmit}
+                      disabled={isGeneratingImage || isUploadingImage || isPendingSubmit}
                     />
                   </div>
                   <Button 
                     type="button" 
                     onClick={handleGenerateImage} 
-                    disabled={isGeneratingImage || !imagePrompt.trim() || isPendingSubmit}
+                    disabled={isGeneratingImage || !imagePrompt.trim() || isPendingSubmit || isUploadingImage}
                     variant="outline"
                     className="bg-accent/10 hover:bg-accent/20 border-accent/30"
                   >
@@ -337,13 +408,38 @@ export default function NewPostPage() {
                     Generate Image
                   </Button>
                 </div>
-                {isGeneratingImage && <p className="text-sm text-muted-foreground">Generating image, please wait... This can take a few moments.</p>}
+                {isGeneratingImage && <p className="text-sm text-muted-foreground">Generating image, please wait...</p>}
                 {imageGenError && <p className="text-sm text-destructive">{imageGenError}</p>}
+                
                 {generatedImageDataUri && !isGeneratingImage && (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-3">
                     <p className="text-sm font-medium mb-1">Generated Image Preview:</p>
                     <Image src={generatedImageDataUri} alt="Generated AI preview" width={200} height={150} className="rounded-md border object-cover" />
+                    <Button
+                      type="button"
+                      onClick={handleUploadGeneratedImage}
+                      disabled={isUploadingImage || isPendingSubmit || !generatedImageDataUri}
+                      variant="outline"
+                      className="bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-700"
+                    >
+                      {isUploadingImage ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UploadCloud className="h-4 w-4 mr-2" />
+                      )}
+                      Upload Generated Image
+                    </Button>
+                    {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
                   </div>
+                )}
+                {/* Preview for the final imageUrl (either placeholder, pasted, or uploaded) */}
+                {!generatedImageDataUri && currentImageUrl && currentImageUrl.startsWith('http') && (
+                    <div className="mt-3">
+                        <p className="text-sm font-medium mb-1">Current Image URL Preview:</p>
+                        <Image src={currentImageUrl} alt="Current image URL preview" width={200} height={150} className="rounded-md border object-cover" 
+                          onError={(e) => (e.currentTarget.style.display = 'none')} // Hide if image fails to load
+                        />
+                    </div>
                 )}
               </div>
 
@@ -464,7 +560,11 @@ export default function NewPostPage() {
                  <Button type="button" variant="outline" onClick={() => router.push('/admin/posts')} disabled={isPendingSubmit}>
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPendingSubmit || isGeneratingImage || isGeneratingContent || isGeneratingTitles}>
+                <Button 
+                  type="submit" 
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground" 
+                  disabled={isPendingSubmit || isGeneratingImage || isGeneratingContent || isGeneratingTitles || isUploadingImage}
+                >
                   {isPendingSubmit ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -482,3 +582,6 @@ export default function NewPostPage() {
     </div>
   );
 }
+
+
+    

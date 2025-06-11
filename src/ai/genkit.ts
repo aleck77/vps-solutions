@@ -16,21 +16,16 @@ if (process.env.GEMINI_API_KEY) {
   console.log('[genkit.ts] GEMINI_API_KEY value (first 5 chars):', process.env.GEMINI_API_KEY.substring(0, 5) + '...');
 }
 
-const googleAiPluginOptions: any = {};
-if (process.env.GEMINI_API_KEY) {
-  googleAiPluginOptions.apiKey = process.env.GEMINI_API_KEY;
-  console.log('[genkit.ts] GEMINI_API_KEY will be explicitly passed to googleAI plugin.');
-} else if (process.env.GOOGLE_API_KEY) {
-  // Fallback to GOOGLE_API_KEY if GEMINI_API_KEY is not set, though GEMINI_API_KEY is preferred for Gemini models
-  googleAiPluginOptions.apiKey = process.env.GOOGLE_API_KEY;
-  console.log('[genkit.ts] GOOGLE_API_KEY will be explicitly passed to googleAI plugin (as fallback).');
-} else {
+// If GEMINI_API_KEY is found, we'll rely on the googleAI() plugin to pick it up from process.env.
+// If only GOOGLE_API_KEY is found, it should also be picked up.
+// No need to explicitly pass googleAiPluginOptions if the key is in the environment.
+if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
   console.warn('[genkit.ts] Neither GEMINI_API_KEY nor GOOGLE_API_KEY found in environment. Genkit AI calls may fail.');
 }
 
 export const ai = genkit({
   plugins: [
-    googleAI(googleAiPluginOptions) // Explicitly pass options (which may include apiKey)
+    googleAI() // Rely on plugin to find API key in process.env
   ],
-  model: 'googleai/gemini-1.5-flash-latest', // Default model for generate - CHANGED
+  model: 'googleai/gemini-2.0-flash', // Reverted to user's preferred model
 });

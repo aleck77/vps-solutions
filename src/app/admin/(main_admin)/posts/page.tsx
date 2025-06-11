@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { deletePostAction } from '@/app/actions/postActions';
 import { unslugify } from '@/lib/utils';
+import { Label } from '@/components/ui/label'; // Added missing import
 
 type DeleteState = {
   success: boolean;

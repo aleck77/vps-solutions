@@ -4,12 +4,12 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { Timestamp, doc, deleteDoc } from 'firebase/firestore'; // Added deleteDoc
+import { Timestamp, doc, deleteDoc, writeBatch } from 'firebase/firestore'; // Added writeBatch
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
-import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog'; // Added getPostByIdForEditing
+import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
-import { getDb } from '@/lib/firebase'; // Added import for getDb
+import { getDb } from '@/lib/firebase';
 
 interface CreatePostResult {
   success: boolean;
@@ -25,6 +25,14 @@ interface DeletePostResult {
   message: string;
   errors?: { message: string }[];
 }
+
+interface DeleteMultiplePostsResult {
+  success: boolean;
+  message: string;
+  deletedCount?: number;
+  errors?: { postId: string; message: string }[];
+}
+
 
 export async function createPostAction(
   prevState: CreatePostResult | undefined,
@@ -176,17 +184,15 @@ export async function deletePostAction(
   }
 
   try {
-    // Fetch the post before deleting to get its slug, category, and tags for revalidation
     const postToDelete = await getPostByIdForEditing(postId);
     
     if (!postToDelete) {
       return { success: false, message: 'Post not found, cannot delete.' };
     }
     
-    const db = getDb(); // Get Firestore instance
-    await deleteDoc(doc(db, 'posts', postId)); // Corrected call to doc()
+    const db = getDb();
+    await deleteDoc(doc(db, 'posts', postId));
 
-    // Revalidate paths
     revalidatePath('/admin/posts');
     revalidatePath('/blog');
     if (postToDelete.slug) {
@@ -211,3 +217,77 @@ export async function deletePostAction(
   }
 }
 
+export async function deleteMultiplePostsAction(
+  postIds: string[]
+): Promise<DeleteMultiplePostsResult> {
+  if (!postIds || postIds.length === 0) {
+    return { success: false, message: 'No post IDs provided for deletion.' };
+  }
+
+  const db = getDb();
+  const batch = writeBatch(db);
+  let deletedCount = 0;
+  const errors: { postId: string; message: string }[] = [];
+  
+  const pathsToRevalidate = {
+    slugs: new Set<string>(),
+    categories: new Set<string>(),
+    tags: new Set<string>(),
+  };
+
+  for (const postId of postIds) {
+    try {
+      const postToDelete = await getPostByIdForEditing(postId);
+      if (postToDelete) {
+        const postRef = doc(db, 'posts', postId);
+        batch.delete(postRef);
+        deletedCount++;
+        
+        if (postToDelete.slug) pathsToRevalidate.slugs.add(postToDelete.slug);
+        if (postToDelete.category) pathsToRevalidate.categories.add(postToDelete.category);
+        if (postToDelete.tags) postToDelete.tags.forEach(tag => pathsToRevalidate.tags.add(tag));
+
+      } else {
+        // Post might have been deleted by another process
+        console.warn(`Post with ID ${postId} not found for deletion, skipping.`);
+      }
+    } catch (error: any) {
+      console.error(`Error preparing post ${postId} for batch deletion:`, error);
+      errors.push({ postId, message: error.message || 'Unknown error during pre-delete fetch' });
+    }
+  }
+
+  if (deletedCount === 0 && errors.length === 0 && postIds.length > 0) {
+    return { success: false, message: 'No posts found to delete (they may have already been deleted).', errors };
+  }
+  
+  if (deletedCount === 0 && errors.length > 0) {
+     return { success: false, message: 'Could not prepare any posts for deletion due to errors.', errors };
+  }
+
+
+  try {
+    await batch.commit();
+    
+    // Revalidate paths
+    revalidatePath('/admin/posts');
+    revalidatePath('/blog');
+    pathsToRevalidate.slugs.forEach(slug => revalidatePath(`/blog/${slug}`));
+    pathsToRevalidate.categories.forEach(categorySlug => revalidatePath(`/blog/category/${categorySlug}`));
+    pathsToRevalidate.tags.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
+
+    let message = `${deletedCount} post(s) deleted successfully.`;
+    if (errors.length > 0) {
+      message += ` ${errors.length} post(s) could not be deleted.`;
+    }
+    return { success: true, message, deletedCount, errors: errors.length > 0 ? errors : undefined };
+
+  } catch (error: any) {
+    console.error('Error committing batch delete:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to delete one or more posts during batch commit.',
+      errors 
+    };
+  }
+}

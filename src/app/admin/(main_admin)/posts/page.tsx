@@ -1,23 +1,24 @@
-
 'use client';
 
-import { useEffect, useState, useMemo, useActionState, startTransition } from 'react';
+import { useEffect, useState, useMemo, useActionState, startTransition, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Added for image preview
 import { getAllPostsForAdmin } from '@/lib/firestoreBlog';
-import type { BlogPost, BlogCategoryType } from '@/types';
+import type { BlogPost } from '@/types';
 import { blogCategories } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox'; // Added for row selection
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { PlusCircle, FilePenLine, Eye, EyeOff, Trash2, Search, Filter, Loader2 } from 'lucide-react';
+import { PlusCircle, FilePenLine, Eye, EyeOff, Trash2, Search, Filter, Loader2, Minus } from 'lucide-react'; // Added Minus for indeterminate checkbox
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { deletePostAction } from '@/app/actions/postActions';
+import { deletePostAction, deleteMultiplePostsAction } from '@/app/actions/postActions'; // Added deleteMultiplePostsAction
 import { unslugify } from '@/lib/utils';
-import { Label } from '@/components/ui/label'; // Added missing import
+import { Label } from '@/components/ui/label';
 
 type DeleteState = {
   success: boolean;
@@ -25,28 +26,39 @@ type DeleteState = {
   errors?: any;
 } | undefined;
 
+type MultipleDeleteState = {
+  success: boolean;
+  message: string;
+  deletedCount?: number;
+  errors?: any;
+} | undefined;
+
 export default function PostsAdminPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all'); // category slug or 'all'
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   
-  const [isDeleting, setIsDeleting] = useState(false);
   const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
 
   const { toast } = useToast();
+  const selectAllCheckboxRef = useRef<HTMLButtonElement>(null);
 
-  // Action state for deletePostAction
-  const [deleteState, submitDeleteAction, isDeletePending] = useActionState<DeleteState, string>(
+
+  const [singleDeleteState, submitSingleDeleteAction, isSingleDeletePending] = useActionState<DeleteState, string>(
     async (previousState, postIdToDelete) => {
-      setIsDeleting(true);
       const result = await deletePostAction(postIdToDelete);
-      setIsDeleting(false);
       if (result.success) {
         toast({ title: 'Post Deleted', description: result.message });
-        // Optimistically update UI by removing the post from local state
         setPosts(prevPosts => prevPosts.filter(p => p.id !== postIdToDelete));
+        setSelectedPostIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postIdToDelete);
+          return newSet;
+        });
       } else {
         toast({ title: 'Error Deleting Post', description: result.message, variant: 'destructive' });
       }
@@ -54,6 +66,24 @@ export default function PostsAdminPage() {
     },
     undefined
   );
+
+  const [multipleDeleteState, submitMultipleDeleteAction, isMultipleDeletePending] = useActionState<MultipleDeleteState, string[]>(
+    async (previousState, postIdsToDelete) => {
+      setIsBulkDeleting(true); // Keep this state for the dialog button
+      const result = await deleteMultiplePostsAction(postIdsToDelete);
+      setIsBulkDeleting(false);
+      if (result.success) {
+        toast({ title: 'Posts Deleted', description: result.message });
+        setPosts(prevPosts => prevPosts.filter(p => p.id && !postIdsToDelete.includes(p.id)));
+        setSelectedPostIds(new Set());
+      } else {
+        toast({ title: 'Error Deleting Posts', description: result.message, variant: 'destructive' });
+      }
+      return result;
+    },
+    undefined
+  );
+
 
   useEffect(() => {
     async function fetchPosts() {
@@ -86,24 +116,68 @@ export default function PostsAdminPage() {
     });
   }, [posts, searchTerm, categoryFilter, statusFilter]);
 
-  const handleDeleteClick = (post: BlogPost) => {
+  const handleSingleDeleteClick = (post: BlogPost) => {
     setPostToDelete(post);
   };
 
-  const confirmDelete = () => {
+  const confirmSingleDelete = () => {
     if (postToDelete && postToDelete.id) {
       startTransition(() => {
-         submitDeleteAction(postToDelete.id!);
+         submitSingleDeleteAction(postToDelete.id!);
       });
     }
-    setPostToDelete(null); // Close dialog
+    setPostToDelete(null);
+  };
+
+  const handleSelectPost = (postId: string, checked: boolean) => {
+    setSelectedPostIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(postId);
+      } else {
+        newSet.delete(postId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllClick = (checked: boolean | 'indeterminate') => {
+    if (checked === true) {
+      setSelectedPostIds(new Set(filteredPosts.map(p => p.id!)));
+    } else {
+      setSelectedPostIds(new Set());
+    }
+  };
+  
+  const isAllSelected = filteredPosts.length > 0 && selectedPostIds.size === filteredPosts.length;
+  const isIndeterminate = selectedPostIds.size > 0 && selectedPostIds.size < filteredPosts.length;
+
+   useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.dataset.state = isIndeterminate ? 'indeterminate' : (isAllSelected ? 'checked' : 'unchecked');
+    }
+  }, [isIndeterminate, isAllSelected]);
+
+
+  const handleBulkDeleteClick = () => {
+    if (selectedPostIds.size > 0) {
+      setIsBulkDeleting(true); // This will open the dialog
+    }
+  };
+
+  const confirmBulkDelete = () => {
+    if (selectedPostIds.size > 0) {
+      startTransition(() => {
+        submitMultipleDeleteAction(Array.from(selectedPostIds));
+      });
+    }
+    setIsBulkDeleting(false); // Close dialog
   };
   
   const getCategoryDisplayName = (slug: string): string => {
     const foundCategory = blogCategories.find(cat => cat.toLowerCase().replace(/\s+/g, '-') === slug);
-    return foundCategory ? unslugify(foundCategory) : unslugify(slug); // unslugify if not found, or just show slug
+    return foundCategory ? unslugify(foundCategory) : unslugify(slug);
   };
-
 
   if (isLoading) {
     return (
@@ -130,59 +204,83 @@ export default function PostsAdminPage() {
           <CardDescription>View, filter, create, edit, and manage all blog posts.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 space-y-4 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-4 items-end">
-            <div className="flex-grow sm:flex-grow-0 sm:w-auto min-w-[200px]">
-              <Label htmlFor="search-posts" className="text-sm font-medium">Search Title/Author</Label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search-posts"
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-full"
-                />
+          <div className="mb-6 space-y-4">
+            <div className="sm:flex sm:flex-wrap sm:gap-4 items-end">
+              <div className="flex-grow sm:flex-grow-0 sm:w-auto min-w-[200px]">
+                <Label htmlFor="search-posts" className="text-sm font-medium">Search Title/Author</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search-posts"
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 w-full"
+                  />
+                </div>
               </div>
+              <div className="flex-grow sm:flex-grow-0 sm:w-auto min-w-[150px]">
+                <Label htmlFor="category-filter" className="text-sm font-medium">Category</Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger id="category-filter" className="w-full">
+                    <SelectValue placeholder="Filter by category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {blogCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat.toLowerCase().replace(/\s+/g, '-')}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-grow sm:flex-grow-0 sm:w-auto min-w-[150px]">
+                <Label htmlFor="status-filter" className="text-sm font-medium">Status</Label>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | 'published' | 'draft')}>
+                  <SelectTrigger id="status-filter" className="w-full">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="outline" onClick={() => { setSearchTerm(''); setCategoryFilter('all'); setStatusFilter('all'); setSelectedPostIds(new Set());}} className="w-full sm:w-auto mt-4 sm:mt-0">
+                <Filter className="h-4 w-4 mr-2" /> Clear Filters
+              </Button>
             </div>
-            <div className="flex-grow sm:flex-grow-0 sm:w-auto min-w-[150px]">
-              <Label htmlFor="category-filter" className="text-sm font-medium">Category</Label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger id="category-filter" className="w-full">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {blogCategories.map((cat) => (
-                    <SelectItem key={cat} value={cat.toLowerCase().replace(/\s+/g, '-')}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-grow sm:flex-grow-0 sm:w-auto min-w-[150px]">
-              <Label htmlFor="status-filter" className="text-sm font-medium">Status</Label>
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | 'published' | 'draft')}>
-                <SelectTrigger id="status-filter" className="w-full">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button variant="outline" onClick={() => { setSearchTerm(''); setCategoryFilter('all'); setStatusFilter('all');}} className="w-full sm:w-auto">
-              <Filter className="h-4 w-4 mr-2" /> Clear Filters
-            </Button>
+            {selectedPostIds.size > 0 && (
+              <div className="mt-4">
+                <Button variant="destructive" onClick={handleBulkDeleteClick} disabled={isMultipleDeletePending || isSingleDeletePending}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected ({selectedPostIds.size})
+                  {isMultipleDeletePending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                </Button>
+              </div>
+            )}
           </div>
 
           {filteredPosts.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      ref={selectAllCheckboxRef}
+                      id="select-all-posts"
+                      aria-label="Select all posts"
+                      checked={isAllSelected || isIndeterminate}
+                      onCheckedChange={(checked) => handleSelectAllClick(checked)}
+                      className="translate-y-[2px]"
+                    >
+                      {isIndeterminate && <Minus className="h-4 w-4" />}
+                    </Checkbox>
+                  </TableHead>
+                  <TableHead className="w-[80px]">Image</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Author</TableHead>
@@ -193,7 +291,26 @@ export default function PostsAdminPage() {
               </TableHeader>
               <TableBody>
                 {filteredPosts.map((post) => (
-                  <TableRow key={post.id}>
+                  <TableRow key={post.id} data-state={selectedPostIds.has(post.id!) ? "selected" : ""}>
+                    <TableCell>
+                      <Checkbox
+                        id={`select-post-${post.id}`}
+                        aria-label={`Select post ${post.title}`}
+                        checked={selectedPostIds.has(post.id!)}
+                        onCheckedChange={(checked) => handleSelectPost(post.id!, !!checked)}
+                        className="translate-y-[2px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Image
+                        src={post.imageUrl}
+                        alt={post.title}
+                        width={50}
+                        height={50}
+                        className="rounded object-cover aspect-square"
+                        data-ai-hint={post.dataAiHint || "thumbnail"}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium max-w-xs truncate" title={post.title}>{post.title}</TableCell>
                     <TableCell>{getCategoryDisplayName(post.category)}</TableCell>
                     <TableCell>{post.author}</TableCell>
@@ -210,8 +327,8 @@ export default function PostsAdminPage() {
                           <FilePenLine className="h-4 w-4 mr-1" /> Edit
                         </Link>
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(post)} disabled={isDeletePending && postToDelete?.id === post.id}>
-                        {isDeletePending && postToDelete?.id === post.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />} Delete
+                      <Button variant="destructive" size="sm" onClick={() => handleSingleDeleteClick(post)} disabled={isSingleDeletePending && postToDelete?.id === post.id}>
+                        {isSingleDeletePending && postToDelete?.id === post.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />} Delete
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -231,13 +348,32 @@ export default function PostsAdminPage() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the post
-                titled <span className="font-semibold">"{postToDelete.title}"</span> and remove its data from our servers.
+                titled <span className="font-semibold">"{postToDelete.title}"</span>.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeletePending}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} disabled={isDeletePending} className="bg-destructive hover:bg-destructive/90">
-                {isDeletePending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : 'Yes, delete post'}
+              <AlertDialogCancel disabled={isSingleDeletePending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSingleDelete} disabled={isSingleDeletePending} className="bg-destructive hover:bg-destructive/90">
+                {isSingleDeletePending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : 'Yes, delete post'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {isBulkDeleting && selectedPostIds.size > 0 && (
+         <AlertDialog open={isBulkDeleting} onOpenChange={() => setIsBulkDeleting(false)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Bulk Delete</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedPostIds.size} selected post(s)? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isMultipleDeletePending} onClick={() => setIsBulkDeleting(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmBulkDelete} disabled={isMultipleDeletePending} className="bg-destructive hover:bg-destructive/90">
+                {isMultipleDeletePending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : `Yes, delete ${selectedPostIds.size} posts`}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

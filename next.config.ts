@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'lowcode.artelegis.com.ua', // Added your hostname
+        port: '',
+        pathname: '/wp-content/uploads/**', // Be specific with path if possible
+      },
     ],
   },
  experimental: {

@@ -4,9 +4,9 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc, deleteDoc } from 'firebase/firestore'; // Added deleteDoc
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
-import { addBlogPost, updateBlogPost } from '@/lib/firestoreBlog';
+import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog'; // Added getPostByIdForEditing
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
 
@@ -18,6 +18,12 @@ interface CreatePostResult {
 }
 
 interface UpdatePostResult extends CreatePostResult {}
+
+interface DeletePostResult {
+  success: boolean;
+  message: string;
+  errors?: { message: string }[];
+}
 
 export async function createPostAction(
   prevState: CreatePostResult | undefined,
@@ -41,7 +47,7 @@ export async function createPostAction(
     : [];
 
   const now = Timestamp.now();
-  const categorySlug = slugify(category); // Category is already expected to be a name, slugify it here
+  const categorySlug = slugify(category); 
 
   const newPostData: NewBlogPost = {
     title,
@@ -109,10 +115,8 @@ export async function updatePostAction(
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
 
-  const categorySlug = slugify(category); // Category is already expected to be a name, slugify it here
+  const categorySlug = slugify(category); 
 
-  // We construct a Partial<BlogPost> because not all fields might be directly from form,
-  // and `updatedAt` is handled by Firestore. `date` and `createdAt` are not changed on update.
   const postUpdateData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>> & { category: string } = {
     title,
     slug,
@@ -123,20 +127,17 @@ export async function updatePostAction(
     imageUrl,
     tags: processedTags,
     published,
-    // `updatedAt` will be set by `updateBlogPost` using serverTimestamp
-    // `date` (original publication date) and `createdAt` are usually not updated.
   };
 
 
   try {
-    // Fetch old post to compare tags and categories for revalidation
-    const oldPost = await updateBlogPost(postId, postUpdateData, true); // Request old post data
+    const oldPost = await updateBlogPost(postId, postUpdateData, true); 
 
     if (oldPost) {
       revalidatePath('/blog');
-      revalidatePath(`/blog/${slug}`); // Revalidate the updated post's page
+      revalidatePath(`/blog/${slug}`); 
       if (oldPost.slug !== slug) {
-        revalidatePath(`/blog/${oldPost.slug}`); // Revalidate old slug path if changed
+        revalidatePath(`/blog/${oldPost.slug}`); 
       }
       revalidatePath(`/admin/posts`);
       revalidatePath(`/admin/posts/edit/${postId}`);
@@ -163,4 +164,47 @@ export async function updatePostAction(
   }
 
   redirect('/admin/posts');
+}
+
+
+export async function deletePostAction(
+  postId: string
+): Promise<DeletePostResult> {
+  if (!postId) {
+    return { success: false, message: 'Post ID is missing. Cannot delete post.' };
+  }
+
+  try {
+    // Fetch the post before deleting to get its slug, category, and tags for revalidation
+    const postToDelete = await getPostByIdForEditing(postId);
+    
+    if (!postToDelete) {
+      return { success: false, message: 'Post not found, cannot delete.' };
+    }
+
+    await deleteDoc(doc(postToDelete.id!, 'posts')); // Using db from firestoreBlog which uses getDb()
+
+    // Revalidate paths
+    revalidatePath('/admin/posts');
+    revalidatePath('/blog');
+    if (postToDelete.slug) {
+      revalidatePath(`/blog/${postToDelete.slug}`);
+    }
+    if (postToDelete.category) {
+      revalidatePath(`/blog/category/${postToDelete.category}`);
+    }
+    if (postToDelete.tags && postToDelete.tags.length > 0) {
+      postToDelete.tags.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
+    }
+
+    return { success: true, message: `Post "${postToDelete.title}" deleted successfully.` };
+
+  } catch (error: any) {
+    console.error(`Error deleting post ${postId}:`, error);
+    return { 
+      success: false, 
+      message: error.message || `Failed to delete post ${postId}.`,
+      errors: [{ message: error.message || 'Unknown error' }]
+    };
+  }
 }

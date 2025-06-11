@@ -1,4 +1,4 @@
-'use server';
+
 import { config } from 'dotenv'; // Import dotenv
 config(); // Call config() at the top to load .env variables
 

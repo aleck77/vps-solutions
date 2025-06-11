@@ -294,7 +294,12 @@ export default function NewPostPage() {
                   <FormItem>
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
-                      <Input type="url" placeholder="https://example.com/image.jpg" {...field} value={generatedImageDataUri || field.value} disabled={isPendingSubmit || isGeneratingImage}/>
+                      <Input 
+                        type="text" // Changed from "url" to "text"
+                        placeholder="https://placehold.co/600x400.png or generated Data URI" 
+                        {...field} // Rely on RHF for value
+                        disabled={isPendingSubmit || isGeneratingImage}
+                      />
                     </FormControl>
                      <FormDescription>
                       URL of the main image for the post. Use https://placehold.co/ or generate with AI.

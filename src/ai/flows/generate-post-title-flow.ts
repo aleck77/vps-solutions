@@ -53,8 +53,20 @@ const generatePostTitleFlow = ai.defineFlow(
     inputSchema: GeneratePostTitleInputSchema,
     outputSchema: GeneratePostTitleOutputSchema,
   },
-  async (input: GeneratePostTitleInput) => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input: GeneratePostTitleInput): Promise<GeneratePostTitleOutput> => {
+    try {
+      const { output } = await prompt(input);
+      if (!output) {
+        console.error('[generatePostTitleFlow] AI prompt executed but returned null/undefined output.');
+        return { titles: ["AI title generation failed: No output from model. Check API key and server logs."] };
+      }
+      return output;
+    } catch (error: any) {
+      console.error('[generatePostTitleFlow] Error during AI prompt execution:', error.message);
+      if (error.message && error.message.includes("reading 'hash'")) {
+        console.error('[generatePostTitleFlow] This specific error often indicates a missing or invalid API key for the AI service.');
+      }
+      return { titles: [`AI title generation failed. Please check server logs. (Hint: API key?)`] };
+    }
   }
 );

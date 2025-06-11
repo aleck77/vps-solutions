@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -11,7 +10,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { seedDatabaseAction } from '@/app/actions/adminActions'; 
-import { Newspaper } from 'lucide-react';
+import { Newspaper, Zap } from 'lucide-react'; // Added Zap for AI Test icon
+import { testBasicGeneration, type TestBasicGenerationOutput } from '@/ai/flows/test-basic-generation-flow';
 
 export default function AdminDashboardPage() {
   const { user, loading, isAdmin } = useAuth();
@@ -19,6 +19,9 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isTestingGen, setIsTestingGen] = useState(false);
+  const [testGenResult, setTestGenResult] = useState<string | null>(null);
+
 
   console.log('[AdminDashboardPage] State update: user:', user, 'loading:', loading, 'isAdmin:', isAdmin);
 
@@ -49,6 +52,30 @@ export default function AdminDashboardPage() {
       toast({ title: 'Operation Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const handleTestBasicGeneration = async () => {
+    setIsTestingGen(true);
+    setTestGenResult(null);
+    console.log('[AdminDashboardPage] Calling testBasicGeneration...');
+    try {
+      const result: TestBasicGenerationOutput = await testBasicGeneration();
+      console.log('[AdminDashboardPage] testBasicGeneration result:', result);
+      if (result.success) {
+        setTestGenResult(`Success: ${result.generatedText}`);
+        toast({ title: 'AI Test Success!', description: result.generatedText });
+      } else {
+        setTestGenResult(`Failed: ${result.generatedText}`);
+        toast({ title: 'AI Test Failed', description: result.generatedText, variant: 'destructive' });
+      }
+    } catch (error: any) {
+      console.error('[AdminDashboardPage] Error calling testBasicGeneration:', error);
+      const errorMessage = error.message || 'An unexpected error occurred during AI test.';
+      setTestGenResult(`Error: ${errorMessage}`);
+      toast({ title: 'AI Test Error', description: errorMessage, variant: 'destructive' });
+    } finally {
+      setIsTestingGen(false);
     }
   };
 
@@ -113,6 +140,26 @@ export default function AdminDashboardPage() {
                 This button will trigger the database seeding process. (Requires admin rights)
               </p>
             </div>
+            <div>
+              <h3 className="font-headline text-xl font-semibold">AI Test</h3>
+              <Button
+                variant="outline"
+                onClick={handleTestBasicGeneration}
+                disabled={isTestingGen || !isAdmin}
+                className="mt-2 flex items-center"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                {isTestingGen ? 'Testing AI...' : 'Test Basic AI Generation'}
+              </Button>
+              {testGenResult && (
+                <p className={`text-sm mt-2 p-2 rounded-md ${testGenResult.startsWith('Success:') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {testGenResult}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground mt-1">
+                This button attempts a direct call to the AI model via Genkit's ai.generate(). (Requires admin rights & API key)
+              </p>
+            </div>
           </div>
 
           <Button onClick={handleLogout} variant="destructive" className="w-full sm:w-auto mt-4">
@@ -123,4 +170,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-

@@ -42,8 +42,6 @@ Keywords:
 {{/if}}
 
 Return the titles as a list of strings.
-Ensure the output is a valid JSON of the following type:
-{{json schema='GeneratePostTitleOutputSchema'}}
 `,
 });
 
@@ -55,16 +53,14 @@ const generatePostTitleFlow = ai.defineFlow(
   },
   async (input: GeneratePostTitleInput): Promise<GeneratePostTitleOutput> => {
     try {
-      // Genkit 1.x: The result of prompt(input) directly has an `output` property.
       const result = await prompt(input);
-      if (!result || !result.output) { // Check both result and result.output
+      if (!result || !result.output) { 
         console.error('[generatePostTitleFlow] AI prompt executed but returned null/undefined output or result.');
         return { titles: ["AI title generation failed: No output from model. Check API key and server logs."] };
       }
-      return result.output; // Use result.output directly
+      return result.output; 
     } catch (error: any) {
       console.error('[generatePostTitleFlow] Error during AI prompt execution:', error.message);
-      // The "hash" error might still occur if there's a deeper initialization issue
       if (error.message && error.message.includes("reading 'hash'")) {
         console.error('[generatePostTitleFlow] This specific error often indicates a missing or invalid API key for the AI service, or a deeper initialization issue.');
       }

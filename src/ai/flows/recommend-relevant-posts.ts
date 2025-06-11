@@ -44,10 +44,10 @@ export async function recommendRelevantPosts(
 ): Promise<RecommendRelevantPostsOutput> {
   try {
     return await recommendRelevantPostsFlow(input);
-  } catch (error: any) { // Added type assertion for error
+  } catch (error: any) { 
     console.warn(
       '[recommendRelevantPosts] AI-based recommendRelevantPostsFlow failed. Falling back to mock recommendations.',
-      error.message // Log only message for brevity in fallback path
+      error.message 
     );
     const mockRecs = input.availablePosts.slice(0, 3);
     return { recommendedPosts: mockRecs };
@@ -88,9 +88,6 @@ const prompt = ai.definePrompt({
 
   Use the analyzeRelevance tool to determine the relevance of each available post.
   Return only the titles of the posts that are most relevant to the user, ordered by relevance.
-
-  Make sure the output is a valid JSON of the following type:
-  {{json schema='RecommendRelevantPostsOutputSchema'}}
   `,
   system: `You are a blog post recommendation engine. Recommend blog posts based on relevance to the current post and user history, using the analyzeRelevance tool. Return a maximum of 3 recommendations.`,
 });
@@ -103,19 +100,14 @@ const recommendRelevantPostsFlow = ai.defineFlow(
   },
   async (input: RecommendRelevantPostsInput): Promise<RecommendRelevantPostsOutput> => {
     try {
-      // Genkit 1.x: The result of prompt(input) directly has an `output` property.
       const result = await prompt(input);
-      if (!result || !result.output) { // Check both result and result.output
+      if (!result || !result.output) { 
         console.error('[recommendRelevantPostsFlow] AI prompt executed but returned null/undefined output or result.');
-        // Throw an error here so the calling function's catch block handles the fallback
         throw new Error("AI prompt returned no output."); 
       }
-      return result.output; // Use result.output directly
+      return result.output; 
     } catch (error: any) {
       console.error('[recommendRelevantPostsFlow] Error during AI prompt execution:', error.message);
-      // Re-throw the error to be caught by the wrapper function (recommendRelevantPosts)
-      // which will then handle the fallback to mock recommendations.
-      // This ensures the fallback logic is centralized.
       throw error; 
     }
   }

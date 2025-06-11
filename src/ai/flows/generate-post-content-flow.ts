@@ -54,8 +54,6 @@ Please provide the content as plain text.
 {{/ifEquals}}
 
 Focus on clarity, good structure, and providing value to the reader.
-Ensure the output is a valid JSON of the following type:
-{{json schema='GeneratePostContentOutputSchema'}}
 `,
 });
 
@@ -67,13 +65,12 @@ const generatePostContentFlow = ai.defineFlow(
   },
   async (input: GeneratePostContentInput): Promise<GeneratePostContentOutput> => {
     try {
-      // Genkit 1.x: The result of prompt(input) directly has an `output` property.
       const result = await prompt(input);
-      if (!result || !result.output) { // Check both result and result.output
+      if (!result || !result.output) { 
         console.error('[generatePostContentFlow] AI prompt executed but returned null/undefined output or result.');
         return { content: "AI content generation failed: No output from model. Check API key and server logs." };
       }
-      return result.output; // Use result.output directly
+      return result.output; 
     } catch (error: any) {
       console.error('[generatePostContentFlow] Error during AI prompt execution:', error.message);
       if (error.message && error.message.includes("reading 'hash'")) {

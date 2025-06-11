@@ -43,14 +43,12 @@ export async function recommendRelevantPosts(
   input: RecommendRelevantPostsInput
 ): Promise<RecommendRelevantPostsOutput> {
   try {
-    // Attempt to use the actual AI flow
     return await recommendRelevantPostsFlow(input);
-  } catch (error) {
+  } catch (error: any) { // Added type assertion for error
     console.warn(
-      'AI-based recommendRelevantPostsFlow failed or Genkit might not be configured. Falling back to mock recommendations.',
-      error
+      '[recommendRelevantPosts] AI-based recommendRelevantPostsFlow failed. Falling back to mock recommendations.',
+      error.message // Log only message for brevity in fallback path
     );
-    // Fallback: return a few posts from availablePosts for mocking
     const mockRecs = input.availablePosts.slice(0, 3);
     return { recommendedPosts: mockRecs };
   }
@@ -66,10 +64,8 @@ const analyzeRelevanceTool = ai.defineTool({
   }),
   outputSchema: z.number().describe('A numerical score representing the relevance (higher is more relevant).'),
 }, async (input) => {
-  // Dummy implementation - replace with actual relevance calculation logic
-  // This could involve calling another LLM or using a vector database
-  console.log(`[AI Flow] Calculating relevance for: ${input.candidatePost.substring(0,50)}...`);
-  return Math.random(); // Replace with actual relevance score
+  console.log(`[AI Flow - analyzeRelevanceTool] Calculating relevance for: ${input.candidatePost.substring(0,50)}...`);
+  return Math.random(); 
 });
 
 const prompt = ai.definePrompt({
@@ -105,8 +101,22 @@ const recommendRelevantPostsFlow = ai.defineFlow(
     inputSchema: RecommendRelevantPostsInputSchema,
     outputSchema: RecommendRelevantPostsOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input: RecommendRelevantPostsInput): Promise<RecommendRelevantPostsOutput> => {
+    try {
+      // Genkit 1.x: The result of prompt(input) directly has an `output` property.
+      const result = await prompt(input);
+      if (!result || !result.output) { // Check both result and result.output
+        console.error('[recommendRelevantPostsFlow] AI prompt executed but returned null/undefined output or result.');
+        // Throw an error here so the calling function's catch block handles the fallback
+        throw new Error("AI prompt returned no output."); 
+      }
+      return result.output; // Use result.output directly
+    } catch (error: any) {
+      console.error('[recommendRelevantPostsFlow] Error during AI prompt execution:', error.message);
+      // Re-throw the error to be caught by the wrapper function (recommendRelevantPosts)
+      // which will then handle the fallback to mock recommendations.
+      // This ensures the fallback logic is centralized.
+      throw error; 
+    }
   }
 );

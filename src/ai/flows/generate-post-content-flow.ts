@@ -67,18 +67,19 @@ const generatePostContentFlow = ai.defineFlow(
   },
   async (input: GeneratePostContentInput): Promise<GeneratePostContentOutput> => {
     try {
-      const { output } = await prompt(input);
-      if (!output) {
-        console.error('[generatePostContentFlow] AI prompt executed but returned null/undefined output.');
+      // Genkit 1.x: The result of prompt(input) directly has an `output` property.
+      const result = await prompt(input);
+      if (!result || !result.output) { // Check both result and result.output
+        console.error('[generatePostContentFlow] AI prompt executed but returned null/undefined output or result.');
         return { content: "AI content generation failed: No output from model. Check API key and server logs." };
       }
-      return output;
+      return result.output; // Use result.output directly
     } catch (error: any) {
       console.error('[generatePostContentFlow] Error during AI prompt execution:', error.message);
       if (error.message && error.message.includes("reading 'hash'")) {
-        console.error('[generatePostContentFlow] This specific error often indicates a missing or invalid API key for the AI service.');
+        console.error('[generatePostContentFlow] This specific error often indicates a missing or invalid API key for the AI service, or a deeper initialization issue.');
       }
-      return { content: `AI content generation failed. Please check server logs. (Hint: API key?)` };
+      return { content: `AI content generation failed. Please check server logs. Error: ${error.message}` };
     }
   }
 );

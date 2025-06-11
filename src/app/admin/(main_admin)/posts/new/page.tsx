@@ -42,13 +42,12 @@ export default function NewPostPage() {
   const [imagePrompt, setImagePrompt] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
-  // This state will hold the Data URI after generation, before upload.
-  const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
-
+  
+  // State to hold the AI-generated Data URI for preview and upload, separate from form's imageUrl
+  const [aiGeneratedPreviewUri, setAiGeneratedPreviewUri] = useState<string | null>(null);
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postFormSchema),
@@ -67,14 +66,15 @@ export default function NewPostPage() {
   });
 
   const titleValue = form.watch('title');
-  const currentImageUrl = form.watch('imageUrl'); 
+  // This currentImageUrl will reflect the form's 'imageUrl' field, which is now only http URLs or placeholder
+  const currentImageUrlFromForm = form.watch('imageUrl'); 
 
   useEffect(() => {
     if (titleValue && !form.formState.dirtyFields.slug) {
       form.setValue('slug', slugify(titleValue), { shouldValidate: true });
     }
-    if (titleValue && (!imagePrompt || imagePrompt === slugify(form.getValues('title')))) {
-      // Only auto-fill imagePrompt if it's empty or matches the old title exactly
+    // Auto-fill imagePrompt from title if imagePrompt is empty or matches the current title
+    if (titleValue && (!imagePrompt || imagePrompt === titleValue)) {
       setImagePrompt(titleValue);
     }
   }, [titleValue, form, imagePrompt]);
@@ -153,33 +153,30 @@ export default function NewPostPage() {
       return;
     }
     setIsGeneratingImage(true);
-    setGeneratedImageDataUri(null); // Clear previous generated image Data URI
-    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Reset to placeholder during generation
+    setAiGeneratedPreviewUri(null); // Clear previous AI-generated preview
+    // Don't set form.setValue('imageUrl', placeholder) here, let the preview handle it
     setImageGenError(null);
     try {
       const result = await generatePostImage({ prompt: imagePrompt });
       if (result.imageDataUri) {
-        setGeneratedImageDataUri(result.imageDataUri); // Store Data URI for potential upload
-        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true }); // Show preview
+        setAiGeneratedPreviewUri(result.imageDataUri); // Store Data URI for preview and potential upload
         toast({ title: 'Success', description: 'Image generated! Now you can upload it or clear it.' });
       } else {
         setImageGenError(result.error || 'Image generation failed: No image data received.');
         toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
-        form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Back to placeholder on error
       }
     } catch (error: any) {
       console.error('Error generating image:', error);
       const errMsg = error.message || 'Unknown error during image generation.';
       setImageGenError(errMsg);
       toast({ title: 'AI Image Error', description: errMsg, variant: 'destructive' });
-      form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Back to placeholder on error
     } finally {
       setIsGeneratingImage(false);
     }
   };
 
   const handleUploadGeneratedImage = async () => {
-    if (!generatedImageDataUri) { // Check dedicated state for Data URI
+    if (!aiGeneratedPreviewUri) { 
       toast({ title: 'Info', description: 'Please generate an image first.', variant: 'default' });
       return;
     }
@@ -193,15 +190,18 @@ export default function NewPostPage() {
     setUploadError(null);
 
     try {
-      const postTitleSlug = slugify(postTitle) || 'untitled';
+      const postTitleSlug = slugify(postTitle) || 'untitled-image';
       const timestamp = Date.now();
       const filename = `${postTitleSlug}-${timestamp}.png`; 
 
       const payload = {
-        imageDataUri: generatedImageDataUri, // Send the stored Data URI
+        imageDataUri: aiGeneratedPreviewUri, // Send the stored Data URI
         postTitle: postTitle,
         filename: filename,
       };
+      
+      console.log('[handleUploadGeneratedImage] Sending to n8n:', JSON.stringify(payload, (k,v) => k === "imageDataUri" ? v.substring(0,50) + "..." : v));
+
 
       const response = await fetch('https://n8n.artelegis.com.ua/webhook/wp', {
         method: 'POST',
@@ -217,12 +217,9 @@ export default function NewPostPage() {
       if (!response.ok) {
         let errorDetail = `HTTP error! status: ${response.status}. Raw Response: ${responseText.substring(0, 500)}`;
         try {
-          // Try to parse even error responses as JSON, as n8n might send structured errors
           const errorJson = JSON.parse(responseText);
           errorDetail = errorJson.error || errorJson.message || JSON.stringify(errorJson);
-        } catch (e) {
-          // Not JSON, errorDetail already contains raw response snippet
-        }
+        } catch (e) { /* Not JSON */ }
         throw new Error(`Upload failed: ${errorDetail}`);
       }
 
@@ -235,27 +232,22 @@ export default function NewPostPage() {
         throw new Error(`Upload failed: Could not parse JSON response from server. Server said: ${responseText.substring(0,500)}`);
       }
       
-      // Check if the 'result' object has a 'success' boolean property
       if (typeof result.success === 'boolean') {
         if (result.success) {
           if (result.imageUrl) {
             form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
-            setGeneratedImageDataUri(null); // Clear Data URI after successful upload and URL update
+            console.log("[handleUploadGeneratedImage] Form value for imageUrl after set:", form.getValues('imageUrl'));
+            setAiGeneratedPreviewUri(null); // Clear preview URI after successful upload and URL update in form
             toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
           } else {
-            // n8n confirmed receipt, but no immediate imageUrl (e.g., background processing)
-            // We can clear the Data URI preview or leave it as is, depending on desired UX.
-            // For now, let's inform the user and keep the Data URI in preview until they manually change it or save.
-             toast({ title: 'Upload Acknowledged', description: result.message || 'n8n confirmed receipt, processing. Image URL not automatically updated.' });
+             toast({ title: 'Upload Acknowledged', description: result.message || 'n8n confirmed receipt, but no imageUrl returned. Form not updated.' });
           }
         } else {
-          // result.success is false
-          throw new Error(result.error || result.message || 'Upload failed: n8n reported an error. Check n8n logs and raw response above.');
+          throw new Error(result.error || result.message || 'Upload failed: n8n reported an error.');
         }
       } else {
-         // result.success is not a boolean or missing
          console.error('[handleUploadGeneratedImage] n8n response JSON does not have a boolean "success" field. Response:', result);
-         throw new Error('Upload failed: Invalid response structure from server. Expected a "success" field. Check raw response above.');
+         throw new Error('Upload failed: Invalid response structure from server. Expected a "success" field.');
       }
 
     } catch (error: any) {
@@ -269,12 +261,15 @@ export default function NewPostPage() {
   };
 
   const handleClearAiImage = () => {
-    form.setValue('imageUrl', 'https://placehold.co/600x400.png', { shouldValidate: true });
-    setGeneratedImageDataUri(null); // Clear the Data URI state
+    setAiGeneratedPreviewUri(null); // Clear the AI-generated preview
+    form.setValue('imageUrl', 'https://placehold.co/600x400.png', { shouldValidate: true }); // Reset form field to placeholder
     setImageGenError(null);
     setUploadError(null);
-    toast({ title: 'Image Reset', description: 'Image URL has been reset to placeholder.' });
+    toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to placeholder.' });
   };
+
+  // Determine what to display in the Image component
+  const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
 
 
   return (
@@ -393,6 +388,7 @@ export default function NewPostPage() {
                 )}
               />
               
+              {/* Input field for Image URL - This will show the placeholder or the uploaded HTTP URL */}
               <FormField
                 control={form.control}
                 name="imageUrl"
@@ -401,19 +397,20 @@ export default function NewPostPage() {
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
                       <Input 
-                        type="text" // Changed from URL to allow Data URI display
-                        placeholder="https://placehold.co/600x400.png or Data URI or uploaded image URL" 
-                        {...field} 
+                        type="text" 
+                        placeholder="https://placehold.co/600x400.png or uploaded image URL" 
+                        {...field} // Value is now from form state (placeholder or HTTP URL)
                         disabled={isPendingSubmit || isGeneratingImage || isUploadingImage}
                       />
                     </FormControl>
                      <FormDescription>
-                      URL or Data URI. Paste a URL, or generate with AI then upload. Large Data URIs cannot be saved directly to the database.
+                      Final image URL. Generate with AI then upload, or paste a URL directly.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {/* AI Image Helper Section */}
               <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
                 <Label className="font-semibold text-lg">AI Image Helper</Label>
                 <div className="flex items-end gap-2">
@@ -421,7 +418,7 @@ export default function NewPostPage() {
                     <Label htmlFor="ai-image-prompt" className="text-sm">Image Topic/Prompt (auto-fills from title)</Label>
                     <Input 
                       id="ai-image-prompt"
-                      placeholder="e.g., 'A futuristic cityscape', 'Abstract art representing data'" 
+                      placeholder="e.g., 'A futuristic cityscape'" 
                       value={imagePrompt}
                       onChange={(e) => setImagePrompt(e.target.value)}
                       disabled={isGeneratingImage || isUploadingImage || isPendingSubmit}
@@ -445,23 +442,22 @@ export default function NewPostPage() {
                 {isGeneratingImage && <p className="text-sm text-muted-foreground">Generating image, please wait...</p>}
                 {imageGenError && <p className="text-sm text-destructive">{imageGenError}</p>}
                 
-                {/* Preview for generated Data URI or uploaded HTTP URL */}
-                {currentImageUrl && (currentImageUrl.startsWith('data:image/') || currentImageUrl.startsWith('http')) && !isGeneratingImage && (
+                {/* Preview for AI-generated Data URI or form's HTTP URL */}
+                {imagePreviewSrc && (imagePreviewSrc.startsWith('data:image/') || imagePreviewSrc.startsWith('http')) && !isGeneratingImage && (
                   <div className="mt-3 space-y-3">
                     <p className="text-sm font-medium mb-1">
-                      {currentImageUrl.startsWith('data:image/') ? "Generated Image Preview (unsaved):" : "Current Image URL Preview:"}
+                      {aiGeneratedPreviewUri ? "AI Generated Image Preview (unsaved):" : "Current Image URL Preview:"}
                     </p>
                     <Image 
-                      src={currentImageUrl} 
-                      alt={currentImageUrl.startsWith('data:image/') ? "Generated AI preview" : "Current image URL preview"}
+                      src={imagePreviewSrc} 
+                      alt={aiGeneratedPreviewUri ? "Generated AI preview" : "Current image URL preview"}
                       width={200} height={150} 
                       className="rounded-md border object-cover"
-                      key={currentImageUrl} // Re-render if src changes
-                      data-ai-hint={currentImageUrl.startsWith('data:image/') ? "ai generated" : "url preview"}
+                      key={imagePreviewSrc} 
+                      data-ai-hint={aiGeneratedPreviewUri ? "ai generated" : (imagePrompt || "url preview")}
                       onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none'; 
-                          // Simple text fallback for error to avoid complex DOM manipulation here
                           const parent = target.parentNode;
                           if (parent && !parent.querySelector('.preview-error-text')) {
                             const errorText = document.createElement('p');
@@ -471,7 +467,8 @@ export default function NewPostPage() {
                           }
                       }}
                     />
-                    {currentImageUrl.startsWith('data:image/') && ( // Only show upload/clear for Data URI
+                    {/* Show Upload/Clear buttons only if there's an AI-generated preview URI */}
+                    {aiGeneratedPreviewUri && (
                       <div className="flex gap-2">
                         <Button
                           type="button"

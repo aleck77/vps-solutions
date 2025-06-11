@@ -19,16 +19,16 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lowcode.artelegis.com.ua', // Added your hostname
+        hostname: 'lowcode.artelegis.com.ua',
         port: '',
-        pathname: '/wp-content/uploads/**', // Be specific with path if possible
+        pathname: '/wp-content/uploads/**',
       },
     ],
   },
  experimental: {
     // Разрешаем источники для HMR в среде IDX (Firebase Studio / Cloud Workstations)
     // Добавляем как wildcard, так и специфичные порты/домены, которые могут использоваться
-    allowedDevelopmentOrigins: [
+    allowedDevOrigins: [ // Исправлено с allowedDevelopmentOrigins
         "http://localhost:3000", // Стандартный Next.js порт
         "http://localhost:9002", // Порт, который мы используем в IDX
         "https://*.cloudworkstations.dev", // Wildcard для Cloud Workstations

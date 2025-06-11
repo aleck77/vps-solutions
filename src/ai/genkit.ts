@@ -1,4 +1,4 @@
-
+'use server';
 import { config } from 'dotenv'; // Import dotenv
 config(); // Call config() at the top to load .env variables
 
@@ -32,6 +32,5 @@ export const ai = genkit({
   plugins: [
     googleAI(googleAiPluginOptions) // Explicitly pass options (which may include apiKey)
   ],
-  model: 'googleai/gemini-2.0-flash', // Default model for generate
+  model: 'googleai/gemini-1.5-flash-latest', // Default model for generate - CHANGED
 });
-

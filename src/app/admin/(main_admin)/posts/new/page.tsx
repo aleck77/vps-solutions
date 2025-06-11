@@ -42,6 +42,9 @@ export default function NewPostPage() {
   const [imagePrompt, setImagePrompt] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
+  // This state will hold the Data URI after generation, before upload.
+  const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
+
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export default function NewPostPage() {
       title: '',
       slug: '',
       author: '', 
-      imageUrl: 'https://placehold.co/600x400.png',
+      imageUrl: 'https://placehold.co/600x400.png', // Default placeholder
       category: undefined,
       excerpt: '',
       content: '',
@@ -71,6 +74,7 @@ export default function NewPostPage() {
       form.setValue('slug', slugify(titleValue), { shouldValidate: true });
     }
     if (titleValue && (!imagePrompt || imagePrompt === slugify(form.getValues('title')))) {
+      // Only auto-fill imagePrompt if it's empty or matches the old title exactly
       setImagePrompt(titleValue);
     }
   }, [titleValue, form, imagePrompt]);
@@ -149,33 +153,34 @@ export default function NewPostPage() {
       return;
     }
     setIsGeneratingImage(true);
-    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); 
+    setGeneratedImageDataUri(null); // Clear previous generated image Data URI
+    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Reset to placeholder during generation
     setImageGenError(null);
     try {
       const result = await generatePostImage({ prompt: imagePrompt });
       if (result.imageDataUri) {
-        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true }); 
+        setGeneratedImageDataUri(result.imageDataUri); // Store Data URI for potential upload
+        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true }); // Show preview
         toast({ title: 'Success', description: 'Image generated! Now you can upload it or clear it.' });
       } else {
         setImageGenError(result.error || 'Image generation failed: No image data received.');
         toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
-        form.setValue('imageUrl', 'https://placehold.co/600x400.png'); 
+        form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Back to placeholder on error
       }
     } catch (error: any) {
       console.error('Error generating image:', error);
       const errMsg = error.message || 'Unknown error during image generation.';
       setImageGenError(errMsg);
       toast({ title: 'AI Image Error', description: errMsg, variant: 'destructive' });
-      form.setValue('imageUrl', 'https://placehold.co/600x400.png'); 
+      form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Back to placeholder on error
     } finally {
       setIsGeneratingImage(false);
     }
   };
 
   const handleUploadGeneratedImage = async () => {
-    const imageDataUri = form.getValues('imageUrl');
-    if (!imageDataUri || !imageDataUri.startsWith('data:image/')) {
-      toast({ title: 'Info', description: 'Please generate an image first (its Data URI should be in the Image URL field).', variant: 'default' });
+    if (!generatedImageDataUri) { // Check dedicated state for Data URI
+      toast({ title: 'Info', description: 'Please generate an image first.', variant: 'default' });
       return;
     }
     const postTitle = form.getValues('title');
@@ -188,12 +193,12 @@ export default function NewPostPage() {
     setUploadError(null);
 
     try {
-      const postTitleSlug = slugify(postTitle);
+      const postTitleSlug = slugify(postTitle) || 'untitled';
       const timestamp = Date.now();
       const filename = `${postTitleSlug}-${timestamp}.png`; 
 
       const payload = {
-        imageDataUri: imageDataUri,
+        imageDataUri: generatedImageDataUri, // Send the stored Data URI
         postTitle: postTitle,
         filename: filename,
       };
@@ -212,6 +217,7 @@ export default function NewPostPage() {
       if (!response.ok) {
         let errorDetail = `HTTP error! status: ${response.status}. Raw Response: ${responseText.substring(0, 500)}`;
         try {
+          // Try to parse even error responses as JSON, as n8n might send structured errors
           const errorJson = JSON.parse(responseText);
           errorDetail = errorJson.error || errorJson.message || JSON.stringify(errorJson);
         } catch (e) {
@@ -229,19 +235,25 @@ export default function NewPostPage() {
         throw new Error(`Upload failed: Could not parse JSON response from server. Server said: ${responseText.substring(0,500)}`);
       }
       
+      // Check if the 'result' object has a 'success' boolean property
       if (typeof result.success === 'boolean') {
         if (result.success) {
           if (result.imageUrl) {
             form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
+            setGeneratedImageDataUri(null); // Clear Data URI after successful upload and URL update
             toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
           } else {
-            toast({ title: 'Upload Acknowledged', description: result.message || 'n8n confirmed receipt, processing. Image URL not automatically updated.' });
+            // n8n confirmed receipt, but no immediate imageUrl (e.g., background processing)
+            // We can clear the Data URI preview or leave it as is, depending on desired UX.
+            // For now, let's inform the user and keep the Data URI in preview until they manually change it or save.
+             toast({ title: 'Upload Acknowledged', description: result.message || 'n8n confirmed receipt, processing. Image URL not automatically updated.' });
           }
         } else {
-          // success: false
+          // result.success is false
           throw new Error(result.error || result.message || 'Upload failed: n8n reported an error. Check n8n logs and raw response above.');
         }
       } else {
+         // result.success is not a boolean or missing
          console.error('[handleUploadGeneratedImage] n8n response JSON does not have a boolean "success" field. Response:', result);
          throw new Error('Upload failed: Invalid response structure from server. Expected a "success" field. Check raw response above.');
       }
@@ -258,6 +270,7 @@ export default function NewPostPage() {
 
   const handleClearAiImage = () => {
     form.setValue('imageUrl', 'https://placehold.co/600x400.png', { shouldValidate: true });
+    setGeneratedImageDataUri(null); // Clear the Data URI state
     setImageGenError(null);
     setUploadError(null);
     toast({ title: 'Image Reset', description: 'Image URL has been reset to placeholder.' });
@@ -388,7 +401,7 @@ export default function NewPostPage() {
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
                       <Input 
-                        type="text" 
+                        type="text" // Changed from URL to allow Data URI display
                         placeholder="https://placehold.co/600x400.png or Data URI or uploaded image URL" 
                         {...field} 
                         disabled={isPendingSubmit || isGeneratingImage || isUploadingImage}
@@ -432,60 +445,62 @@ export default function NewPostPage() {
                 {isGeneratingImage && <p className="text-sm text-muted-foreground">Generating image, please wait...</p>}
                 {imageGenError && <p className="text-sm text-destructive">{imageGenError}</p>}
                 
-                {currentImageUrl && currentImageUrl.startsWith('data:image/') && !isGeneratingImage && (
+                {/* Preview for generated Data URI or uploaded HTTP URL */}
+                {currentImageUrl && (currentImageUrl.startsWith('data:image/') || currentImageUrl.startsWith('http')) && !isGeneratingImage && (
                   <div className="mt-3 space-y-3">
-                    <p className="text-sm font-medium mb-1">Generated Image Preview (unsaved):</p>
-                    <Image src={currentImageUrl} alt="Generated AI preview" width={200} height={150} className="rounded-md border object-cover" />
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={handleUploadGeneratedImage}
-                        disabled={isUploadingImage || isPendingSubmit || !currentImageUrl.startsWith('data:image/')}
-                        variant="outline"
-                        className="bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-700"
-                      >
-                        {isUploadingImage ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <UploadCloud className="h-4 w-4 mr-2" />
-                        )}
-                        Upload to Server
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={handleClearAiImage}
-                        disabled={isPendingSubmit || isUploadingImage || isGeneratingImage}
-                        variant="outline"
-                        className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Clear AI Image
-                      </Button>
-                    </div>
+                    <p className="text-sm font-medium mb-1">
+                      {currentImageUrl.startsWith('data:image/') ? "Generated Image Preview (unsaved):" : "Current Image URL Preview:"}
+                    </p>
+                    <Image 
+                      src={currentImageUrl} 
+                      alt={currentImageUrl.startsWith('data:image/') ? "Generated AI preview" : "Current image URL preview"}
+                      width={200} height={150} 
+                      className="rounded-md border object-cover"
+                      key={currentImageUrl} // Re-render if src changes
+                      data-ai-hint={currentImageUrl.startsWith('data:image/') ? "ai generated" : "url preview"}
+                      onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none'; 
+                          // Simple text fallback for error to avoid complex DOM manipulation here
+                          const parent = target.parentNode;
+                          if (parent && !parent.querySelector('.preview-error-text')) {
+                            const errorText = document.createElement('p');
+                            errorText.textContent = 'Preview not available or URL is invalid.';
+                            errorText.className = 'text-xs text-destructive preview-error-text';
+                            parent.appendChild(errorText);
+                          }
+                      }}
+                    />
+                    {currentImageUrl.startsWith('data:image/') && ( // Only show upload/clear for Data URI
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          onClick={handleUploadGeneratedImage}
+                          disabled={isUploadingImage || isPendingSubmit}
+                          variant="outline"
+                          className="bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-700"
+                        >
+                          {isUploadingImage ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <UploadCloud className="h-4 w-4 mr-2" />
+                          )}
+                          Upload to Server
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleClearAiImage}
+                          disabled={isPendingSubmit || isUploadingImage || isGeneratingImage}
+                          variant="outline"
+                          className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clear AI Image
+                        </Button>
+                      </div>
+                    )}
                     {uploadError && <p className="text-sm text-destructive mt-2">{uploadError}</p>}
                   </div>
-                )}
-                {currentImageUrl && currentImageUrl.startsWith('http') && (
-                    <div className="mt-3">
-                        <p className="text-sm font-medium mb-1">Current Image URL Preview:</p>
-                        <Image 
-                            src={currentImageUrl} 
-                            alt="Current image URL preview" 
-                            width={200} 
-                            height={150} 
-                            className="rounded-md border object-cover" 
-                            key={currentImageUrl}
-                            data-ai-hint="current preview"
-                            onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none'; 
-                                const placeholderErrorText = document.createElement('p');
-                                placeholderErrorText.textContent = 'Preview not available or URL is invalid.';
-                                placeholderErrorText.className = 'text-xs text-destructive';
-                                target.parentNode?.insertBefore(placeholderErrorText, target.nextSibling);
-                            }}
-                        />
-                    </div>
                 )}
               </div>
 

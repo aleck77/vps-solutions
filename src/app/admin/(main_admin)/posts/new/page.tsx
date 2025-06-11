@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Link from 'next/link';
-import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon, UploadCloud } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
 
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent } from '@/ai/flows/generate-post-content-flow';
@@ -78,7 +78,7 @@ export default function NewPostPage() {
   });
 
   const titleValue = form.watch('title');
-  const currentImageUrl = form.watch('imageUrl'); // Watch imageUrl to update preview
+  const currentImageUrl = form.watch('imageUrl'); 
 
   useEffect(() => {
     if (titleValue && !form.formState.dirtyFields.slug) {
@@ -163,15 +163,15 @@ export default function NewPostPage() {
       return;
     }
     setIsGeneratingImage(true);
-    setGeneratedImageDataUri(null); // Clear previous Data URI
-    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); // Reset form field to placeholder
+    setGeneratedImageDataUri(null); 
+    form.setValue('imageUrl', 'https://placehold.co/600x400.png'); 
     setImageGenError(null);
     try {
       const result = await generatePostImage({ prompt: imagePrompt });
       if (result.imageDataUri) {
         setGeneratedImageDataUri(result.imageDataUri);
-        // Don't set form.setValue('imageUrl') here, user must upload it first
-        toast({ title: 'Success', description: 'Image generated! Now you can upload it.' });
+        form.setValue('imageUrl', result.imageDataUri, { shouldValidate: true }); // Set Data URI in form for potential upload
+        toast({ title: 'Success', description: 'Image generated! Now you can upload it or clear it.' });
       } else {
         setImageGenError(result.error || 'Image generation failed: No image data received.');
         toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
@@ -187,8 +187,10 @@ export default function NewPostPage() {
   };
 
   const handleUploadGeneratedImage = async () => {
-    if (!generatedImageDataUri) {
-      toast({ title: 'Info', description: 'Please generate an image first.', variant: 'default' });
+    // Use form.getValues('imageUrl') as it holds the Data URI if generated
+    const currentImageFieldValue = form.getValues('imageUrl');
+    if (!currentImageFieldValue || !currentImageFieldValue.startsWith('data:image/')) {
+      toast({ title: 'Info', description: 'Please generate an image first (its Data URI should be in the Image URL field).', variant: 'default' });
       return;
     }
     if (!form.getValues('title')) {
@@ -200,21 +202,19 @@ export default function NewPostPage() {
     setUploadError(null);
 
     try {
-      const blob = dataURItoBlob(generatedImageDataUri);
+      const blob = dataURItoBlob(currentImageFieldValue); // Use value from form field
       const postTitleSlug = slugify(form.getValues('title') || 'untitled');
       const timestamp = Date.now();
-      const filename = `${postTitleSlug}-${timestamp}.png`; // Example filename
+      const filename = `${postTitleSlug}-${timestamp}.png`; 
       const imageFile = new File([blob], filename, { type: blob.type });
 
       const formData = new FormData();
       formData.append('imageFile', imageFile);
-      formData.append('postTitle', form.getValues('title')); // Send title for context
-      // Add any other data your n8n webhook might need
+      formData.append('postTitle', form.getValues('title')); 
 
       const response = await fetch('https://n8n.artelegis.com.ua/webhook/wp', {
         method: 'POST',
         body: formData,
-        // Headers are not explicitly set for FormData; browser handles Content-Type
       });
 
       if (!response.ok) {
@@ -226,7 +226,7 @@ export default function NewPostPage() {
 
       if (result.success && result.imageUrl) {
         form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
-        setGeneratedImageDataUri(null); // Clear Data URI as it's now uploaded
+        setGeneratedImageDataUri(null); // Clear Data URI state as it's now uploaded and replaced by a real URL
         toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
       } else {
         throw new Error(result.error || 'Upload failed: Invalid response from server.');
@@ -238,6 +238,14 @@ export default function NewPostPage() {
     } finally {
       setIsUploadingImage(false);
     }
+  };
+
+  const handleClearAiImage = () => {
+    setGeneratedImageDataUri(null);
+    form.setValue('imageUrl', 'https://placehold.co/600x400.png', { shouldValidate: true });
+    setImageGenError(null);
+    setUploadError(null);
+    toast({ title: 'Image Reset', description: 'Image URL has been reset to placeholder.' });
   };
 
 
@@ -373,7 +381,7 @@ export default function NewPostPage() {
                       />
                     </FormControl>
                      <FormDescription>
-                      URL of the main image. Generate with AI then upload, or paste a URL.
+                      URL of the main image. Paste a URL, or generate with AI then upload.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -411,33 +419,58 @@ export default function NewPostPage() {
                 {isGeneratingImage && <p className="text-sm text-muted-foreground">Generating image, please wait...</p>}
                 {imageGenError && <p className="text-sm text-destructive">{imageGenError}</p>}
                 
-                {generatedImageDataUri && !isGeneratingImage && (
+                {currentImageUrl && currentImageUrl.startsWith('data:image/') && !isGeneratingImage && (
                   <div className="mt-3 space-y-3">
-                    <p className="text-sm font-medium mb-1">Generated Image Preview:</p>
-                    <Image src={generatedImageDataUri} alt="Generated AI preview" width={200} height={150} className="rounded-md border object-cover" />
-                    <Button
-                      type="button"
-                      onClick={handleUploadGeneratedImage}
-                      disabled={isUploadingImage || isPendingSubmit || !generatedImageDataUri}
-                      variant="outline"
-                      className="bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-700"
-                    >
-                      {isUploadingImage ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <UploadCloud className="h-4 w-4 mr-2" />
-                      )}
-                      Upload Generated Image
-                    </Button>
-                    {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
+                    <p className="text-sm font-medium mb-1">Generated Image Preview (unsaved):</p>
+                    <Image src={currentImageUrl} alt="Generated AI preview" width={200} height={150} className="rounded-md border object-cover" />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={handleUploadGeneratedImage}
+                        disabled={isUploadingImage || isPendingSubmit}
+                        variant="outline"
+                        className="bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-700"
+                      >
+                        {isUploadingImage ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <UploadCloud className="h-4 w-4 mr-2" />
+                        )}
+                        Upload to Server
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleClearAiImage}
+                        disabled={isPendingSubmit || isUploadingImage || isGeneratingImage}
+                        variant="outline"
+                        className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Clear AI Image
+                      </Button>
+                    </div>
+                    {uploadError && <p className="text-sm text-destructive mt-2">{uploadError}</p>}
                   </div>
                 )}
-                {/* Preview for the final imageUrl (either placeholder, pasted, or uploaded) */}
-                {!generatedImageDataUri && currentImageUrl && currentImageUrl.startsWith('http') && (
+                 {/* Preview for the final imageUrl (placeholder or uploaded http/https URL) */}
+                {currentImageUrl && currentImageUrl.startsWith('http') && (
                     <div className="mt-3">
                         <p className="text-sm font-medium mb-1">Current Image URL Preview:</p>
-                        <Image src={currentImageUrl} alt="Current image URL preview" width={200} height={150} className="rounded-md border object-cover" 
-                          onError={(e) => (e.currentTarget.style.display = 'none')} // Hide if image fails to load
+                        <Image 
+                            src={currentImageUrl} 
+                            alt="Current image URL preview" 
+                            width={200} 
+                            height={150} 
+                            className="rounded-md border object-cover" 
+                            key={currentImageUrl} // Add key to force re-render on URL change
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none'; // Hide if image fails to load
+                                const placeholderErrorText = document.createElement('p');
+                                placeholderErrorText.textContent = 'Preview not available or URL is invalid.';
+                                placeholderErrorText.className = 'text-xs text-destructive';
+                                target.parentNode?.insertBefore(placeholderErrorText, target.nextSibling);
+                            }}
                         />
                     </div>
                 )}
@@ -582,6 +615,4 @@ export default function NewPostPage() {
     </div>
   );
 }
-
-
     

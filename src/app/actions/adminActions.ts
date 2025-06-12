@@ -1,7 +1,7 @@
 
 'use server';
 
-import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
+import { initializeApp, getApps, App, Credential } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { seedDatabase } from '@/lib/seed';
 

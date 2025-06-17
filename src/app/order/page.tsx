@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -93,7 +94,7 @@ export default function OrderPage() {
       name: '',
       email: '',
       companyName: '',
-      paymentMethod: undefined,
+      paymentMethod: 'crypto', // Set default to crypto as it's the only visible option now
     },
   });
 
@@ -142,7 +143,7 @@ export default function OrderPage() {
             name: '', 
             email: '', 
             companyName: '', 
-            paymentMethod: undefined 
+            paymentMethod: 'crypto' // Reset to crypto
         });
       } else {
         throw new Error('Order processing failed.');
@@ -257,8 +258,8 @@ export default function OrderPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="credit_card">Credit Card</SelectItem>
-                          <SelectItem value="paypal">PayPal</SelectItem>
+                          {/* <SelectItem value="credit_card">Credit Card</SelectItem> */}
+                          {/* <SelectItem value="paypal">PayPal</SelectItem> */}
                           <SelectItem value="crypto">Cryptocurrency</SelectItem>
                         </SelectContent>
                       </Select>
@@ -321,3 +322,4 @@ export default function OrderPage() {
     </div>
   );
 }
+

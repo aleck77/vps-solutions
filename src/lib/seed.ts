@@ -84,7 +84,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
 
 
 export async function seedDatabase() {
-  const adminDb = getAdminFirestore(); 
+  const adminDb = await getAdminFirestore(); // Use await
   const postsCollection = adminDb.collection('posts');
   const categoriesCollection = adminDb.collection('categories');
   

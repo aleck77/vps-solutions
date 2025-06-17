@@ -235,7 +235,7 @@ export const processPostDocWithCategory = async (docSnapshot: any): Promise<Blog
 };
 
 export async function addBlogPost(postData: NewBlogPost): Promise<string | null> {
-  const adminDb = getAdminFirestore();
+  const adminDb = await getAdminFirestore(); // Use await
   try {
     const postsCollection = adminDb.collection('posts');
     const docRef = await postsCollection.add({
@@ -258,7 +258,7 @@ export async function updateBlogPost(
   postId: string,
   postData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>>
 ): Promise<{ success: boolean; oldPost?: BlogPost | null }> {
-  const adminDb = getAdminFirestore();
+  const adminDb = await getAdminFirestore(); // Use await
   const clientDb = getDb(); 
 
   const postRefAdmin = adminDb.collection('posts').doc(postId);

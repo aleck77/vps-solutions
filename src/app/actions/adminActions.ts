@@ -33,7 +33,7 @@ if (!getApps().length) {
 }
 // --- End Firebase Admin SDK Initialization ---
 
-export function getAdminFirestore() {
+export async function getAdminFirestore() { // MADE ASYNC
   if (!adminApp) {
     // Attempt to re-initialize if adminApp is somehow not set (e.g. hot reload issue)
     // This is a fallback, ideally it's initialized above.

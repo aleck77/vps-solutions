@@ -202,7 +202,7 @@ export async function deletePostAction(
   if (!postId) {
     return { success: false, message: 'Post ID is missing. Cannot delete post.' };
   }
-  const adminDb = getAdminFirestore();
+  const adminDb = await getAdminFirestore(); // Use await
 
   try {
     const postToDelete = await getPostByIdForEditing(postId); 
@@ -245,7 +245,7 @@ export async function deleteMultiplePostsAction(
     return { success: false, message: 'No post IDs provided for deletion.' };
   }
 
-  const adminDb = getAdminFirestore();
+  const adminDb = await getAdminFirestore(); // Use await
   const batch = adminDb.batch();
   let deletedCount = 0;
   const errors: { postId: string; message: string }[] = [];

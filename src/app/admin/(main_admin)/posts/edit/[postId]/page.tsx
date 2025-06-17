@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useActionState } from 'react';
+import { useEffect, useState, useActionState, startTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useParams } from 'next/navigation';
@@ -152,9 +152,10 @@ export default function EditPostPage() {
     }
   }, [state, toast]);
 
-  const onSubmit = async (data: PostFormValues) => {
-    formAction(data);
-  };
+  // Removed custom onSubmit, formAction from useActionState will be passed directly to handleSubmit
+  // const onSubmit = async (data: PostFormValues) => {
+  //   formAction(data);
+  // };
 
   const handleGenerateTitles = async () => {
     if (!topicForTitle.trim()) {
@@ -438,7 +439,8 @@ export default function EditPostPage() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {/* Pass formAction directly to handleSubmit */}
+            <form onSubmit={form.handleSubmit(formAction)} className="space-y-8">
               <FormField
                 control={form.control}
                 name="title"

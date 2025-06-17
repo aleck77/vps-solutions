@@ -114,6 +114,7 @@ export async function updatePostAction(
   prevState: UpdatePostResult | undefined,
   formData: PostFormValues
 ): Promise<UpdatePostResult> {
+  console.log(`[updatePostAction] Received request to update post ID: ${postId}`);
   if (!postId) {
     return { success: false, message: 'Post ID is missing. Cannot update post.' };
   }
@@ -121,7 +122,7 @@ export async function updatePostAction(
   const validatedFields = postFormSchema.safeParse(formData);
 
   if (!validatedFields.success) {
-    console.error('Validation errors for update:', validatedFields.error.flatten().fieldErrors);
+    console.error('[updatePostAction] Validation errors for update:', validatedFields.error.flatten().fieldErrors);
     return {
       success: false,
       message: 'Validation failed. Please check the form for errors.',
@@ -131,13 +132,12 @@ export async function updatePostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
-  // Convert Markdown content to HTML
   let htmlContent: string;
   try {
     htmlContent = await marked.parse(content);
-  } catch (parseError) {
-    console.error('Error parsing Markdown to HTML during update:', parseError);
-    return { success: false, message: 'Failed to process post content (Markdown parsing error).' };
+  } catch (parseError: any) {
+    console.error('[updatePostAction] Error parsing Markdown to HTML during update:', parseError);
+    return { success: false, message: `Failed to process post content (Markdown parsing error): ${parseError.message}` };
   }
 
   const processedTags = tags
@@ -146,62 +146,54 @@ export async function updatePostAction(
 
   const categorySlug = slugify(category); 
 
-  const postUpdateData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>> & { category: string, content: string } = { // Added content type
+  const postUpdateData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>> & { category: string, content: string } = {
     title,
     slug,
     author,
     category: categorySlug,
     excerpt,
-    content: htmlContent, // Save HTML content
+    content: htmlContent,
     imageUrl,
     tags: processedTags,
     published,
   };
 
+  console.log('[updatePostAction] Prepared data for Firestore update:', JSON.stringify(postUpdateData, null, 2));
 
   try {
     const updateResult = await updateBlogPost(postId, postUpdateData);
 
     if (updateResult.success) {
-      const oldPost = updateResult.oldPost; // This can be BlogPost or null
+      console.log(`[updatePostAction] Post ${postId} updated successfully in Firestore.`);
+      const oldPost = updateResult.oldPost;
 
-      // Revalidate paths
       revalidatePath('/blog');
-      revalidatePath(`/blog/${slug}`); // Current slug
+      revalidatePath(`/blog/${slug}`); 
       revalidatePath(`/admin/posts`);
       revalidatePath(`/admin/posts/edit/${postId}`);
-      revalidatePath(`/blog/category/${categorySlug}`); // Current category
+      revalidatePath(`/blog/category/${categorySlug}`); 
 
       if (oldPost) {
-        // If old post data is available, revalidate its specific old paths if they differ
-        if (oldPost.slug !== slug) {
-          revalidatePath(`/blog/${oldPost.slug}`);
-        }
-        if (oldPost.category !== categorySlug) {
-          revalidatePath(`/blog/category/${oldPost.category}`);
-        }
+        if (oldPost.slug !== slug) revalidatePath(`/blog/${oldPost.slug}`);
+        if (oldPost.category !== categorySlug) revalidatePath(`/blog/category/${oldPost.category}`);
         const oldTags = oldPost.tags || [];
         const newTags = processedTags;
         const allTagsToRevalidate = new Set([...oldTags, ...newTags]);
         allTagsToRevalidate.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
       } else {
-        // If old post data is not available, but update was successful,
-        // revalidate new tags and log a warning.
         processedTags.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
-        console.warn(`[updatePostAction] Post ${postId} updated, but old data not found for comprehensive revalidation. Partial revalidation applied.`);
+        console.warn(`[updatePostAction] Post ${postId} updated, but old post data not found for comprehensive revalidation. Partial revalidation applied.`);
       }
-      // No need to return success object here, redirect will happen
     } else {
-      // updateResult.success is false, meaning updateBlogPost reported a failure
-      return { success: false, message: 'Failed to update post in database. The update operation itself failed.' };
+      // This means updateBlogPost explicitly returned { success: false }
+      console.error(`[updatePostAction] updateBlogPost returned failure for post ID: ${postId}.`);
+      return { success: false, message: 'Failed to update post in database (updateBlogPost reported failure).' };
     }
-  } catch (error) { // Catch errors from updatePostAction itself, e.g. during validation or pre-processing
-    console.error('Error in updatePostAction:', error);
-    let message = 'An unexpected error occurred while preparing to update the post.';
-    if (error instanceof Error) {
-      message = error.message;
-    }
-    return { success: false, message };
+  } catch (error: any) { 
+    // This catch block is for unexpected errors during the update process itself (e.g., revalidationPath errors, etc.)
+    // or if updateBlogPost threw an unexpected error (though it's designed to return {success: false}).
+    console.error(`[updatePostAction] Unexpected error during update process for post ID ${postId}:`, error);
+    return { success: false, message: `Unexpected error during post update: ${error.message || 'Unknown error'}` };
   }
 
   redirect('/admin/posts');

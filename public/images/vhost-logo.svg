@@ -1,9 +1,32 @@
-<svg width="40" height="40" viewBox="0 0 85 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <title>VHost Solutions Logo VH</title>
-  <desc>Stylized letters V and H. V in dark blue, H in light blue and slanted.</desc>
-  <path d="M10 10 L30 50 L50 10" stroke="#1A202C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Slanted H -->
-  <path d="M58 10 L38 50" stroke="#3182CE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/> <!-- Left Leg of H -->
-  <path d="M73 10 L53 50" stroke="#3182CE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/> <!-- Right Leg of H -->
-  <path d="M48 30 L63 30" stroke="#3182CE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/> <!-- Crossbar of H -->
+<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>VHost Solutions Logo</title>
+  <desc>Abstract VH logo. The letter V's left leg in dark blue. The letter H's left leg (conceptually V's right leg) in light blue, H's right leg, and H's crossbar also in light blue. H's legs are tilted, and crossbar ends are parallel to H's legs.</desc>
+
+  <!-- V's Left Leg -->
+  <path d="M13 10 L24 50" stroke="#1A202C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- H's Left Leg (derived from V's right leg) -->
+  <path d="M37 10 L26 50" stroke="#3182CE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- H's Right Leg -->
+  <path d="M49 10 L38 50" stroke="#3182CE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- H's Crossbar (as a filled parallelogram with angled ends) -->
+  <!--
+    Vertices calculated to maintain thickness 5, be centered at y=30,
+    and have ends parallel to H's legs with a small gap.
+    H's left leg centerline at y=30 is x=31.5.
+    H's right leg centerline at y=30 is x=43.5.
+    Gap for crossbar from leg strokes, approx 1.5 units from stroke edge.
+    Stroke edge is ~2.5 units from centerline. Total shift ~4 units from centerline.
+    P_L_center_on_crossbar = (31.5, 30)
+    P_R_center_on_crossbar = (43.5, 30)
+    Shift for gap (horizontal component): 3 (approx value for visual gap)
+    x_start_parallelogram_top = 31.5 - (11/40)*(27.5-30) + 3 = 31.5 - (11/40)*(-2.5) + 3 = 31.5 + 0.6875 + 3 = 35.1875
+    x_start_parallelogram_bottom = 31.5 - (11/40)*(32.5-30) + 3 = 31.5 - (11/40)*(2.5) + 3 = 31.5 - 0.6875 + 3 = 33.8125
+
+    x_end_parallelogram_top = 43.5 - (11/40)*(27.5-30) - 3 = 43.5 + 0.6875 - 3 = 41.1875
+    x_end_parallelogram_bottom = 43.5 - (11/40)*(32.5-30) - 3 = 43.5 - 0.6875 - 3 = 39.8125
+  -->
+  <path d="M35.1875 27.5 L41.1875 27.5 L39.8125 32.5 L33.8125 32.5 Z" fill="#3182CE"/>
 </svg>

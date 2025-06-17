@@ -1,0 +1,5 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="40" height="40" rx="8" fill="hsl(var(--primary))"/>
+<path d="M12 28V12L20 16V20L12 24V28Z" fill="hsl(var(--primary-foreground))"/>
+<path d="M20 20V16L28 12V28L20 24V20Z" fill="hsl(var(--primary-foreground))" opacity="0.7"/>
+</svg>

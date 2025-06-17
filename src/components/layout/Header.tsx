@@ -32,11 +32,11 @@ export default function Header() {
         <Link href="/" className="flex items-center space-x-2">
           {/* Logo Image */}
           <Image 
-            src="/images/vhost-logo.png" // Path relative to public folder
+            src="/images/vhost-logo.svg" // Path relative to public folder, changed to SVG
             alt="VHost Solutions Logo" 
-            width={40} // Adjust as needed
-            height={40} // Adjust as needed
-            priority // Load logo quickly
+            width={40} 
+            height={40} 
+            priority 
           />
           <span className="text-2xl font-headline font-bold text-primary">
             VHost Solutions
@@ -73,7 +73,7 @@ export default function Header() {
                 <SheetTitle asChild>
                   <Link href="/" className="text-xl font-headline font-bold text-primary flex items-center space-x-2">
                      <Image 
-                        src="/images/vhost-logo.png"
+                        src="/images/vhost-logo.svg"
                         alt="VHost Solutions Logo"
                         width={32}
                         height={32}

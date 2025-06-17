@@ -1,14 +1,11 @@
-<svg viewBox="0 0 85 55" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2">
-  <g>
-    <!-- V part (Dark Blue: #1A202C) -->
-    <polygon points="10,5 18,5 30,50 22,50" fill="#1A202C"/>
-    <polygon points="30,50 38,50 50,5 42,5" fill="#1A202C"/>
-    <!-- H part (Light Blue: #3182CE) -->
-    <!-- H Left Leg (tilted) -->
-    <polygon points="52,5 60,5 48,50 40,50" fill="#3182CE"/>
-    <!-- H Right Leg (tilted) -->
-    <polygon points="67,5 75,5 63,50 55,50" fill="#3182CE"/>
-    <!-- H Bar (connecting the tilted legs) -->
-    <polygon points="54.67,25 61.67,25 60.33,30 53.33,30" fill="#3182CE"/>
-  </g>
+<svg width="40" height="40" viewBox="0 0 44 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>VHost Solutions Logo</title>
+  <desc>A monogram of letters V and H. V is dark blue, H is light blue and slanted. The H is now wider.</desc>
+  <!-- V part (unchanged) -->
+  <path d="M0 0 L8 0 L20 40 L12 40 Z" fill="#1A202C"/>
+  <path d="M15 0 L23 0 L35 40 L27 40 Z" fill="#1A202C"/>
+  <!-- H part (modified for wider appearance) -->
+  <path d="M28 8 L32 8 L22 33 L18 33 Z" fill="#3182CE"/> <!-- H left leg (unchanged) -->
+  <path d="M40 8 L44 8 L34 33 L30 33 Z" fill="#3182CE"/> <!-- H right leg (shifted right by 4 units) -->
+  <path d="M20 18 L38 18 L38 23 L20 23 Z" fill="#3182CE"/> <!-- H horizontal bar (extended to the right by 4 units) -->
 </svg>

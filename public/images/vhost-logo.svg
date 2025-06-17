@@ -1,18 +1,10 @@
-<svg viewBox="0 0 85 60" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>
-      .stroke-primary { stroke: #1A202C; }
-      .stroke-accent { stroke: #3182CE; }
-    </style>
-  </defs>
-  <g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-    {/* V - left stroke */}
-    <path d="M10 10 L30 50" class="stroke-primary"/>
-    {/* V - right stroke / H - left stroke */}
-    <path d="M30 50 L50 10" class="stroke-accent"/>
-    {/* H - right stroke */}
-    <path d="M75 10 L55 50" class="stroke-accent"/>
-    {/* H - crossbar */}
-    <path d="M42.5 25 L67.5 25" class="stroke-accent"/>
-  </g>
+<svg width="56" height="60" viewBox="0 0 56 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- V (left part, black) -->
+    <path d="M10 10 L21.95 49.9" stroke="#1A202C" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- H (left leg, also right part of V, blue) -->
+    <path d="M22.05 49.9 L34 10" stroke="#3182CE" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- H (crossbar, blue) -->
+    <path d="M28.025 29.95 L39.975 29.95" stroke="#3182CE" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- H (right leg, blue) -->
+    <path d="M34 10 L45.95 49.9" stroke="#3182CE" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

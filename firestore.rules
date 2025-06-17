@@ -1,13 +1,25 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // WARNING: This rule is insecure for production.
-    // It allows anyone to read and write to your database.
-    // TODO: Secure your rules before deploying to production.
-    // For development and seeding, we allow all reads and writes.
-    match /{document=**} {
-      allow read, write: if true;
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /posts/{postId} {
+      allow read: if true; // Anyone can read posts
+      allow create, update, delete: if request.auth != null && request.auth.token.admin == true; // Only admins can write
+    }
+    match /categories/{categoryId} {
+      allow read: if true; // Anyone can read categories
+      allow create, update, delete: if request.auth != null && request.auth.token.admin == true; // Only admins can write
+    }
+    match /subscribers/{subscriberId} {
+      // Allow anyone to create (subscribe)
+      allow create: if true;
+      // Allow only authenticated admins to read, update, or delete subscribers
+      allow read, update, delete: if request.auth != null && request.auth.token.admin == true;
     }
   }
 }
+

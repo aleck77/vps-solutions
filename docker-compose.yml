@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  vps-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # You can pass build-time args for NEXT_PUBLIC_ variables if needed,
+      # though Next.js usually handles inlining them from the build environment.
+      # args:
+      #   NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
+    container_name: vps-solutions-app
+    restart: always
+    env_file:
+      - .env # Load environment variables from .env file
+    # Environment variables can also be set directly here,
+    # but .env file is better for secrets.
+    # environment:
+    #   - NODE_ENV=production
+    #   - PORT=3000
+    #   - NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY}
+    #   - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+    #   - NEXT_PUBLIC_FIREBASE_PROJECT_ID=${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+    #   - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+    #   - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+    #   - NEXT_PUBLIC_FIREBASE_APP_ID=${NEXT_PUBLIC_FIREBASE_APP_ID}
+    #   - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}
+    #   - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account-key.json # Path inside the container
+    #   - GEMINI_API_KEY=${GEMINI_API_KEY} # Or GOOGLE_API_KEY
+    ports: # This is for direct access if needed, Traefik handles public access
+      - "3001:3000" # Example: Map container port 3000 to host port 3001
+    volumes:
+      # Mount your service account key JSON file into the container
+      # IMPORTANT: Ensure 'service-account-key.json' is in the same directory as this docker-compose.yml
+      # or provide the correct path to the key file on your host.
+      - ./service-account-key.json:/app/service-account-key.json:ro
+    networks:
+      - n8n_default # Connect to your existing Traefik network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vps-app.rule=Host(`vps.artelegis.com.ua`)"
+      - "traefik.http.routers.vps-app.entrypoints=websecure"
+      - "traefik.http.routers.vps-app.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.vps-app.loadbalancer.server.port=3000" # Next.js app's internal port
+      # Add any middlewares if needed, e.g., for rate limiting or specific headers
+      # - "traefik.http.routers.vps-app.middlewares=my-middleware@docker"
+
+networks:
+  n8n_default:
+    external: true

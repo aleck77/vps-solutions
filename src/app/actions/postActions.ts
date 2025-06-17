@@ -4,12 +4,13 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { Timestamp, doc, deleteDoc, writeBatch } from 'firebase/firestore'; // Added writeBatch
+import { Timestamp, doc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
 import { getDb } from '@/lib/firebase';
+import { marked } from 'marked'; // Import marked
 
 interface CreatePostResult {
   success: boolean;
@@ -51,6 +52,16 @@ export async function createPostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
+  // Convert Markdown content to HTML
+  let htmlContent: string;
+  try {
+    htmlContent = await marked.parse(content);
+  } catch (parseError) {
+    console.error('Error parsing Markdown to HTML:', parseError);
+    return { success: false, message: 'Failed to process post content (Markdown parsing error).' };
+  }
+
+
   const processedTags = tags
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
@@ -64,7 +75,7 @@ export async function createPostAction(
     author,
     category: categorySlug,
     excerpt,
-    content,
+    content: htmlContent, // Save HTML content
     imageUrl,
     tags: processedTags,
     published,
@@ -120,19 +131,28 @@ export async function updatePostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
+  // Convert Markdown content to HTML
+  let htmlContent: string;
+  try {
+    htmlContent = await marked.parse(content);
+  } catch (parseError) {
+    console.error('Error parsing Markdown to HTML during update:', parseError);
+    return { success: false, message: 'Failed to process post content (Markdown parsing error).' };
+  }
+
   const processedTags = tags
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
 
   const categorySlug = slugify(category); 
 
-  const postUpdateData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>> & { category: string } = {
+  const postUpdateData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>> & { category: string, content: string } = { // Added content type
     title,
     slug,
     author,
     category: categorySlug,
     excerpt,
-    content,
+    content: htmlContent, // Save HTML content
     imageUrl,
     tags: processedTags,
     published,
@@ -248,7 +268,6 @@ export async function deleteMultiplePostsAction(
         if (postToDelete.tags) postToDelete.tags.forEach(tag => pathsToRevalidate.tags.add(tag));
 
       } else {
-        // Post might have been deleted by another process
         console.warn(`Post with ID ${postId} not found for deletion, skipping.`);
       }
     } catch (error: any) {
@@ -269,7 +288,6 @@ export async function deleteMultiplePostsAction(
   try {
     await batch.commit();
     
-    // Revalidate paths
     revalidatePath('/admin/posts');
     revalidatePath('/blog');
     pathsToRevalidate.slugs.forEach(slug => revalidatePath(`/blog/${slug}`));

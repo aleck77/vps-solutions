@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
 
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
-import { generatePostContent } from '@/ai/flows/generate-post-content-flow';
+import { generatePostContent, type GeneratePostContentInput } from '@/ai/flows/generate-post-content-flow';
 import { generatePostImage } from '@/ai/flows/generate-post-image-flow.ts';
 
 
@@ -37,13 +37,17 @@ export default function NewPostPage() {
   const [topicForTitle, setTopicForTitle] = useState('');
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
   const [isGeneratingTitles, setIsGeneratingTitles] = useState(false);
+  
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [aiContentTopic, setAiContentTopic] = useState('');
+  const [aiContentKeywords, setAiContentKeywords] = useState('');
+  const [aiContentLength, setAiContentLength] = useState<GeneratePostContentInput['length']>('medium');
+
 
   const [imagePrompt, setImagePrompt] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
   
-  // State to hold the AI-generated Data URI for preview and upload, separate from form's imageUrl
   const [aiGeneratedPreviewUri, setAiGeneratedPreviewUri] = useState<string | null>(null);
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -55,7 +59,7 @@ export default function NewPostPage() {
       title: '',
       slug: '',
       author: '', 
-      imageUrl: 'https://placehold.co/600x400.png', // Default placeholder
+      imageUrl: 'https://placehold.co/600x400.png',
       category: undefined,
       excerpt: '',
       content: '',
@@ -66,18 +70,19 @@ export default function NewPostPage() {
   });
 
   const titleValue = form.watch('title');
-  // This currentImageUrl will reflect the form's 'imageUrl' field, which is now only http URLs or placeholder
   const currentImageUrlFromForm = form.watch('imageUrl'); 
 
   useEffect(() => {
     if (titleValue && !form.formState.dirtyFields.slug) {
       form.setValue('slug', slugify(titleValue), { shouldValidate: true });
     }
-    // Auto-fill imagePrompt from title if imagePrompt is empty or matches the current title
     if (titleValue && (!imagePrompt || imagePrompt === titleValue)) {
       setImagePrompt(titleValue);
     }
-  }, [titleValue, form, imagePrompt]);
+    if (titleValue && (!aiContentTopic || aiContentTopic === titleValue)) {
+      setAiContentTopic(titleValue);
+    }
+  }, [titleValue, form, imagePrompt, aiContentTopic]);
   
 
   useEffect(() => {
@@ -121,21 +126,30 @@ export default function NewPostPage() {
 
   const handleSelectTitle = (selectedTitle: string) => {
     form.setValue('title', selectedTitle, { shouldValidate: true });
+    setAiContentTopic(selectedTitle); 
     setImagePrompt(selectedTitle); 
     setGeneratedTitles([]); 
   };
 
   const handleGenerateContent = async () => {
-    const currentTitle = form.getValues('title');
-    if (!currentTitle.trim()) {
-      toast({ title: 'Info', description: 'Please enter or generate a title first.', variant: 'default' });
+    const titleForContentPrompt = aiContentTopic.trim() || form.getValues('title').trim();
+    if (!titleForContentPrompt) {
+      toast({ title: 'Info', description: 'Please provide a title or topic for content generation.', variant: 'default' });
       return;
     }
     setIsGeneratingContent(true);
     try {
-      const result = await generatePostContent({ title: currentTitle, length: 'medium', outputFormat: 'plaintext' });
+      const keywordsArray = aiContentKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+      const result = await generatePostContent({ 
+        title: titleForContentPrompt, // Use the specific topic if provided, else main title
+        topic: aiContentTopic.trim() ? aiContentTopic.trim() : undefined,
+        keywords: keywordsArray.length > 0 ? keywordsArray : undefined,
+        length: aiContentLength,
+        outputFormat: 'markdown_basic' // Request Markdown
+      });
        if (result.content && !result.content.startsWith("AI content generation failed")) {
         form.setValue('content', result.content, { shouldValidate: true });
+        toast({ title: 'Content Generated', description: 'AI has generated content in Markdown format.' });
       } else {
         toast({ title: 'AI Error', description: result.content || 'Failed to generate content.', variant: 'destructive' });
       }
@@ -153,13 +167,12 @@ export default function NewPostPage() {
       return;
     }
     setIsGeneratingImage(true);
-    setAiGeneratedPreviewUri(null); // Clear previous AI-generated preview
-    // Don't set form.setValue('imageUrl', placeholder) here, let the preview handle it
+    setAiGeneratedPreviewUri(null); 
     setImageGenError(null);
     try {
       const result = await generatePostImage({ prompt: imagePrompt });
       if (result.imageDataUri) {
-        setAiGeneratedPreviewUri(result.imageDataUri); // Store Data URI for preview and potential upload
+        setAiGeneratedPreviewUri(result.imageDataUri); 
         toast({ title: 'Success', description: 'Image generated! Now you can upload it or clear it.' });
       } else {
         setImageGenError(result.error || 'Image generation failed: No image data received.');
@@ -195,7 +208,7 @@ export default function NewPostPage() {
       const filename = `${postTitleSlug}-${timestamp}.png`; 
 
       const payload = {
-        imageDataUri: aiGeneratedPreviewUri, // Send the stored Data URI
+        imageDataUri: aiGeneratedPreviewUri, 
         postTitle: postTitle,
         filename: filename,
       };
@@ -237,7 +250,7 @@ export default function NewPostPage() {
           if (result.imageUrl) {
             form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
             console.log("[handleUploadGeneratedImage] Form value for imageUrl after set:", form.getValues('imageUrl'));
-            setAiGeneratedPreviewUri(null); // Clear preview URI after successful upload and URL update in form
+            setAiGeneratedPreviewUri(null); 
             toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
           } else {
              toast({ title: 'Upload Acknowledged', description: result.message || 'n8n confirmed receipt, but no imageUrl returned. Form not updated.' });
@@ -261,14 +274,13 @@ export default function NewPostPage() {
   };
 
   const handleClearAiImage = () => {
-    setAiGeneratedPreviewUri(null); // Clear the AI-generated preview
-    form.setValue('imageUrl', 'https://placehold.co/600x400.png', { shouldValidate: true }); // Reset form field to placeholder
+    setAiGeneratedPreviewUri(null); 
+    form.setValue('imageUrl', 'https://placehold.co/600x400.png', { shouldValidate: true }); 
     setImageGenError(null);
     setUploadError(null);
     toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to placeholder.' });
   };
 
-  // Determine what to display in the Image component
   const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
 
 
@@ -295,9 +307,9 @@ export default function NewPostPage() {
             <Label htmlFor="ai-title-topic" className="font-semibold text-lg">AI Title Helper</Label>
             <div className="flex items-end gap-2">
               <div className="flex-grow">
-                <Label htmlFor="ai-title-topic" className="text-sm">Topic or Keywords for Title</Label>
+                <Label htmlFor="ai-title-topic-input" className="text-sm">Topic or Keywords for Title</Label>
                 <Input 
-                  id="ai-title-topic"
+                  id="ai-title-topic-input"
                   placeholder="e.g., 'Next.js server components', 'AI in marketing'" 
                   value={topicForTitle}
                   onChange={(e) => setTopicForTitle(e.target.value)}
@@ -388,7 +400,6 @@ export default function NewPostPage() {
                 )}
               />
               
-              {/* Input field for Image URL - This will show the placeholder or the uploaded HTTP URL */}
               <FormField
                 control={form.control}
                 name="imageUrl"
@@ -399,7 +410,7 @@ export default function NewPostPage() {
                       <Input 
                         type="text" 
                         placeholder="https://placehold.co/600x400.png or uploaded image URL" 
-                        {...field} // Value is now from form state (placeholder or HTTP URL)
+                        {...field} 
                         disabled={isPendingSubmit || isGeneratingImage || isUploadingImage}
                       />
                     </FormControl>
@@ -410,7 +421,6 @@ export default function NewPostPage() {
                   </FormItem>
                 )}
               />
-              {/* AI Image Helper Section */}
               <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
                 <Label className="font-semibold text-lg">AI Image Helper</Label>
                 <div className="flex items-end gap-2">
@@ -442,7 +452,6 @@ export default function NewPostPage() {
                 {isGeneratingImage && <p className="text-sm text-muted-foreground">Generating image, please wait...</p>}
                 {imageGenError && <p className="text-sm text-destructive">{imageGenError}</p>}
                 
-                {/* Preview for AI-generated Data URI or form's HTTP URL */}
                 {imagePreviewSrc && (imagePreviewSrc.startsWith('data:image/') || imagePreviewSrc.startsWith('http')) && !isGeneratingImage && (
                   <div className="mt-3 space-y-3">
                     <p className="text-sm font-medium mb-1">
@@ -467,7 +476,6 @@ export default function NewPostPage() {
                           }
                       }}
                     />
-                    {/* Show Upload/Clear buttons only if there's an AI-generated preview URI */}
                     {aiGeneratedPreviewUri && (
                       <div className="flex gap-2">
                         <Button
@@ -541,34 +549,74 @@ export default function NewPostPage() {
                 )}
               />
 
+              {/* AI Content Generation Section */}
+              <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
+                <Label className="font-semibold text-lg">AI Content Helper</Label>
+                <FormItem>
+                  <FormLabel htmlFor="ai-content-topic-input">Topic (defaults to post title)</FormLabel>
+                  <Input 
+                    id="ai-content-topic-input"
+                    placeholder="Enter topic for AI content generation" 
+                    value={aiContentTopic}
+                    onChange={(e) => setAiContentTopic(e.target.value)}
+                    disabled={isGeneratingContent || isPendingSubmit}
+                  />
+                </FormItem>
+                <FormItem>
+                  <FormLabel htmlFor="ai-content-keywords-input">Keywords (comma-separated)</FormLabel>
+                  <Input 
+                    id="ai-content-keywords-input"
+                    placeholder="e.g., cloud, security, performance" 
+                    value={aiContentKeywords}
+                    onChange={(e) => setAiContentKeywords(e.target.value)}
+                    disabled={isGeneratingContent || isPendingSubmit}
+                  />
+                </FormItem>
+                <FormItem>
+                  <FormLabel htmlFor="ai-content-length-select">Desired Length</FormLabel>
+                  <Select 
+                    value={aiContentLength} 
+                    onValueChange={(value: GeneratePostContentInput['length']) => setAiContentLength(value)} 
+                    disabled={isGeneratingContent || isPendingSubmit}
+                  >
+                    <SelectTrigger id="ai-content-length-select">
+                      <SelectValue placeholder="Select length" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="short">Short</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="long">Long</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+                <Button 
+                  type="button" 
+                  onClick={handleGenerateContent} 
+                  disabled={isGeneratingContent || !(aiContentTopic.trim() || form.getValues('title').trim()) || isPendingSubmit}
+                  variant="outline"
+                  size="sm"
+                  className="bg-accent/10 hover:bg-accent/20 border-accent/30 w-full sm:w-auto"
+                >
+                  {isGeneratingContent ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                     <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  Generate Content with AI (Markdown)
+                </Button>
+              </div>
+
               <FormField
                 control={form.control}
                 name="content"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="flex justify-between items-center">
-                      <FormLabel>Content</FormLabel>
-                      <Button 
-                        type="button" 
-                        onClick={handleGenerateContent} 
-                        disabled={isGeneratingContent || !form.getValues('title').trim() || isPendingSubmit}
-                        variant="outline"
-                        size="sm"
-                        className="bg-accent/10 hover:bg-accent/20 border-accent/30"
-                      >
-                        {isGeneratingContent ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                           <FileText className="h-4 w-4 mr-2" />
-                        )}
-                        Generate Content with AI
-                      </Button>
-                    </div>
+                    <FormLabel>Content (Markdown)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Write your blog post content here..." className="min-h-[250px]" {...field} disabled={isPendingSubmit || isGeneratingContent} />
+                      <Textarea placeholder="Write your blog post content here in Markdown..." className="min-h-[250px]" {...field} disabled={isPendingSubmit || isGeneratingContent} />
                     </FormControl>
                      <FormDescription>
-                      The main content of the blog post. Markdown is not yet supported, use plain text or HTML.
+                      The main content of the blog post. Write in Markdown. It will be converted to HTML.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

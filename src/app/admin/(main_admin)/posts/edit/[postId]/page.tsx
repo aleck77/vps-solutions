@@ -27,7 +27,7 @@ import { ArrowLeft, Save, Loader2, Sparkles, FileText, Image as ImageIcon, Uploa
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
-import { generatePostContent } from '@/ai/flows/generate-post-content-flow';
+import { generatePostContent, type GeneratePostContentInput } from '@/ai/flows/generate-post-content-flow';
 import { generatePostImage } from '@/ai/flows/generate-post-image-flow';
 
 
@@ -40,11 +40,14 @@ export default function EditPostPage() {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [isLoadingPost, setIsLoadingPost] = useState(true);
 
-  // AI Helper States
   const [topicForTitle, setTopicForTitle] = useState('');
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([]);
   const [isGeneratingTitles, setIsGeneratingTitles] = useState(false);
+
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [aiContentTopic, setAiContentTopic] = useState('');
+  const [aiContentKeywords, setAiContentKeywords] = useState('');
+  const [aiContentLength, setAiContentLength] = useState<GeneratePostContentInput['length']>('medium');
 
   const [imagePrompt, setImagePrompt] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -74,28 +77,25 @@ export default function EditPostPage() {
   const currentSlugValue = form.watch('slug');
   const currentImageUrlFromForm = form.watch('imageUrl');
 
-  // Effect to auto-generate slug from title if slug is not manually changed by user
   useEffect(() => {
-    // Only update slug if title is present AND (slug field is not dirty OR (slugify(title) is different from currentSlug AND currentSlug is the original slug from fetched post))
-    // This allows user to manually edit the slug and it won't be overridden by title changes,
-    // unless the slug field hasn't been touched or still matches the original slug.
     if (post && titleValue) {
         const titleSlug = slugify(titleValue);
         if (!form.formState.dirtyFields.slug || (titleSlug !== currentSlugValue && post.slug === currentSlugValue)) {
             form.setValue('slug', titleSlug, { shouldValidate: true });
         }
     } else if (titleValue && !form.formState.dirtyFields.slug) {
-        // Fallback for initial load before 'post' is set, or if post has no slug (new post scenario, though this is edit page)
         form.setValue('slug', slugify(titleValue), { shouldValidate: true });
     }
   }, [titleValue, form, currentSlugValue, post]);
 
-  // Auto-fill imagePrompt from title if imagePrompt is empty or matches the current title
    useEffect(() => {
     if (titleValue && (!imagePrompt || imagePrompt === titleValue || (post && imagePrompt === post.title))) {
       setImagePrompt(titleValue);
     }
-  }, [titleValue, imagePrompt, post]);
+    if (titleValue && (!aiContentTopic || aiContentTopic === titleValue || (post && aiContentTopic === post.title))) {
+      setAiContentTopic(titleValue);
+    }
+  }, [titleValue, imagePrompt, post, aiContentTopic]);
 
 
   useEffect(() => {
@@ -119,13 +119,13 @@ export default function EditPostPage() {
             imageUrl: fetchedPost.imageUrl,
             category: originalCategoryName,
             excerpt: fetchedPost.excerpt,
-            content: fetchedPost.content,
+            content: fetchedPost.content, // This content is HTML from DB
             tags: fetchedPost.tags?.join(', ') || '',
             published: fetchedPost.published,
           });
-          // Initialize AI helpers based on fetched post
-          setTopicForTitle(fetchedPost.title); // For generating new titles based on current
-          setImagePrompt(fetchedPost.title); // For generating new images based on current
+          setTopicForTitle(fetchedPost.title); 
+          setAiContentTopic(fetchedPost.title); 
+          setImagePrompt(fetchedPost.title); 
         } else {
           toast({ title: 'Error', description: 'Post not found.', variant: 'destructive' });
           router.push('/admin/posts');
@@ -156,7 +156,6 @@ export default function EditPostPage() {
     formAction(data);
   };
 
-  // AI Helper Functions (similar to NewPostPage)
   const handleGenerateTitles = async () => {
     if (!topicForTitle.trim()) {
       toast({ title: 'Info', description: 'Please enter a topic to generate titles.', variant: 'default' });
@@ -182,21 +181,30 @@ export default function EditPostPage() {
 
   const handleSelectTitle = (selectedTitle: string) => {
     form.setValue('title', selectedTitle, { shouldValidate: true });
+    setAiContentTopic(selectedTitle);
     setImagePrompt(selectedTitle);
     setGeneratedTitles([]);
   };
 
   const handleGenerateContent = async () => {
-    const currentTitle = form.getValues('title');
-    if (!currentTitle.trim()) {
-      toast({ title: 'Info', description: 'Please provide a title first.', variant: 'default' });
+    const titleForContentPrompt = aiContentTopic.trim() || form.getValues('title').trim();
+    if (!titleForContentPrompt) {
+      toast({ title: 'Info', description: 'Please provide a title or topic for content generation.', variant: 'default' });
       return;
     }
     setIsGeneratingContent(true);
     try {
-      const result = await generatePostContent({ title: currentTitle, length: 'medium', outputFormat: 'plaintext' });
+      const keywordsArray = aiContentKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+      const result = await generatePostContent({
+        title: titleForContentPrompt,
+        topic: aiContentTopic.trim() ? aiContentTopic.trim() : undefined,
+        keywords: keywordsArray.length > 0 ? keywordsArray : undefined,
+        length: aiContentLength,
+        outputFormat: 'markdown_basic' // Request Markdown
+      });
       if (result.content && !result.content.startsWith("AI content generation failed")) {
-        form.setValue('content', result.content, { shouldValidate: true });
+        form.setValue('content', result.content, { shouldValidate: true }); // Set Markdown content
+        toast({ title: 'Content Generated', description: 'AI has generated content in Markdown format. It will be converted to HTML on save.' });
       } else {
         toast({ title: 'AI Error', description: result.content || 'Failed to generate content.', variant: 'destructive' });
       }
@@ -325,7 +333,7 @@ export default function EditPostPage() {
 
   const handleClearAiImage = () => {
     setAiGeneratedPreviewUri(null);
-    form.setValue('imageUrl', post?.imageUrl || 'https://placehold.co/600x400.png', { shouldValidate: true }); // Reset to original or placeholder
+    form.setValue('imageUrl', post?.imageUrl || 'https://placehold.co/600x400.png', { shouldValidate: true }); 
     setImageGenError(null);
     setUploadError(null);
     toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to original or placeholder.' });
@@ -389,14 +397,13 @@ export default function EditPostPage() {
           <CardDescription>Update the details of the blog post below. Use AI helpers for title, content and image.</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* AI Title Helper */}
           <div className="space-y-4 mb-8 p-4 border rounded-lg shadow-sm bg-muted/30">
-            <Label htmlFor="ai-title-topic" className="font-semibold text-lg">AI Title Helper</Label>
+            <Label htmlFor="ai-title-topic-input" className="font-semibold text-lg">AI Title Helper</Label>
             <div className="flex items-end gap-2">
               <div className="flex-grow">
-                <Label htmlFor="ai-title-topic" className="text-sm">Current Title or New Topic for Suggestions</Label>
+                <Label htmlFor="ai-title-topic-input" className="text-sm">Current Title or New Topic for Suggestions</Label>
                 <Input 
-                  id="ai-title-topic"
+                  id="ai-title-topic-input"
                   placeholder="e.g., 'Next.js server components', 'AI in marketing'" 
                   value={topicForTitle}
                   onChange={(e) => setTopicForTitle(e.target.value)}
@@ -494,7 +501,6 @@ export default function EditPostPage() {
                   </FormItem>
                 )}
               />
-              {/* AI Image Helper Section */}
               <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
                 <Label className="font-semibold text-lg">AI Image Helper</Label>
                 <div className="flex items-end gap-2">
@@ -602,22 +608,74 @@ export default function EditPostPage() {
                 )}
               />
 
+              {/* AI Content Generation Section */}
+              <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
+                <Label className="font-semibold text-lg">AI Content Helper</Label>
+                <FormItem>
+                  <FormLabel htmlFor="edit-ai-content-topic-input">Topic (defaults to post title)</FormLabel>
+                  <Input 
+                    id="edit-ai-content-topic-input"
+                    placeholder="Enter topic for AI content generation" 
+                    value={aiContentTopic}
+                    onChange={(e) => setAiContentTopic(e.target.value)}
+                    disabled={isGeneratingContent || isPendingSubmit}
+                  />
+                </FormItem>
+                <FormItem>
+                  <FormLabel htmlFor="edit-ai-content-keywords-input">Keywords (comma-separated)</FormLabel>
+                  <Input 
+                    id="edit-ai-content-keywords-input"
+                    placeholder="e.g., cloud, security, performance" 
+                    value={aiContentKeywords}
+                    onChange={(e) => setAiContentKeywords(e.target.value)}
+                    disabled={isGeneratingContent || isPendingSubmit}
+                  />
+                </FormItem>
+                <FormItem>
+                  <FormLabel htmlFor="edit-ai-content-length-select">Desired Length</FormLabel>
+                  <Select 
+                    value={aiContentLength} 
+                    onValueChange={(value: GeneratePostContentInput['length']) => setAiContentLength(value)} 
+                    disabled={isGeneratingContent || isPendingSubmit}
+                  >
+                    <SelectTrigger id="edit-ai-content-length-select">
+                      <SelectValue placeholder="Select length" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="short">Short</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="long">Long</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+                <Button 
+                  type="button" 
+                  onClick={handleGenerateContent} 
+                  disabled={isGeneratingContent || !(aiContentTopic.trim() || form.getValues('title').trim()) || isPendingSubmit}
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-accent/10 hover:bg-accent/20 border-accent/30 w-full sm:w-auto"
+                >
+                  {isGeneratingContent ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+                  Generate Content with AI (Markdown)
+                </Button>
+              </div>
+              
               <FormField
                 control={form.control}
                 name="content"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="flex justify-between items-center">
-                      <FormLabel>Content</FormLabel>
-                      <Button type="button" onClick={handleGenerateContent} disabled={isGeneratingContent || !form.getValues('title').trim() || isPendingSubmit} variant="outline" size="sm" className="bg-accent/10 hover:bg-accent/20 border-accent/30">
-                        {isGeneratingContent ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
-                        Generate Content with AI
-                      </Button>
-                    </div>
+                    <FormLabel>Content (Markdown)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Write your blog post content here..." className="min-h-[250px]" {...field} disabled={isPendingSubmit || isGeneratingContent} />
+                      <Textarea 
+                        placeholder="Write your blog post content here in Markdown or generate with AI..." 
+                        className="min-h-[250px]" 
+                        {...field} 
+                        disabled={isPendingSubmit || isGeneratingContent} 
+                      />
                     </FormControl>
-                    <FormDescription>The main content of the blog post. Markdown is not yet supported, use plain text or HTML.</FormDescription>
+                    <FormDescription>The main content of the blog post. Write in Markdown. It will be converted to HTML on save.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

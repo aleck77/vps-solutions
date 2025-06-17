@@ -1,12 +1,13 @@
 
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import { Server, Briefcase, Newspaper, Users, Mail, Menu, X, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose, // SheetClose используется для элементов навигации
+  SheetClose, 
   SheetHeader,
   SheetTitle,
   SheetDescription,
@@ -22,15 +23,24 @@ const navLinks = [
   { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> },
 ];
 
-// ID для связи SheetContent и SheetDescription
 const mobileMenuDescriptionId = "mobile-menu-description";
 
 export default function Header() {
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-headline font-bold text-primary">
-          VHost Solutions
+        <Link href="/" className="flex items-center space-x-2">
+          {/* Logo Image */}
+          <Image 
+            src="/images/vhost-logo.png" // Path relative to public folder
+            alt="VHost Solutions Logo" 
+            width={40} // Adjust as needed
+            height={40} // Adjust as needed
+            priority // Load logo quickly
+          />
+          <span className="text-2xl font-headline font-bold text-primary">
+            VHost Solutions
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -60,14 +70,17 @@ export default function Header() {
               aria-describedby={mobileMenuDescriptionId} 
             >
               <SheetHeader className="p-6 pb-4 border-b">
-                {/* Убрали div flex justify-between, так как явный SheetClose удален.
-                    Стандартный SheetClose от SheetContent сам себя позиционирует. */}
                 <SheetTitle asChild>
-                  <Link href="/" className="text-xl font-headline font-bold text-primary">
-                    VHost Solutions
+                  <Link href="/" className="text-xl font-headline font-bold text-primary flex items-center space-x-2">
+                     <Image 
+                        src="/images/vhost-logo.png"
+                        alt="VHost Solutions Logo"
+                        width={32}
+                        height={32}
+                      />
+                      <span>VHost Solutions</span>
                   </Link>
                 </SheetTitle>
-                {/* SheetDescription для доступности */}
                 <SheetDescription id={mobileMenuDescriptionId} className="sr-only">
                   Mobile navigation menu for VHost Solutions. Contains links to Home, Blog, Order VPS, About Us, Contact, and Admin pages.
                 </SheetDescription>

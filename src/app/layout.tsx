@@ -21,6 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Add a link to your favicon below */}
+        {/* You should place favicon.ico in the 'public' folder */}
+        {/* or e.g. favicon.png in 'public/images/' and update href accordingly */}
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        {/* Example for a PNG favicon in public/images/: */}
+        {/* <link rel="icon" href="/images/favicon.png" type="image/png" /> */}
       </head>
       {/* font-body and font-headline are applied via globals.css using Tailwind's @layer base */}
       <body className="antialiased flex flex-col min-h-screen">

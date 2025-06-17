@@ -1,10 +1,10 @@
 
 'use server';
-import { collection, doc, writeBatch, Timestamp, getDocs, query, limit } from 'firebase/firestore';
-import { db as firestore } from '@/lib/firebase'; // Corrected import: db as firestore
+import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
+import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
 import type { BlogPost, Category, BlogCategoryType } from '@/types';
-import { blogCategories } from '@/types'; // Import the actual array
-import { slugify } from '@/lib/utils'; // Import slugify
+import { blogCategories } from '@/types';
+import { slugify } from '@/lib/utils';
 
 // Define mockPosts structure directly here or import if it's substantial
 const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 'published' | 'tags' | 'category'> & { date: string, category: BlogCategoryType, tags: string[] }[] = [
@@ -84,29 +84,30 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
 
 
 export async function seedDatabase() {
-  const postsCollection = collection(firestore, 'posts');
-  const categoriesCollection = collection(firestore, 'categories');
-  const now = Timestamp.now();
+  const adminDb = getAdminFirestore(); 
+  const postsCollection = adminDb.collection('posts');
+  const categoriesCollection = adminDb.collection('categories');
+  
+  const nowJSDate = new Date(); // Use JS Date for Admin SDK compatibility
 
-  // Check if posts collection is empty before seeding
-  const postsQuery = query(postsCollection, limit(1));
-  const postsSnapshot = await getDocs(postsQuery);
+  const postsQuery = postsCollection.limit(1);
+  const postsSnapshot = await postsQuery.get();
   if (!postsSnapshot.empty) {
     console.log('[seedDatabase] Posts collection is not empty. Skipping posts seeding.');
   } else {
-    const postsBatch = writeBatch(firestore);
+    const postsBatch = adminDb.batch();
     mockPostsData.forEach((postData) => {
-      const postRef = doc(postsCollection); // Auto-generate ID
+      const postRef = postsCollection.doc(); 
       const processedTags = postData.tags.map(tag => slugify(tag.trim())).filter(tag => tag.length > 0);
-      const postToSeed: BlogPost = {
-        ...postData,
-        slug: slugify(postData.title), // Ensure slug is consistent if title changes
-        category: slugify(postData.category), // Store category as slug
+      // Shape the data for Admin SDK (expects JS Dates, not client Timestamps directly)
+      const postToSeed = {
+        ...postData, // Includes slug, title, author, excerpt, content, imageUrl, dataAiHint
+        category: slugify(postData.category),
         tags: processedTags,
-        date: Timestamp.fromDate(new Date(postData.date)),
+        date: new Date(postData.date), // Convert string date to JS Date
         published: true,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: nowJSDate,
+        updatedAt: nowJSDate,
       };
       postsBatch.set(postRef, postToSeed);
     });
@@ -114,21 +115,18 @@ export async function seedDatabase() {
     console.log(`[seedDatabase] ${mockPostsData.length} posts have been seeded.`);
   }
 
-  // Check if categories collection is empty before seeding
-  const categoriesQuery = query(categoriesCollection, limit(1));
-  const categoriesSnapshot = await getDocs(categoriesQuery);
+  const categoriesQuery = categoriesCollection.limit(1);
+  const categoriesSnapshot = await categoriesQuery.get();
   if (!categoriesSnapshot.empty) {
     console.log('[seedDatabase] Categories collection is not empty. Skipping categories seeding.');
   } else {
-    const categoriesBatch = writeBatch(firestore);
-    // Create a Set to ensure unique category names before slugifying and seeding
+    const categoriesBatch = adminDb.batch();
     const uniqueCategoryNames = new Set(blogCategories);
     uniqueCategoryNames.forEach((categoryName) => {
-      const categoryRef = doc(categoriesCollection); // Auto-generate ID
-      const categoryToSeed: Category = {
-        name: categoryName, // Store original name
-        slug: slugify(categoryName), // Store slugified name
-        id: categoryRef.id,
+      const categoryRef = categoriesCollection.doc(); 
+      const categoryToSeed = {
+        name: categoryName,
+        slug: slugify(categoryName),
       };
       categoriesBatch.set(categoryRef, categoryToSeed);
     });
@@ -136,3 +134,4 @@ export async function seedDatabase() {
     console.log(`[seedDatabase] ${uniqueCategoryNames.size} categories have been seeded.`);
   }
 }
+    

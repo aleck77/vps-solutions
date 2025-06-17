@@ -3,6 +3,7 @@
 
 import { initializeApp, getApps, App, Credential } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
+import { getFirestore as getAdminFirestoreSDK } from 'firebase-admin/firestore'; // Import Admin Firestore
 import { seedDatabase } from '@/lib/seed';
 
 // --- Begin Firebase Admin SDK Initialization ---
@@ -32,10 +33,34 @@ if (!getApps().length) {
 }
 // --- End Firebase Admin SDK Initialization ---
 
+export function getAdminFirestore() {
+  if (!adminApp) {
+    // Attempt to re-initialize if adminApp is somehow not set (e.g. hot reload issue)
+    // This is a fallback, ideally it's initialized above.
+    if (getApps().length) {
+        adminApp = getApps()[0];
+    } else {
+        try {
+            adminApp = initializeApp();
+            console.log('[AdminActions] Re-initialized adminApp in getAdminFirestore.');
+        } catch (e: any) {
+            console.error('[AdminActions] CRITICAL: Failed to initialize adminApp in getAdminFirestore.', e);
+            throw new Error('Firebase Admin SDK is not initialized. Cannot get Admin Firestore.');
+        }
+    }
+  }
+  if (!adminApp) { // Still not initialized after re-attempt
+    throw new Error('Firebase Admin SDK is not initialized. Cannot get Admin Firestore.');
+  }
+  return getAdminFirestoreSDK(adminApp);
+}
+
+
 export async function seedDatabaseAction(): Promise<{ success: boolean; message: string }> {
   console.log('[AdminActions] Attempting to seed database (called from seedDatabaseAction)...');
   try {
-    await seedDatabase();
+    // seedDatabase itself needs to use admin context if it's writing data restricted by rules
+    await seedDatabase(); // We'll update seedDatabase to use admin context
     console.log('[AdminActions] Database seeding process completed from seedDatabase function call.');
     return { success: true, message: 'Database seeded successfully!' };
   } catch (error: any) {
@@ -63,3 +88,4 @@ export async function setUserAdminClaimAction(uid: string): Promise<{ success: b
     return { success: false, message: error.message || `Failed to set admin claim for ${uid}.` };
   }
 }
+    

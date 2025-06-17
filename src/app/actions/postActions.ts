@@ -4,13 +4,13 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { Timestamp, doc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore'; // Client SDK Timestamp
+import { getAdminFirestore } from '@/app/actions/adminActions'; 
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
-import { getDb } from '@/lib/firebase';
-import { marked } from 'marked'; // Import marked
+import { marked } from 'marked';
 
 interface CreatePostResult {
   success: boolean;
@@ -52,7 +52,6 @@ export async function createPostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
-  // Convert Markdown content to HTML
   let htmlContent: string;
   try {
     htmlContent = await marked.parse(content);
@@ -66,7 +65,7 @@ export async function createPostAction(
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
 
-  const now = Timestamp.now();
+  const now = Timestamp.now(); 
   const categorySlug = slugify(category); 
 
   const newPostData: NewBlogPost = {
@@ -75,17 +74,17 @@ export async function createPostAction(
     author,
     category: categorySlug,
     excerpt,
-    content: htmlContent, // Save HTML content
+    content: htmlContent,
     imageUrl,
     tags: processedTags,
     published,
-    date: now,
-    createdAt: now,
-    updatedAt: now,
+    date: now, 
+    createdAt: now, 
+    updatedAt: now, 
   };
 
   try {
-    const postId = await addBlogPost(newPostData);
+    const postId = await addBlogPost(newPostData); 
 
     if (postId) {
       revalidatePath('/blog');
@@ -94,7 +93,7 @@ export async function createPostAction(
       revalidatePath(`/blog/category/${categorySlug}`);
       processedTags.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
     } else {
-      return { success: false, message: 'Failed to create post in database.' };
+      return { success: false, message: 'Failed to create post in database (addBlogPost returned null).' };
     }
   } catch (error) {
     console.error('Error creating post:', error);
@@ -185,13 +184,10 @@ export async function updatePostAction(
         console.warn(`[updatePostAction] Post ${postId} updated, but old post data not found for comprehensive revalidation. Partial revalidation applied.`);
       }
     } else {
-      // This means updateBlogPost explicitly returned { success: false }
       console.error(`[updatePostAction] updateBlogPost returned failure for post ID: ${postId}.`);
       return { success: false, message: 'Failed to update post in database (updateBlogPost reported failure).' };
     }
   } catch (error: any) { 
-    // This catch block is for unexpected errors during the update process itself (e.g., revalidationPath errors, etc.)
-    // or if updateBlogPost threw an unexpected error (though it's designed to return {success: false}).
     console.error(`[updatePostAction] Unexpected error during update process for post ID ${postId}:`, error);
     return { success: false, message: `Unexpected error during post update: ${error.message || 'Unknown error'}` };
   }
@@ -206,16 +202,17 @@ export async function deletePostAction(
   if (!postId) {
     return { success: false, message: 'Post ID is missing. Cannot delete post.' };
   }
+  const adminDb = getAdminFirestore();
 
   try {
-    const postToDelete = await getPostByIdForEditing(postId);
+    const postToDelete = await getPostByIdForEditing(postId); 
     
     if (!postToDelete) {
       return { success: false, message: 'Post not found, cannot delete.' };
     }
     
-    const db = getDb();
-    await deleteDoc(doc(db, 'posts', postId));
+    const postRefAdmin = adminDb.collection('posts').doc(postId);
+    await postRefAdmin.delete();
 
     revalidatePath('/admin/posts');
     revalidatePath('/blog');
@@ -232,7 +229,7 @@ export async function deletePostAction(
     return { success: true, message: `Post "${postToDelete.title}" deleted successfully.` };
 
   } catch (error: any) {
-    console.error(`Error deleting post ${postId}:`, error);
+    console.error(`Error deleting post ${postId} with Admin SDK:`, error);
     return { 
       success: false, 
       message: error.message || `Failed to delete post ${postId}.`,
@@ -248,8 +245,8 @@ export async function deleteMultiplePostsAction(
     return { success: false, message: 'No post IDs provided for deletion.' };
   }
 
-  const db = getDb();
-  const batch = writeBatch(db);
+  const adminDb = getAdminFirestore();
+  const batch = adminDb.batch();
   let deletedCount = 0;
   const errors: { postId: string; message: string }[] = [];
   
@@ -261,10 +258,10 @@ export async function deleteMultiplePostsAction(
 
   for (const postId of postIds) {
     try {
-      const postToDelete = await getPostByIdForEditing(postId);
+      const postToDelete = await getPostByIdForEditing(postId); 
       if (postToDelete) {
-        const postRef = doc(db, 'posts', postId);
-        batch.delete(postRef);
+        const postRefAdmin = adminDb.collection('posts').doc(postId);
+        batch.delete(postRefAdmin);
         deletedCount++;
         
         if (postToDelete.slug) pathsToRevalidate.slugs.add(postToDelete.slug);
@@ -305,7 +302,7 @@ export async function deleteMultiplePostsAction(
     return { success: true, message, deletedCount, errors: errors.length > 0 ? errors : undefined };
 
   } catch (error: any) {
-    console.error('Error committing batch delete:', error);
+    console.error('Error committing batch delete with Admin SDK:', error);
     return { 
       success: false, 
       message: error.message || 'Failed to delete one or more posts during batch commit.',
@@ -313,3 +310,4 @@ export async function deleteMultiplePostsAction(
     };
   }
 }
+    

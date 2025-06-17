@@ -1,11 +1,13 @@
 
 'use server';
 
-import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getDb } from '@/lib/firebase';
-import type { BlogPost, Category, NewBlogPost } from '@/types'; // Added NewBlogPost
-import type { PostFormValues } from '@/lib/schemas'; // Import PostFormValues
+import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc, serverTimestamp as clientServerTimestamp } from 'firebase/firestore'; // Renamed client's serverTimestamp
+import { getDb } from '@/lib/firebase'; // Client SDK Firestore instance for reads
+import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore instance for writes
+import type { BlogPost, Category, NewBlogPost } from '@/types';
+// import type { PostFormValues } from '@/lib/schemas'; // Not used directly in this file
 import { slugify } from '@/lib/utils';
+import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
 
 // Helper to convert Firestore Timestamps to JS Date objects or ISO strings in the post objects
 const processPostDocument = (documentSnapshot: any): BlogPost => {
@@ -13,16 +15,16 @@ const processPostDocument = (documentSnapshot: any): BlogPost => {
   return {
     ...data,
     id: documentSnapshot.id,
-    date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date),
-    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt),
-    tags: data.tags || [], // Ensure tags is always an array
+    date: data.date instanceof Timestamp ? data.date.toDate() : (data.date?._seconds ? new Timestamp(data.date._seconds, data.date._nanoseconds).toDate() : new Date(data.date)),
+    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : (data.createdAt?._seconds ? new Timestamp(data.createdAt._seconds, data.createdAt._nanoseconds).toDate() : new Date(data.createdAt)),
+    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : (data.updatedAt?._seconds ? new Timestamp(data.updatedAt._seconds, data.updatedAt._nanoseconds).toDate() : new Date(data.updatedAt)),
+    tags: data.tags || [],
   } as BlogPost;
 };
 
 
 export async function getAllPublishedPosts(count?: number): Promise<BlogPost[]> {
-  const db = getDb();
+  const db = getDb(); // Use client SDK for public reads
   try {
     const postsCollection = collection(db, 'posts');
     let q = query(postsCollection, where('published', '==', true), orderBy('date', 'desc'));
@@ -38,7 +40,7 @@ export async function getAllPublishedPosts(count?: number): Promise<BlogPost[]> 
 }
 
 export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
-  const db = getDb();
+  const db = getDb(); // Use client SDK, admin page might have specific auth checks on client
   try {
     const postsCollection = collection(db, 'posts');
     const q = query(postsCollection, orderBy('date', 'desc'));
@@ -51,16 +53,14 @@ export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  const db = getDb();
+  const db = getDb(); // Use client SDK for public reads
   try {
     const postsCollection = collection(db, 'posts');
-    // First try to get published post
     const qPublished = query(postsCollection, where('slug', '==', slug), where('published', '==', true), limit(1));
     const querySnapshotPublished = await getDocs(qPublished);
     if (!querySnapshotPublished.empty) {
       return processPostDocument(querySnapshotPublished.docs[0]);
     }
-    // If not found, try to get any post by slug (for admin preview or direct access to unpublished)
     const qAny = query(postsCollection, where('slug', '==', slug), limit(1));
     const querySnapshotAny = await getDocs(qAny);
     if (querySnapshotAny.empty) {
@@ -91,7 +91,7 @@ export async function getPostByIdForEditing(postId: string): Promise<BlogPost | 
 
 
 export async function getPostsByCategory(categorySlug: string): Promise<BlogPost[]> {
-  const db = getDb();
+  const db = getDb(); 
   try {
     const postsCollection = collection(db, 'posts');
     const q = query(
@@ -151,14 +151,12 @@ export async function getAllCategories(): Promise<Category[]> {
   const db = getDb();
   try {
     const categoriesCollection = collection(db, 'categories');
-    // Categories are few, so a simple query and sort by name is fine.
-    // If they grow, consider storing slug in category doc and querying by that if needed.
     const q = query(categoriesCollection, orderBy('name', 'asc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,
       name: docSnap.data().name,
-      slug: docSnap.data().slug || slugify(docSnap.data().name), // Ensure slug exists
+      slug: docSnap.data().slug || slugify(docSnap.data().name),
     } as Category));
   } catch (error) {
     console.error("Error fetching all categories:", error);
@@ -224,65 +222,66 @@ export async function getRecommendedPosts(currentPostId: string | null, count: n
 }
 
 export const processPostDocWithCategory = async (docSnapshot: any): Promise<BlogPost> => {
-  const db = getDb();
   const postData = docSnapshot.data();
-
   return {
     id: docSnapshot.id,
     ...postData,
-    category: postData.category, // This is already a slug
-    date: postData.date instanceof Timestamp ? postData.date.toDate() : new Date(postData.date),
-    createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : new Date(postData.createdAt),
-    updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : new Date(postData.updatedAt),
-    tags: postData.tags || [], // Ensure tags is always an array
+    category: postData.category,
+    date: postData.date instanceof Timestamp ? postData.date.toDate() : (data.date?._seconds ? new Timestamp(data.date._seconds, data.date._nanoseconds).toDate() : new Date(data.date)),
+    createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : (data.createdAt?._seconds ? new Timestamp(data.createdAt._seconds, data.createdAt._nanoseconds).toDate() : new Date(data.createdAt)),
+    updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : (data.updatedAt?._seconds ? new Timestamp(data.updatedAt._seconds, data.updatedAt._nanoseconds).toDate() : new Date(data.updatedAt)),
+    tags: postData.tags || [],
   } as BlogPost;
 };
 
-// Function to add a new blog post
 export async function addBlogPost(postData: NewBlogPost): Promise<string | null> {
-  const db = getDb();
+  const adminDb = getAdminFirestore();
   try {
-    const postsCollection = collection(db, 'posts');
-    const docRef = await addDoc(postsCollection, {
-        ...postData,
-        tags: postData.tags || [] // Ensure tags field is always present, even if empty
+    const postsCollection = adminDb.collection('posts');
+    const docRef = await postsCollection.add({
+      ...postData,
+      // Convert client Timestamps to JS Dates for Admin SDK, or ensure Admin SDK handles client Timestamps.
+      // Admin SDK generally expects JS Dates or its own Timestamp/FieldValue.
+      date: postData.date instanceof Timestamp ? postData.date.toDate() : postData.date,
+      createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : postData.createdAt,
+      updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : postData.updatedAt,
+      tags: postData.tags || []
     });
     return docRef.id;
   } catch (error) {
-    console.error("Error adding new blog post:", error);
+    console.error("Error adding new blog post with Admin SDK:", error);
     return null;
   }
 }
 
-// Function to update an existing blog post
 export async function updateBlogPost(
   postId: string,
   postData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>>
 ): Promise<{ success: boolean; oldPost?: BlogPost | null }> {
-  const db = getDb();
-  const postRef = doc(db, 'posts', postId);
+  const adminDb = getAdminFirestore();
+  const clientDb = getDb(); 
+
+  const postRefAdmin = adminDb.collection('posts').doc(postId);
+  const postRefClient = doc(clientDb, 'posts', postId);
+  
   let oldPostForRevalidation: BlogPost | null = null;
 
   try {
-    // Fetch old data *before* update for revalidation paths.
-    const oldDocSnap = await getDoc(postRef);
+    const oldDocSnap = await getDoc(postRefClient);
     if (oldDocSnap.exists()) {
       oldPostForRevalidation = processPostDocument(oldDocSnap);
     }
-    // If it doesn't exist, oldPostForRevalidation remains null.
-    // updateDoc will fail if the document doesn't exist, and this will be caught.
 
-    await updateDoc(postRef, {
+    await postRefAdmin.update({
       ...postData,
-      tags: postData.tags || [], // Ensure tags field is always present
-      updatedAt: serverTimestamp(),
+      tags: postData.tags || [],
+      updatedAt: AdminFieldValue.serverTimestamp(), // Use Admin SDK's serverTimestamp
     });
 
-    // If updateDoc succeeded, return success true and the old post data if found
     return { success: true, oldPost: oldPostForRevalidation };
   } catch (error: any) {
-    console.error(`Error updating blog post ${postId}:`, error);
-    // If updateDoc or getDoc failed, return success false
+    console.error(`Error updating blog post ${postId} with Admin SDK:`, error);
     return { success: false, oldPost: null };
   }
 }
+    

@@ -160,32 +160,44 @@ export async function updatePostAction(
 
 
   try {
-    const oldPost = await updateBlogPost(postId, postUpdateData, true); 
+    const updateResult = await updateBlogPost(postId, postUpdateData);
 
-    if (oldPost) {
+    if (updateResult.success) {
+      const oldPost = updateResult.oldPost; // This can be BlogPost or null
+
+      // Revalidate paths
       revalidatePath('/blog');
-      revalidatePath(`/blog/${slug}`); 
-      if (oldPost.slug !== slug) {
-        revalidatePath(`/blog/${oldPost.slug}`); 
-      }
+      revalidatePath(`/blog/${slug}`); // Current slug
       revalidatePath(`/admin/posts`);
       revalidatePath(`/admin/posts/edit/${postId}`);
-      revalidatePath(`/blog/category/${categorySlug}`);
-      if (oldPost.category !== categorySlug) {
-        revalidatePath(`/blog/category/${oldPost.category}`);
+      revalidatePath(`/blog/category/${categorySlug}`); // Current category
+
+      if (oldPost) {
+        // If old post data is available, revalidate its specific old paths if they differ
+        if (oldPost.slug !== slug) {
+          revalidatePath(`/blog/${oldPost.slug}`);
+        }
+        if (oldPost.category !== categorySlug) {
+          revalidatePath(`/blog/category/${oldPost.category}`);
+        }
+        const oldTags = oldPost.tags || [];
+        const newTags = processedTags;
+        const allTagsToRevalidate = new Set([...oldTags, ...newTags]);
+        allTagsToRevalidate.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
+      } else {
+        // If old post data is not available, but update was successful,
+        // revalidate new tags and log a warning.
+        processedTags.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
+        console.warn(`[updatePostAction] Post ${postId} updated, but old data not found for comprehensive revalidation. Partial revalidation applied.`);
       }
-
-      const oldTags = oldPost.tags || [];
-      const newTags = processedTags;
-      const allTagsToRevalidate = new Set([...oldTags, ...newTags]);
-      allTagsToRevalidate.forEach(tagSlug => revalidatePath(`/blog/tag/${tagSlug}`));
-
+      // No need to return success object here, redirect will happen
     } else {
-      return { success: false, message: 'Failed to update post in database or retrieve old post data.' };
+      // updateResult.success is false, meaning updateBlogPost reported a failure
+      return { success: false, message: 'Failed to update post in database. The update operation itself failed.' };
     }
-  } catch (error) {
-    console.error('Error updating post:', error);
-    let message = 'An unexpected error occurred while updating the post.';
+  } catch (error) { // Catch errors from updatePostAction itself, e.g. during validation or pre-processing
+    console.error('Error in updatePostAction:', error);
+    let message = 'An unexpected error occurred while preparing to update the post.';
     if (error instanceof Error) {
       message = error.message;
     }

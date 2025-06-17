@@ -257,20 +257,20 @@ export async function addBlogPost(postData: NewBlogPost): Promise<string | null>
 // Function to update an existing blog post
 export async function updateBlogPost(
   postId: string,
-  postData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>>,
-  returnOldPost: boolean = false
-): Promise<BlogPost | boolean> {
+  postData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>>
+): Promise<{ success: boolean; oldPost?: BlogPost | null }> {
   const db = getDb();
   const postRef = doc(db, 'posts', postId);
-  let oldPostData: BlogPost | null = null;
+  let oldPostForRevalidation: BlogPost | null = null;
 
   try {
-    if (returnOldPost) {
-      const oldDocSnap = await getDoc(postRef);
-      if (oldDocSnap.exists()) {
-        oldPostData = processPostDocument(oldDocSnap);
-      }
+    // Fetch old data *before* update for revalidation paths.
+    const oldDocSnap = await getDoc(postRef);
+    if (oldDocSnap.exists()) {
+      oldPostForRevalidation = processPostDocument(oldDocSnap);
     }
+    // If it doesn't exist, oldPostForRevalidation remains null.
+    // updateDoc will fail if the document doesn't exist, and this will be caught.
 
     await updateDoc(postRef, {
       ...postData,
@@ -278,10 +278,11 @@ export async function updateBlogPost(
       updatedAt: serverTimestamp(),
     });
 
-    return returnOldPost && oldPostData ? oldPostData : true;
-  } catch (error) {
+    // If updateDoc succeeded, return success true and the old post data if found
+    return { success: true, oldPost: oldPostForRevalidation };
+  } catch (error: any) {
     console.error(`Error updating blog post ${postId}:`, error);
-    return false;
+    // If updateDoc or getDoc failed, return success false
+    return { success: false, oldPost: null };
   }
 }
-

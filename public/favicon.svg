@@ -1,14 +1,18 @@
-<svg width="32" height="32" viewBox="0 0 70 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <title>VHost Solutions Favicon VH</title>
-  <!-- V part - Left stroke -->
-  <path d="M10 10 L25 50" stroke="#1A202C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- V part - Right stroke -->
-  <path d="M25 50 L40 10" stroke="#1A202C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- H part - Left leg (gap from V's right stroke) -->
-  <path d="M44 10 L29 50" stroke="#3182CE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- H part - Right leg (wider H) -->
-  <path d="M58 10 L43 50" stroke="#3182CE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- H part - Crossbar (polygon with gaps, ends parallel to legs) -->
-  <polygon points="39.3,27.5 47.5,27.5 45.7,32.5 37.5,32.5" fill="#3182CE" />
+<svg viewBox="0 0 85 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .stroke-primary { stroke: #1A202C; }
+      .stroke-accent { stroke: #3182CE; }
+    </style>
+  </defs>
+  <g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    {/* V - left stroke */}
+    <path d="M10 10 L30 50" class="stroke-primary"/>
+    {/* V - right stroke / H - left stroke */}
+    <path d="M30 50 L50 10" class="stroke-accent"/>
+    {/* H - right stroke */}
+    <path d="M75 10 L55 50" class="stroke-accent"/>
+    {/* H - crossbar */}
+    <path d="M42.5 25 L67.5 25" class="stroke-accent"/>
+  </g>
 </svg>

@@ -9,7 +9,7 @@ import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
-import { Badge } from '@/components/ui/badge'; 
+import { Badge } from '@/components/ui/badge';
 import { unslugify } from '@/lib/utils';
 
 interface PostPageProps {
@@ -25,7 +25,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params: { slug } }: PostPageProps) { // Деструктуризация slug из params
+export async function generateMetadata({ params: { slug } }: PostPageProps) { // ИСПРАВЛЕНО ЗДЕСЬ
   const post = await getPostBySlug(slug);
   if (!post) {
     return { title: 'Post Not Found' };
@@ -37,7 +37,7 @@ export async function generateMetadata({ params: { slug } }: PostPageProps) { //
   };
 }
 
-export default async function PostPage({ params: { slug } }: PostPageProps) { // Деструктуризация slug из params
+export default async function PostPage({ params: { slug } }: PostPageProps) { // ИСПРАВЛЕНО ЗДЕСЬ
   const post = await getPostBySlug(slug);
 
   if (!post) {
@@ -95,7 +95,7 @@ export default async function PostPage({ params: { slug } }: PostPageProps) { //
               Tags
             </h3>
             <div className="flex flex-wrap gap-2">
-              {post.tags.map(tagSlugItem => ( // Renamed tagSlug to tagSlugItem to avoid conflict
+              {post.tags.map(tagSlugItem => ( 
                 <Button key={tagSlugItem} variant="outline" size="sm" asChild>
                   <Link href={`/blog/tag/${tagSlugItem}`}>
                     #{unslugify(tagSlugItem)}

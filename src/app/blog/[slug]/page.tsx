@@ -1,30 +1,36 @@
-// src/app/blog/[slug]/page.tsx
+
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { CalendarDays, UserCircle, Tag as TagIcon, ArrowLeft, TagsIcon as TagsIconLucide } from 'lucide-react'; // Renamed Tag to TagIcon to avoid conflict if any
+import { CalendarDays, UserCircle, Tag as TagIcon, ArrowLeft, TagsIcon as TagsIconLucide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
-import { getPostBySlug } from '@/lib/firestoreBlog'; // Removed getAllPostSlugs as it's not used here
+import { getPostBySlug } from '@/lib/firestoreBlog';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import { Badge } from '@/components/ui/badge';
 import { unslugify } from '@/lib/utils';
 
-// Removed PostPageProps interface, will type params inline
+// Определяем тип для props страницы, включая params
+interface PostPageProps {
+  params: {
+    slug: string;
+  };
+  // searchParams?: { [key: string]: string | string[] | undefined }; // Если понадобятся searchParams
+}
 
-// generateStaticParams is temporarily commented out to ensure fully dynamic rendering for testing params
+// generateStaticParams временно закомментирован для полной динамики
 // export async function generateStaticParams() {
 //   // const slugs = await getAllPostSlugs();
 //   // return slugs.map((slug) => ({ slug }));
-//   return [{ slug: 'test-post-from-static-params' }]; // Placeholder
+//   return []; // Placeholder
 // }
 
 export async function generateMetadata(
-  { params }: { params: { slug: string } } // Inline typing for params
+  { params }: PostPageProps // Используем PostPageProps
 ): Promise<Metadata> {
-  const slug = params.slug; // Access slug directly
+  const slug = params.slug; // Прямой доступ к params.slug
   console.log('[generateMetadata] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
@@ -44,7 +50,7 @@ export async function generateMetadata(
       description: post.excerpt,
       images: post.imageUrl ? [{ url: post.imageUrl }] : [],
       type: 'article',
-      publishedTime: post.date instanceof Date ? post.date.toISOString() : new Date(post.date as any).toISOString(), // Handle Timestamp/Date
+      publishedTime: post.date instanceof Date ? post.date.toISOString() : new Date(post.date as any).toISOString(),
       authors: [post.author],
       tags: post.tags,
     },
@@ -58,28 +64,24 @@ export async function generateMetadata(
 }
 
 export default async function PostPage(
-  { params }: { params: { slug: string } } // Inline typing for params
+  { params }: PostPageProps // Используем PostPageProps
 ): Promise<JSX.Element> {
-  const slug = params.slug; // Access slug directly
+  const slug = params.slug; // Прямой доступ к params.slug
   console.log('[PostPage] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
     console.error('[PostPage] Slug is missing or invalid in params:', params);
     notFound();
-    // Next.js's notFound() throws an error, so this line might not be reached,
-    // but as a fallback for type checking:
-    return <div>Error: Slug is missing or invalid.</div>;
+    return <div>Error: Slug is missing or invalid.</div>; // Для TypeScript, notFound() выбрасывает ошибку
   }
 
   const post = await getPostBySlug(slug);
 
   if (!post) {
     notFound();
-    // Fallback for type checking:
-    return <div>Error: Post not found.</div>;
+    return <div>Error: Post not found.</div>; // Для TypeScript
   }
 
-  // Convert Firestore Timestamp to Date if necessary for client-side display
   const displayDate = post.date instanceof Date ? post.date : new Date((post.date as any).seconds * 1000 + (post.date as any).nanoseconds / 1000000);
 
   return (
@@ -157,5 +159,5 @@ export default async function PostPage(
   );
 }
 
-// Re-enable revalidate if needed for production
 export const revalidate = 60;
+    

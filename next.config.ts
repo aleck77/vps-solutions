@@ -13,9 +13,9 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lowcode.artelegis.com.ua',
+        hostname: 'lowcode.artelegis.com.ua', // Existing pattern
         port: '',
-        pathname: '/wp-content/uploads/**',
+        pathname: '/wp-content/uploads/**', // Existing pattern
       },
     ],
   },
@@ -23,16 +23,16 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: [
         "http://localhost:3000", // General local dev
         "http://localhost:9002", // Port used in IDX / Firebase Studio for main preview
-        "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations (should cover the specific one)
-        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicitly added
-        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicitly added for other potential ports
+        "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
+        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicit URL from logs
+        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Added for port 6000
         "https://*.googleusercontent.com", // Also may be used for previews
     ],
   },
-  // УБЕДИТЬСЯ, ЧТО НЕТ НИКАКОЙ WEBPACK-СПЕЦИФИЧНОЙ КОНФИГУРАЦИИ
-  // Если Webpack-конфиг был здесь для решения проблемы с @opentelemetry/exporter-jaeger,
-  // он был удален, так как конфликтовал с Turbopack.
-  // Проблема с @opentelemetry/exporter-jaeger будет решаться при необходимости во время 'npm run build'.
+  // Webpack-специфичная конфигурация была удалена, так как она конфликтовала с Turbopack
+  // и теперь мы не видим проблем с @opentelemetry/exporter-jaeger в dev режиме.
+  // Если проблема вернется при 'npm run build', нужно будет рассмотреть другие решения или условное добавление Webpack-конфига.
 };
 
 export default nextConfig;
+    

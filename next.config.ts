@@ -1,16 +1,8 @@
 
 import type {NextConfig} from 'next';
-import type { Configuration as WebpackConfiguration } from 'webpack'; // Import webpack types
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  output: 'standalone', // Ensures all necessary files are copied for a minimal Docker image
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
@@ -27,41 +19,44 @@ const nextConfig: NextConfig = {
       },
     ],
   },
- experimental: {
-    // Разрешаем источники для HMR в среде IDX (Firebase Studio / Cloud Workstations)
-    // Добавляем как wildcard, так и специфичные порты/домены, которые могут использоваться
-    allowedDevOrigins: [ // Исправлено с allowedDevelopmentOrigins
-        "http://localhost:3000", // Стандартный Next.js порт
-        "http://localhost:9002", // Порт, который мы используем в IDX
-        "https://*.cloudworkstations.dev", // Wildcard для Cloud Workstations
-        "https://*.googleusercontent.com", // Также может использоваться для превью
-        // Можно добавить и более конкретные, если они известны и стабильны:
-        // "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
-        // "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"
+  experimental: {
+    allowedDevOrigins: [
+        "http://localhost:3000", // Standard Next.js port
+        "http://localhost:9002", // Port used in IDX
+        "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
+        "https://*.googleusercontent.com", // Also may be used for previews
+        // Explicitly add the problematic origins from logs
+        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
+        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"
     ],
   },
-  webpack: (
-    config: WebpackConfiguration,
-    { isServer, webpack }
-  ) => {
-    // Add alias for @opentelemetry/exporter-jaeger to prevent build error
-    // This package is an optional dependency of @opentelemetry/sdk-node
-    if (!config.resolve) {
-      config.resolve = {};
+  // Webpack alias for @opentelemetry/exporter-jaeger should only be active for `next build`
+  // For `next dev --turbopack`, it should not be present.
+  // We can achieve this by checking the command.
+  webpack: (config, { dev, isServer, nextRuntime, webpack }) => {
+    // Check if the command is `next build` (dev is false, and it's not a dev server context)
+    // Or more simply, apply it if not `dev` and `nextRuntime` is not 'edge'.
+    // However, the simplest way to ensure it only applies for `next build` and not `next dev` with Turbopack
+    // is to rely on the fact that Turbopack might ignore this section or that we can conditionally apply it.
+    // For now, let's assume if `webpack` function is called, it's Webpack running (likely `next build`).
+    // If Turbopack also calls this, we might need a more robust check.
+    
+    // The issue with @opentelemetry/exporter-jaeger is primarily a build-time issue (for production builds).
+    // If it also causes issues with `next dev` without Turbopack, this alias is fine.
+    // If `next dev --turbopack` fails with this, then we need a condition.
+    // Given Turbopack was complaining about "Webpack is configured...", we might need this to be conditional.
+    // Let's only apply it if `!dev` (i.e., during `next build`).
+    if (!dev) {
+        if (!config.resolve) {
+          config.resolve = {};
+        }
+        if (!config.resolve.alias) {
+          config.resolve.alias = {};
+        }
+        Object.assign(config.resolve.alias, {
+            '@opentelemetry/exporter-jaeger': false,
+        });
     }
-    if (!config.resolve.alias) {
-      config.resolve.alias = {};
-    }
-    // Tell webpack to resolve '@opentelemetry/exporter-jaeger' to 'false' (effectively an empty module)
-    // This prevents the "Module not found" error for this optional dependency.
-    Object.assign(config.resolve.alias, {
-        '@opentelemetry/exporter-jaeger': false,
-    });
-
-    // If other similar "Module not found" errors appear for other @opentelemetry packages,
-    // they can be added here in the same way. For example:
-    // '@opentelemetry/exporter-zipkin': false,
-
     return config;
   },
 };

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { getPostsByCategory } from '@/lib/firestoreBlog';
 import { notFound } from 'next/navigation';
-import { slugify, unslugify } from '@/lib/utils'; // Imported unslugify
+import { slugify, unslugify } from '@/lib/utils';
 
 interface CategoryPageProps {
   params: {
@@ -22,10 +22,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: CategoryPageProps) {
-  // Destructure categoryName directly from params
-  const { categoryName: categoryNameParam } = params; 
-
+export async function generateMetadata({ params: { categoryName: categoryNameParam } }: CategoryPageProps) { // Corrected: Destructure categoryName from params
   if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
     return {
       title: 'Invalid Category | VHost Solutions Blog',
@@ -34,7 +31,6 @@ export async function generateMetadata({ params }: CategoryPageProps) {
   }
   
   const originalCategory = blogCategories.find(cat => slugify(cat) === categoryNameParam);
-  // Use unslugify to get a more readable title if the original name had spaces/caps
   const categoryTitle = originalCategory ? unslugify(originalCategory) : unslugify(categoryNameParam); 
 
   return {
@@ -43,12 +39,9 @@ export async function generateMetadata({ params }: CategoryPageProps) {
   };
 }
 
-export default async function CategoryPage({ params }: CategoryPageProps) {
-  // Destructure categoryName directly from params
-  const { categoryName: categoryNameParam } = params;
-
+export default async function CategoryPage({ params: { categoryName: categoryNameParam } }: CategoryPageProps) { // Corrected: Destructure categoryName from params
   if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
-    console.error('[CategoryPage] Invalid or missing categoryName in params:', params);
+    console.error('[CategoryPage] Invalid or missing categoryName in params:', { categoryName: categoryNameParam }); // Log the actual param received
     notFound();
     return null; 
   }
@@ -87,7 +80,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               </Button>
             </div>
           )}
-          {/* TODO: Add Pagination component here if many posts */}
         </div>
         <aside className="md:col-span-3 space-y-6">
           <RecommendedPosts currentPostId={null} /> 
@@ -98,5 +90,4 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 }
 
 export const revalidate = 60;
-
     

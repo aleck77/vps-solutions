@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState, useMemo, useActionState, startTransition, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // Added for image preview
+import Image from 'next/image';
 import { getAllPostsForAdmin } from '@/lib/firestoreBlog';
 import type { BlogPost } from '@/types';
 import { blogCategories } from '@/types';
@@ -11,12 +12,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox'; // Added for row selection
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { PlusCircle, FilePenLine, Eye, EyeOff, Trash2, Search, Filter, Loader2, Minus } from 'lucide-react'; // Added Minus for indeterminate checkbox
+import { PlusCircle, FilePenLine, Eye, EyeOff, Trash2, Search, Filter, Loader2, Minus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { deletePostAction, deleteMultiplePostsAction } from '@/app/actions/postActions'; // Added deleteMultiplePostsAction
+import { deletePostAction, deleteMultiplePostsAction } from '@/app/actions/postActions';
 import { unslugify } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 
@@ -41,7 +42,7 @@ export default function PostsAdminPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   
   const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false); // Changed state name for clarity
   const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
 
   const { toast } = useToast();
@@ -69,9 +70,8 @@ export default function PostsAdminPage() {
 
   const [multipleDeleteState, submitMultipleDeleteAction, isMultipleDeletePending] = useActionState<MultipleDeleteState, string[]>(
     async (previousState, postIdsToDelete) => {
-      setIsBulkDeleting(true); // Keep this state for the dialog button
+      // isBulkDeleting (now isMultipleDeletePending) is handled by useActionState
       const result = await deleteMultiplePostsAction(postIdsToDelete);
-      setIsBulkDeleting(false);
       if (result.success) {
         toast({ title: 'Posts Deleted', description: result.message });
         setPosts(prevPosts => prevPosts.filter(p => p.id && !postIdsToDelete.includes(p.id)));
@@ -161,7 +161,7 @@ export default function PostsAdminPage() {
 
   const handleBulkDeleteClick = () => {
     if (selectedPostIds.size > 0) {
-      setIsBulkDeleting(true); // This will open the dialog
+      setShowBulkDeleteDialog(true); 
     }
   };
 
@@ -171,7 +171,7 @@ export default function PostsAdminPage() {
         submitMultipleDeleteAction(Array.from(selectedPostIds));
       });
     }
-    setIsBulkDeleting(false); // Close dialog
+    setShowBulkDeleteDialog(false); 
   };
   
   const getCategoryDisplayName = (slug: string): string => {
@@ -361,8 +361,8 @@ export default function PostsAdminPage() {
         </AlertDialog>
       )}
 
-      {isBulkDeleting && selectedPostIds.size > 0 && (
-         <AlertDialog open={isBulkDeleting} onOpenChange={() => setIsBulkDeleting(false)}>
+      {showBulkDeleteDialog && selectedPostIds.size > 0 && (
+         <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Bulk Delete</AlertDialogTitle>
@@ -371,7 +371,7 @@ export default function PostsAdminPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isMultipleDeletePending} onClick={() => setIsBulkDeleting(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={isMultipleDeletePending} onClick={() => setShowBulkDeleteDialog(false)}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmBulkDelete} disabled={isMultipleDeletePending} className="bg-destructive hover:bg-destructive/90">
                 {isMultipleDeletePending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : `Yes, delete ${selectedPostIds.size} posts`}
               </AlertDialogAction>

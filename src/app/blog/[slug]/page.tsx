@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -5,7 +6,7 @@ import { getPostBySlug } from '@/lib/firestoreBlog';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { CalendarDays, UserCircle, Tag } from 'lucide-react';
 import Link from 'next/link';
-import EditPostLinkClient from '@/components/blog/EditPostLinkClient'; // Import the client component
+import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 
 // generateStaticParams пока закомментирован для полной динамики
 // export async function generateStaticParams() {
@@ -14,20 +15,12 @@ import EditPostLinkClient from '@/components/blog/EditPostLinkClient'; // Import
 //   return [];
 // }
 
-interface PostPageProps {
-  params: {
-    slug: string;
-  };
-}
-
-export async function generateMetadata(
-  { params }: PostPageProps
-): Promise<Metadata> {
-  const { slug } = params; // Деструктуризация slug из params
-  console.log('[generateMetadata] Received slug from params:', slug);
+export async function generateMetadata(props: any): Promise<Metadata> {
+  const slug = props.params.slug as string;
+  console.log('[generateMetadata] Received slug from props.params:', slug);
 
   if (!slug || typeof slug !== 'string') {
-    console.warn('[generateMetadata] Slug is missing in params:', { params });
+    console.warn('[generateMetadata] Slug is missing in params:', props.params);
     return { title: 'Post Not Found - Invalid Slug' };
   }
 
@@ -55,14 +48,12 @@ export async function generateMetadata(
   };
 }
 
-export default async function PostPage(
-  { params }: PostPageProps
-): Promise<JSX.Element> {
-  const { slug } = params; // Деструктуризация slug из params
-  console.log('[PostPage] Received slug from params:', slug);
+export default async function PostPage(props: any): Promise<JSX.Element> {
+  const slug = props.params.slug as string;
+  console.log('[PostPage] Received slug from props.params:', slug);
 
   if (!slug || typeof slug !== 'string') {
-    console.error('[PostPage] Slug is missing or invalid in params:', { params });
+    console.error('[PostPage] Slug is missing or invalid in params:', props.params);
     notFound();
   }
 

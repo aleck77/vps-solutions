@@ -9,20 +9,18 @@ import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { getPostsByCategory } from '@/lib/firestoreBlog';
 import { notFound } from 'next/navigation';
 import { slugify, unslugify } from '@/lib/utils';
+import type { Metadata } from 'next';
 
-interface CategoryPageProps {
-  params: {
-    categoryName: string; 
-  };
-}
+// export async function generateStaticParams() {
+//   return blogCategories.map((category) => ({
+//     categoryName: slugify(category),
+//   }));
+// }
 
-export async function generateStaticParams() {
-  return blogCategories.map((category) => ({
-    categoryName: slugify(category), 
-  }));
-}
+export async function generateMetadata(props: any): Promise<Metadata> {
+  const categoryName = props.params.categoryName as string;
+  console.log('[CategoryPage generateMetadata] Received categoryName from props.params:', categoryName);
 
-export async function generateMetadata({ params: { categoryName } }: CategoryPageProps) { // Деструктуризация categoryName из params
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {
     return {
       title: 'Invalid Category | VHost Solutions Blog',
@@ -39,14 +37,16 @@ export async function generateMetadata({ params: { categoryName } }: CategoryPag
   };
 }
 
-export default async function CategoryPage({ params: { categoryName } }: CategoryPageProps) { // Деструктуризация categoryName из params
+export default async function CategoryPage(props: any) {
+  const categoryName = props.params.categoryName as string;
+  console.log('[CategoryPage] Received categoryName from props.params:', categoryName);
+
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {
     console.error('[CategoryPage] Invalid or missing categoryName in params:', { categoryName }); 
     notFound();
-    return null; 
   }
 
-  const posts = await getPostsByCategory(categoryName); // Use categoryName directly
+  const posts = await getPostsByCategory(categoryName);
 
   const originalCategory = blogCategories.find(cat => slugify(cat) === categoryName);
   const categoryTitleText = originalCategory ? unslugify(originalCategory) : unslugify(categoryName); 
@@ -89,4 +89,3 @@ export default async function CategoryPage({ params: { categoryName } }: Categor
 }
 
 export const revalidate = 60;
-    

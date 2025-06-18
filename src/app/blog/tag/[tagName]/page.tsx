@@ -1,6 +1,6 @@
 
 import PostCard from '@/components/blog/PostCard';
-import CategoryFilter from '@/components/blog/CategoryFilter'; // Can be reused or a new TagFilter created
+// import CategoryFilter from '@/components/blog/CategoryFilter'; // Can be reused or a new TagFilter created
 import type { BlogPost } from '@/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -8,22 +8,18 @@ import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { getPostsByTag, getAllUniqueTagSlugs } from '@/lib/firestoreBlog';
 import { notFound } from 'next/navigation';
 import { unslugify } from '@/lib/utils'; // For displaying tag name nicely
+import type { Metadata } from 'next';
 
-interface TagPageProps {
-  params: {
-    tagName: string; // This will be a tag slug
-  };
-}
+// export async function generateStaticParams() {
+//   const tagSlugs = await getAllUniqueTagSlugs();
+//   return tagSlugs.map((slug) => ({
+//     tagName: slug,
+//   }));
+// }
 
-export async function generateStaticParams() {
-  const tagSlugs = await getAllUniqueTagSlugs();
-  return tagSlugs.map((slug) => ({
-    tagName: slug,
-  }));
-}
-
-export async function generateMetadata({ params }: TagPageProps) {
-  const tagSlug = params.tagName;
+export async function generateMetadata(props: any): Promise<Metadata> {
+  const tagSlug = props.params.tagName as string;
+  console.log('[TagPage generateMetadata] Received tagName from props.params:', tagSlug);
   const displayName = unslugify(tagSlug);
   return {
     title: `Posts tagged with "${displayName}" | VHost Solutions Blog`,
@@ -31,12 +27,12 @@ export async function generateMetadata({ params }: TagPageProps) {
   };
 }
 
-export default async function TagPage({ params }: TagPageProps) {
-  const tagSlug = params.tagName;
+export default async function TagPage(props: any) {
+  const tagSlug = props.params.tagName as string;
+  console.log('[TagPage] Received tagName from props.params:', tagSlug);
 
   if (!tagSlug) {
     notFound();
-    return null;
   }
 
   const posts = await getPostsByTag(tagSlug);
@@ -55,8 +51,6 @@ export default async function TagPage({ params }: TagPageProps) {
 
       <div className="grid md:grid-cols-12 gap-8">
         <div className="md:col-span-9">
-          {/* We might want a TagFilter component later, or just list posts */}
-          {/* <CategoryFilter /> Can be adapted or removed for tag pages */}
           <div className="mb-8">
             <Button variant="outline" asChild>
                 <Link href="/blog">View All Posts</Link>
@@ -76,7 +70,6 @@ export default async function TagPage({ params }: TagPageProps) {
               </Button>
             </div>
           )}
-          {/* TODO: Add Pagination component here if many posts */}
         </div>
         <aside className="md:col-span-3 space-y-6">
           <RecommendedPosts currentPostId={null} />
@@ -86,4 +79,4 @@ export default async function TagPage({ params }: TagPageProps) {
   );
 }
 
-export const revalidate = 60; // Revalidate tag pages every 60 seconds
+export const revalidate = 60;

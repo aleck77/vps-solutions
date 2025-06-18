@@ -31,11 +31,11 @@ export async function generateMetadata({ params: { categoryName } }: CategoryPag
   }
   
   const originalCategory = blogCategories.find(cat => slugify(cat) === categoryName);
-  const categoryTitle = originalCategory ? unslugify(originalCategory) : unslugify(categoryName); 
+  const categoryTitleText = originalCategory ? unslugify(originalCategory) : unslugify(categoryName); 
 
   return {
-    title: `Blog Category: ${categoryTitle} | VHost Solutions`,
-    description: `Browse posts in the ${categoryTitle} category.`,
+    title: `Blog Category: ${categoryTitleText} | VHost Solutions`,
+    description: `Browse posts in the ${categoryTitleText} category.`,
   };
 }
 
@@ -46,26 +46,25 @@ export default async function CategoryPage({ params: { categoryName } }: Categor
     return null; 
   }
 
-  const categorySlug = categoryName; 
-  const posts = await getPostsByCategory(categorySlug);
+  const posts = await getPostsByCategory(categoryName); // Use categoryName directly
 
-  const originalCategory = blogCategories.find(cat => slugify(cat) === categorySlug);
-  const categoryTitle = originalCategory ? unslugify(originalCategory) : unslugify(categorySlug); 
+  const originalCategory = blogCategories.find(cat => slugify(cat) === categoryName);
+  const categoryTitleText = originalCategory ? unslugify(originalCategory) : unslugify(categoryName); 
 
   return (
     <div className="space-y-12">
       <section className="text-center py-12 bg-primary/5 rounded-lg">
         <h1 className="text-4xl font-bold font-headline text-primary mb-4">
-          Blog Category: {categoryTitle}
+          Blog Category: {categoryTitleText}
         </h1>
         <p className="text-xl text-foreground max-w-2xl mx-auto">
-          Posts related to {categoryTitle}.
+          Posts related to {categoryTitleText}.
         </p>
       </section>
       
       <div className="grid md:grid-cols-12 gap-8">
         <div className="md:col-span-9">
-          <CategoryFilter currentCategory={categorySlug} />
+          <CategoryFilter currentCategory={categoryName} />
           {posts.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post) => (

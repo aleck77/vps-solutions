@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lowcode.artelegis.com.ua', // Existing one
+        hostname: 'lowcode.artelegis.com.ua',
         port: '',
         pathname: '/wp-content/uploads/**',
       },
@@ -21,22 +21,21 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     allowedDevOrigins: [
-        "http://localhost:3000",
+        "http://localhost:3000", // General local dev
         "http://localhost:9002", // Port used in IDX / Firebase Studio
         "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
         "https://*.googleusercontent.com", // Also may be used for previews
-        // Explicitly add the problematic origins from logs
+        // Explicitly add the problematic origins from logs, ensure they are exact
         "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
         "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"
     ],
   },
-  // УБРАНА ЛЮБАЯ WEBPACK-СПЕЦИФИЧНАЯ КОНФИГУРАЦИЯ, ЕСЛИ ОНА БЫЛА ЗДЕСЬ В "ХОРОШЕМ" КОММИТЕ
-  // Если в "хорошем" коммите была секция typescript или eslint, они также удалены,
-  // так как они не нужны для базовой работы и могли бы потенциально конфликтовать.
-  // Пример удаленной секции Webpack (если она была):
-  // webpack: (config, { isServer, webpack }) => {
-  //   // ...
-  //   return config;
+  // УБРАНА ЛЮБАЯ WEBPACK-СПЕЦИФИЧНАЯ КОНФИГУРАЦИЯ
+  // typescript: {
+  //   ignoreBuildErrors: true, // Пример того, что могло быть и что нужно убрать
+  // },
+  // eslint: {
+  //   ignoreDuringBuilds: true, // Пример того, что могло быть и что нужно убрать
   // },
 };
 

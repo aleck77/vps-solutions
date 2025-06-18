@@ -95,10 +95,10 @@ export default async function PostPage({ params: { slug } }: PostPageProps) { //
               Tags
             </h3>
             <div className="flex flex-wrap gap-2">
-              {post.tags.map(tagSlug => (
-                <Button key={tagSlug} variant="outline" size="sm" asChild>
-                  <Link href={`/blog/tag/${tagSlug}`}>
-                    #{unslugify(tagSlug)}
+              {post.tags.map(tagSlugItem => ( // Renamed tagSlug to tagSlugItem to avoid conflict
+                <Button key={tagSlugItem} variant="outline" size="sm" asChild>
+                  <Link href={`/blog/tag/${tagSlugItem}`}>
+                    #{unslugify(tagSlugItem)}
                   </Link>
                 </Button>
               ))}

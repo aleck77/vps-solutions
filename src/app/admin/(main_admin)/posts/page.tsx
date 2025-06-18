@@ -345,7 +345,7 @@ export default function PostsAdminPage() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogDescription id="alert-dialog-single-delete-description">
                 This action cannot be undone. This will permanently delete the post
                 titled <span className="font-semibold">"{postToDelete.title}"</span>.
               </AlertDialogDescription>
@@ -365,7 +365,7 @@ export default function PostsAdminPage() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Bulk Delete</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogDescription id="alert-dialog-bulk-delete-description">
                 Are you sure you want to delete {selectedPostIds.size} selected post(s)? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>

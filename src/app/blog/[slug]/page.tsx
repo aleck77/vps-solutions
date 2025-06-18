@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-// Важно: Полный код страницы временно убран для изоляции проблемы с params.
-// Мы вернем его, как только ошибка "params should be awaited" будет решена.
+import Image from 'next/image';
+import { getPostBySlug } from '@/lib/firestoreBlog';
+import RecommendedPosts from '@/components/blog/RecommendedPosts';
+import { CalendarDays, UserCircle, Tag } from 'lucide-react';
+import Link from 'next/link';
+import EditPostLinkClient from '@/components/blog/EditPostLinkClient'; // Import the client component
 
 // generateStaticParams пока закомментирован для полной динамики
 // export async function generateStaticParams() {
@@ -10,8 +14,14 @@ import { notFound } from 'next/navigation';
 //   return [];
 // }
 
+interface PostPageProps {
+  params: {
+    slug: string;
+  };
+}
+
 export async function generateMetadata(
-  { params }: { params: { slug: string } } // Явная инлайн-типизация params
+  { params }: PostPageProps
 ): Promise<Metadata> {
   const { slug } = params; // Деструктуризация slug из params
   console.log('[generateMetadata] Received slug from params:', slug);
@@ -20,15 +30,33 @@ export async function generateMetadata(
     console.warn('[generateMetadata] Slug is missing in params:', { params });
     return { title: 'Post Not Found - Invalid Slug' };
   }
-  // Минимальные метаданные для теста
+
+  const post = await getPostBySlug(slug);
+
+  if (!post) {
+    return { title: 'Post Not Found' };
+  }
+
   return {
-    title: `Test Post: ${slug}`,
-    description: `This is a test page for slug: ${slug}`,
+    title: `${post.title} | VHost Solutions Blog`,
+    description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      images: [
+        {
+          url: post.imageUrl,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
   };
 }
 
 export default async function PostPage(
-  { params }: { params: { slug: string } } // Явная инлайн-типизация params
+  { params }: PostPageProps
 ): Promise<JSX.Element> {
   const { slug } = params; // Деструктуризация slug из params
   console.log('[PostPage] Received slug from params:', slug);
@@ -36,20 +64,78 @@ export default async function PostPage(
   if (!slug || typeof slug !== 'string') {
     console.error('[PostPage] Slug is missing or invalid in params:', { params });
     notFound();
-    // Компонент notFound() должен сам прервать рендеринг.
-    // Явная инструкция return здесь не должна быть строго необходима,
-    // но для дополнительной ясности или если notFound() не работает как ожидается,
-    // можно добавить: return <div>Error: Slug is missing or invalid.</div>;
   }
 
-  // Радикально упрощенный вывод для теста
+  const post = await getPostBySlug(slug);
+
+  if (!post) {
+    notFound();
+  }
+
   return (
-    <div>
-      <h1>Test Post Page</h1>
-      <p>The slug for this page is: <strong>{slug}</strong>.</p>
-      <p>This is a simplified page to test params handling.</p>
+    <div className="max-w-3xl mx-auto">
+      <article className="space-y-8">
+        <header className="space-y-4">
+          <h1 className="text-4xl font-bold font-headline text-primary leading-tight">
+            {post.title}
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <div className="flex items-center">
+              <CalendarDays className="h-4 w-4 mr-1.5" />
+              Published on {new Date(post.date as any).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <div className="flex items-center">
+              <UserCircle className="h-4 w-4 mr-1.5" />
+              By {post.author}
+            </div>
+            <Link href={`/blog/category/${post.category.toLowerCase()}`} className="flex items-center hover:text-accent transition-colors">
+              <Tag className="h-4 w-4 mr-1.5" />
+              {post.category}
+            </Link>
+          </div>
+          {post.id && <EditPostLinkClient postId={post.id} />}
+        </header>
+
+        {post.imageUrl && (
+          <div className="relative aspect-video rounded-lg overflow-hidden shadow-lg">
+            <Image
+              src={post.imageUrl}
+              alt={post.title}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover"
+              data-ai-hint={post.dataAiHint || "blog header image"}
+            />
+          </div>
+        )}
+
+        <div
+          className="prose dark:prose-invert max-w-none"
+          dangerouslySetInnerHTML={{ __html: post.content }}
+        />
+
+        {post.tags && post.tags.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-sm font-semibold mb-2 text-muted-foreground">TAGS:</h3>
+            <div className="flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <Link key={tag} href={`/blog/tag/${tag.toLowerCase()}`}>
+                  <span className="px-3 py-1 text-xs rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors">
+                    {tag}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </article>
+
+      <aside className="mt-16">
+        <RecommendedPosts currentPostId={post.id!} currentPostContent={post.content} />
+      </aside>
     </div>
   );
 }
 
-export const revalidate = 60; // Можно оставить или убрать на время теста
+export const revalidate = 60;

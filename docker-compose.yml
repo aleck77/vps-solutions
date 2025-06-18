@@ -1,3 +1,4 @@
+
 version: '3.8'
 
 services:
@@ -9,7 +10,7 @@ services:
     restart: always
     env_file:
       - .env # Load environment variables from .env file
-    ports: # This is for direct access if needed, Traefik handles public access
+    ports: [] # This is for direct access if needed, Traefik handles public access. Explicitly an empty list.
       # - "3001:3000" # Example: Map container port 3000 to host port 3001
     volumes:
       # Mount your service account key JSON file into the container

@@ -42,7 +42,7 @@ export default function PostsAdminPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   
   const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false); // Changed state name for clarity
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false); 
   const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
 
   const { toast } = useToast();
@@ -70,7 +70,6 @@ export default function PostsAdminPage() {
 
   const [multipleDeleteState, submitMultipleDeleteAction, isMultipleDeletePending] = useActionState<MultipleDeleteState, string[]>(
     async (previousState, postIdsToDelete) => {
-      // isBulkDeleting (now isMultipleDeletePending) is handled by useActionState
       const result = await deleteMultiplePostsAction(postIdsToDelete);
       if (result.success) {
         toast({ title: 'Posts Deleted', description: result.message });

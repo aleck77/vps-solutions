@@ -41,7 +41,7 @@ export async function generateMetadata({ params: { categoryName } }: CategoryPag
 
 export default async function CategoryPage({ params: { categoryName } }: CategoryPageProps) { // Деструктуризация categoryName из params
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {
-    console.error('[CategoryPage] Invalid or missing categoryName in params:', { categoryName }); // Log the actual param received
+    console.error('[CategoryPage] Invalid or missing categoryName in params:', { categoryName }); 
     notFound();
     return null; 
   }

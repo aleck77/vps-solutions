@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lowcode.artelegis.com.ua',
+        hostname: 'lowcode.artelegis.com.ua', // Existing one
         port: '',
         pathname: '/wp-content/uploads/**',
       },
@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     allowedDevOrigins: [
-        "http://localhost:3000", // Standard Next.js port
+        "http://localhost:3000",
         "http://localhost:9002", // Port used in IDX / Firebase Studio
         "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
         "https://*.googleusercontent.com", // Also may be used for previews
@@ -31,6 +31,13 @@ const nextConfig: NextConfig = {
     ],
   },
   // УБРАНА ЛЮБАЯ WEBPACK-СПЕЦИФИЧНАЯ КОНФИГУРАЦИЯ, ЕСЛИ ОНА БЫЛА ЗДЕСЬ В "ХОРОШЕМ" КОММИТЕ
+  // Если в "хорошем" коммите была секция typescript или eslint, они также удалены,
+  // так как они не нужны для базовой работы и могли бы потенциально конфликтовать.
+  // Пример удаленной секции Webpack (если она была):
+  // webpack: (config, { isServer, webpack }) => {
+  //   // ...
+  //   return config;
+  // },
 };
 
 export default nextConfig;

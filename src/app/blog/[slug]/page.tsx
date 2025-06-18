@@ -9,7 +9,8 @@ import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
-import { Badge } from '@/components/ui/badge'; // For tag display
+import { Badge } from '@/components/ui/badge'; 
+import { unslugify } from '@/lib/utils'; // Added for tag display
 
 interface PostPageProps {
   params: {
@@ -25,7 +26,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PostPageProps) {
-  const post = await getPostBySlug(params.slug);
+  // Destructure slug directly from params
+  const { slug } = params;
+  const post = await getPostBySlug(slug);
   if (!post) {
     return { title: 'Post Not Found' };
   }
@@ -37,7 +40,9 @@ export async function generateMetadata({ params }: PostPageProps) {
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-  const post = await getPostBySlug(params.slug);
+  // Destructure slug directly from params
+  const { slug } = params;
+  const post = await getPostBySlug(slug);
 
   if (!post) {
     notFound();
@@ -58,7 +63,7 @@ export default async function PostPage({ params }: PostPageProps) {
           </div>
           <Link href={`/blog/category/${post.category.toLowerCase()}`} className="text-accent font-semibold hover:underline">
             <div className="flex items-center text-sm">
-                <Tag className="h-4 w-4 mr-1" />{post.category}
+                <Tag className="h-4 w-4 mr-1" />{unslugify(post.category)} {/* Use unslugify for display */}
             </div>
           </Link>
           <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">{post.title}</h1>
@@ -97,7 +102,7 @@ export default async function PostPage({ params }: PostPageProps) {
               {post.tags.map(tagSlug => (
                 <Button key={tagSlug} variant="outline" size="sm" asChild>
                   <Link href={`/blog/tag/${tagSlug}`}>
-                    #{tagSlug.replace(/-/g, ' ')} {/* Display slightly nicer */}
+                    #{unslugify(tagSlug)} {/* Use unslugify for display */}
                   </Link>
                 </Button>
               ))}
@@ -114,3 +119,5 @@ export default async function PostPage({ params }: PostPageProps) {
 }
 
 export const revalidate = 60;
+
+    

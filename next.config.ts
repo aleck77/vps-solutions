@@ -1,5 +1,6 @@
 
 import type {NextConfig} from 'next';
+import type { Configuration as WebpackConfiguration } from 'webpack'; // Import webpack types
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -38,6 +39,30 @@ const nextConfig: NextConfig = {
         // "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
         // "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"
     ],
+  },
+  webpack: (
+    config: WebpackConfiguration,
+    { isServer, webpack }
+  ) => {
+    // Add alias for @opentelemetry/exporter-jaeger to prevent build error
+    // This package is an optional dependency of @opentelemetry/sdk-node
+    if (!config.resolve) {
+      config.resolve = {};
+    }
+    if (!config.resolve.alias) {
+      config.resolve.alias = {};
+    }
+    // Tell webpack to resolve '@opentelemetry/exporter-jaeger' to 'false' (effectively an empty module)
+    // This prevents the "Module not found" error for this optional dependency.
+    Object.assign(config.resolve.alias, {
+        '@opentelemetry/exporter-jaeger': false,
+    });
+
+    // If other similar "Module not found" errors appear for other @opentelemetry packages,
+    // they can be added here in the same way. For example:
+    // '@opentelemetry/exporter-zipkin': false,
+
+    return config;
   },
 };
 

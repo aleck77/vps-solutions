@@ -2,7 +2,7 @@
 'use server';
 
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
-import { db as firestore } from '@/lib/firebase'; // Changed import: db as firestore
+import { getDb } from '@/lib/firebase'; // Changed import: getDb instead of db
 import type { Subscriber } from '@/types';
 import { z } from 'zod';
 
@@ -17,6 +17,7 @@ export async function subscribeToNewsletter(prevState: any, formData: FormData):
   }
 
   const validatedEmail = validation.data;
+  const firestore = getDb(); // Get Firestore instance by calling getDb()
 
   try {
     const subscribersCollection = collection(firestore, 'subscribers');

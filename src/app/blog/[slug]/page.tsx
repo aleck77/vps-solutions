@@ -25,7 +25,12 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params: { slug } }: PostPageProps) { // ИСПРАВЛЕНО ЗДЕСЬ
+export async function generateMetadata({ params }: PostPageProps) {
+  const slug = params.slug as string; // Access slug directly and assert type
+  if (!slug) {
+    console.warn('[generateMetadata] Slug is missing in params:', params);
+    return { title: 'Post Not Found - Invalid Slug' };
+  }
   const post = await getPostBySlug(slug);
   if (!post) {
     return { title: 'Post Not Found' };
@@ -37,11 +42,18 @@ export async function generateMetadata({ params: { slug } }: PostPageProps) { //
   };
 }
 
-export default async function PostPage({ params: { slug } }: PostPageProps) { // ИСПРАВЛЕНО ЗДЕСЬ
+export default async function PostPage({ params }: PostPageProps) {
+  const slug = params.slug as string; // Access slug directly and assert type
+  if (!slug) {
+    console.error('[PostPage] Slug is missing in params:', params);
+    notFound(); // Or handle as an error
+    return null; // Essential to return null after notFound or error
+  }
   const post = await getPostBySlug(slug);
 
   if (!post) {
     notFound();
+    return null; // Essential to return null after notFound
   }
 
   return (

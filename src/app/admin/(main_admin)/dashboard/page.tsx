@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useActionState, startTransition } from 'react'; // Добавлен startTransition
 import { useAuth } from '@/lib/authContext';
 import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -10,7 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { seedDatabaseAction } from '@/app/actions/adminActions'; 
-import { Newspaper, Zap } from 'lucide-react'; // Added Zap for AI Test icon
+import { Newspaper, Zap } from 'lucide-react'; 
 import { testBasicGeneration, type TestBasicGenerationOutput } from '@/ai/flows/test-basic-generation-flow';
 
 export default function AdminDashboardPage() {
@@ -36,47 +37,51 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleSeedDatabase = async () => {
+  const handleSeedDatabase = () => { // Убрал async, так как startTransition работает с промисами
     setIsSeeding(true);
     console.log('[AdminDashboardPage] Calling seedDatabaseAction...');
-    try {
-      const result = await seedDatabaseAction();
-      console.log('[AdminDashboardPage] seedDatabaseAction result:', result);
-      if (result.success) {
-        toast({ title: 'Success!', description: result.message });
-      } else {
-        toast({ title: 'Error Seeding', description: result.message, variant: 'destructive' });
+    startTransition(async () => { // Обертка в startTransition
+      try {
+        const result = await seedDatabaseAction();
+        console.log('[AdminDashboardPage] seedDatabaseAction result:', result);
+        if (result.success) {
+          toast({ title: 'Success!', description: result.message });
+        } else {
+          toast({ title: 'Error Seeding', description: result.message, variant: 'destructive' });
+        }
+      } catch (error: any) {
+        console.error('[AdminDashboardPage] Error calling seedDatabaseAction:', error);
+        toast({ title: 'Operation Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
+      } finally {
+        setIsSeeding(false);
       }
-    } catch (error: any) {
-      console.error('[AdminDashboardPage] Error calling seedDatabaseAction:', error);
-      toast({ title: 'Operation Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
-    } finally {
-      setIsSeeding(false);
-    }
+    });
   };
 
-  const handleTestBasicGeneration = async () => {
+  const handleTestBasicGeneration = () => { // Убрал async
     setIsTestingGen(true);
     setTestGenResult(null);
     console.log('[AdminDashboardPage] Calling testBasicGeneration...');
-    try {
-      const result: TestBasicGenerationOutput = await testBasicGeneration();
-      console.log('[AdminDashboardPage] testBasicGeneration result:', result);
-      if (result.success) {
-        setTestGenResult(`Success: ${result.generatedText}`);
-        toast({ title: 'AI Test Success!', description: result.generatedText });
-      } else {
-        setTestGenResult(`Failed: ${result.generatedText}`);
-        toast({ title: 'AI Test Failed', description: result.generatedText, variant: 'destructive' });
+    startTransition(async () => { // Обертка в startTransition
+      try {
+        const result: TestBasicGenerationOutput = await testBasicGeneration();
+        console.log('[AdminDashboardPage] testBasicGeneration result:', result);
+        if (result.success) {
+          setTestGenResult(`Success: ${result.generatedText}`);
+          toast({ title: 'AI Test Success!', description: result.generatedText });
+        } else {
+          setTestGenResult(`Failed: ${result.generatedText}`);
+          toast({ title: 'AI Test Failed', description: result.generatedText, variant: 'destructive' });
+        }
+      } catch (error: any) {
+        console.error('[AdminDashboardPage] Error calling testBasicGeneration:', error);
+        const errorMessage = error.message || 'An unexpected error occurred during AI test.';
+        setTestGenResult(`Error: ${errorMessage}`);
+        toast({ title: 'AI Test Error', description: errorMessage, variant: 'destructive' });
+      } finally {
+        setIsTestingGen(false);
       }
-    } catch (error: any) {
-      console.error('[AdminDashboardPage] Error calling testBasicGeneration:', error);
-      const errorMessage = error.message || 'An unexpected error occurred during AI test.';
-      setTestGenResult(`Error: ${errorMessage}`);
-      toast({ title: 'AI Test Error', description: errorMessage, variant: 'destructive' });
-    } finally {
-      setIsTestingGen(false);
-    }
+    });
   };
 
 
@@ -170,3 +175,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+    

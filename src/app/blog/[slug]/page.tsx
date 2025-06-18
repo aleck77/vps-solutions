@@ -11,26 +11,19 @@ import { getPostBySlug } from '@/lib/firestoreBlog';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import { Badge } from '@/components/ui/badge';
 import { unslugify } from '@/lib/utils';
-import type { BlogPost } from '@/types'; // Ensure BlogPost is imported if needed for type safety with getPostBySlug
+import type { BlogPost } from '@/types';
 
-// Define PostPageProps for clarity if used elsewhere, or type inline
-// interface PostPageProps {
-//   params: {
-//     slug: string;
-//   };
-// }
-
-// generateStaticParams временно закомментирован для полной динамики
+// generateStaticParams остается закомментированным для полной динамики во время отладки
 // export async function generateStaticParams() {
 //   // const slugs = await getAllPostSlugs();
 //   // return slugs.map((slug) => ({ slug }));
-//   return []; // Placeholder
+//   return []; 
 // }
 
 export async function generateMetadata(
-  { params }: { params: { slug: string } } // Inline typing for params
+  { params }: { params: { slug: string } } // Явная инлайн-типизация params
 ): Promise<Metadata> {
-  const slug = params.slug; // Access slug directly
+  const { slug } = params; // Деструктуризация slug из params
   console.log('[generateMetadata] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
@@ -64,22 +57,22 @@ export async function generateMetadata(
 }
 
 export default async function PostPage(
-  { params }: { params: { slug: string } } // Inline typing for params
+  { params }: { params: { slug: string } } // Явная инлайн-типизация params
 ): Promise<JSX.Element> {
-  const slug = params.slug; // Access slug directly
+  const { slug } = params; // Деструктуризация slug из params
   console.log('[PostPage] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
     console.error('[PostPage] Slug is missing or invalid in params:', params);
-    notFound(); // Or handle as an error
-    return <div>Error: Slug is missing or invalid.</div>; // For TypeScript, notFound() throws
+    notFound(); 
+    return <div>Error: Slug is missing or invalid.</div>; // Для TypeScript, notFound() выбрасывает ошибку
   }
 
   const post = await getPostBySlug(slug);
 
   if (!post) {
     notFound();
-    return <div>Error: Post not found.</div>; // For TypeScript
+    return <div>Error: Post not found.</div>; // Для TypeScript
   }
 
   const displayDate = post.date instanceof Date ? post.date : new Date((post.date as any).seconds * 1000 + (post.date as any).nanoseconds / 1000000);

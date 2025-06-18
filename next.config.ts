@@ -21,15 +21,18 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     allowedDevOrigins: [
-        "http://localhost:3000", // General local dev
-        "http://localhost:9002", // Port used in IDX / Firebase Studio for main preview
+        "http://localhost:3000",
+        "http://localhost:9002", // Firebase Studio main preview
         "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
-        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicit URL from logs for port 9000
-        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicit URL for port 6000
-        "https://*.googleusercontent.com", // Also may be used for previews
+        // Явные URL из логов для портов 9000 и 6000 (если они используются для HMR)
+        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
+        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
+        // Общий шаблон для Firebase Studio, покрывающий различные порты и префиксы
+        "https://*.cluster-*.cloudworkstations.dev", 
+        "https://*.googleusercontent.com", // Также может использоваться для превью
     ],
   },
-  // Webpack-specific configuration removed to avoid conflict with Turbopack
+  // Убрана Webpack-специфичная конфигурация, чтобы избежать конфликта с Turbopack
 };
 
 export default nextConfig;

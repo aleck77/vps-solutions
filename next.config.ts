@@ -13,9 +13,9 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lowcode.artelegis.com.ua', // Existing pattern
+        hostname: 'lowcode.artelegis.com.ua', 
         port: '',
-        pathname: '/wp-content/uploads/**', // Existing pattern
+        pathname: '/wp-content/uploads/**', 
       },
     ],
   },
@@ -24,14 +24,12 @@ const nextConfig: NextConfig = {
         "http://localhost:3000", // General local dev
         "http://localhost:9002", // Port used in IDX / Firebase Studio for main preview
         "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
-        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicit URL from logs
-        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Added for port 6000
+        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicit URL from logs for port 9000
+        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicit URL for port 6000
         "https://*.googleusercontent.com", // Also may be used for previews
     ],
   },
-  // Webpack-специфичная конфигурация была удалена, так как она конфликтовала с Turbopack
-  // и теперь мы не видим проблем с @opentelemetry/exporter-jaeger в dev режиме.
-  // Если проблема вернется при 'npm run build', нужно будет рассмотреть другие решения или условное добавление Webpack-конфига.
+  // Webpack-specific configuration removed to avoid conflict with Turbopack
 };
 
 export default nextConfig;

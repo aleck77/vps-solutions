@@ -1,16 +1,17 @@
-
-import Image from 'next/image';
-import Link from 'next/link';
-import type { BlogPost } from '@/types';
-import { CalendarDays, UserCircle, Tag, ArrowLeft, TagsIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import RecommendedPosts from '@/components/blog/RecommendedPosts';
+// src/app/blog/[slug]/page.tsx
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog';
-import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
-import { Badge } from '@/components/ui/badge';
-import { unslugify } from '@/lib/utils';
+// Убраны импорты, которые не используются в упрощенной версии, для чистоты теста
+// import Image from 'next/image';
+// import Link from 'next/link';
+// import { CalendarDays, UserCircle, Tag, ArrowLeft, TagsIcon } from 'lucide-react';
+// import { Button } from '@/components/ui/button';
+// import { Separator } from '@/components/ui/separator';
+// import RecommendedPosts from '@/components/blog/RecommendedPosts';
+// import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog';
+// import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
+// import { Badge } from '@/components/ui/badge';
+// import { unslugify } from '@/lib/utils';
 
 interface PostPageProps {
   params: {
@@ -18,46 +19,61 @@ interface PostPageProps {
   };
 }
 
-export async function generateStaticParams() {
-  const slugs = await getAllPostSlugs();
-  return slugs.map((slug) => ({
-    slug: slug,
-  }));
-}
+// Упрощенная generateStaticParams, если она нужна Next.js для определения маршрутов
+// export async function generateStaticParams() {
+//   // const slugs = await getAllPostSlugs(); // Пока закомментировано для упрощения
+//   // return slugs.map((slug) => ({ slug }));
+//   return [{ slug: 'test-post' }]; // Возвращаем хотя бы один тестовый слаг
+// }
 
-export async function generateMetadata({ params }: PostPageProps) {
-  const slug = params.slug as string; // Access slug directly and assert type
-  if (!slug) {
-    console.warn('[generateMetadata] Slug is missing in params:', params);
+export async function generateMetadata(
+  { params }: PostPageProps
+): Promise<Metadata> {
+  const slugFromParams = params.slug; // Просто получаем значение
+  console.log('[generateMetadata] Received slug from params:', slugFromParams);
+
+  if (!slugFromParams || typeof slugFromParams !== 'string') {
+    console.warn('[generateMetadata] Slug is missing or invalid in params:', params);
     return { title: 'Post Not Found - Invalid Slug' };
   }
-  const post = await getPostBySlug(slug);
-  if (!post) {
-    return { title: 'Post Not Found' };
-  }
+  // const post = await getPostBySlug(slugFromParams); // Пока закомментировано
+  // if (!post) {
+  //   return { title: 'Post Not Found' };
+  // }
+  // return {
+  //   title: `${post.title} | VHost Solutions Blog`,
+  //   description: post.excerpt,
+  //   keywords: post.tags?.join(', '),
+  // };
   return {
-    title: `${post.title} | VHost Solutions Blog`,
-    description: post.excerpt,
-    keywords: post.tags?.join(', '),
-  };
+    title: `Post: ${slugFromParams}`,
+  }
 }
 
-export default async function PostPage({ params }: PostPageProps) {
-  const slug = params.slug as string; // Access slug directly and assert type
-  if (!slug) {
-    console.error('[PostPage] Slug is missing in params:', params);
-    notFound(); // Or handle as an error
-    return null; // Essential to return null after notFound or error
-  }
-  const post = await getPostBySlug(slug);
+export default async function PostPage(
+  { params }: PostPageProps
+): Promise<JSX.Element> {
+  const slugFromParams = params.slug; // Просто получаем значение
+  console.log('[PostPage] Received slug from params:', slugFromParams);
 
-  if (!post) {
-    notFound();
-    return null; // Essential to return null after notFound
+  if (!slugFromParams || typeof slugFromParams !== 'string') {
+    console.error('[PostPage] Slug is missing or invalid in params:', params);
+    // notFound(); // notFound() здесь может вызывать проблемы при рендеринге, пока просто вернем ошибку
+    return <div>Error: Slug is missing or invalid.</div>;
   }
+
+  // const post = await getPostBySlug(slugFromParams); // Пока закомментировано
+  // if (!post) {
+  //   notFound();
+  //   return <></>; // Обязательно что-то вернуть после notFound
+  // }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div>
+      <h1 className="text-3xl font-bold">Post Page for Slug: {slugFromParams}</h1>
+      <p>This is a simplified test page for the slug: <strong>{slugFromParams}</strong>.</p>
+      <p>Original content and components are commented out for testing purposes.</p>
+      {/*
       <article className="space-y-8">
         <header className="space-y-4">
           <div className="flex flex-wrap gap-2 items-center mb-6">
@@ -107,7 +123,7 @@ export default async function PostPage({ params }: PostPageProps) {
               Tags
             </h3>
             <div className="flex flex-wrap gap-2">
-              {post.tags.map(tagSlugItem => ( 
+              {post.tags.map(tagSlugItem => (
                 <Button key={tagSlugItem} variant="outline" size="sm" asChild>
                   <Link href={`/blog/tag/${tagSlugItem}`}>
                     #{unslugify(tagSlugItem)}
@@ -122,9 +138,9 @@ export default async function PostPage({ params }: PostPageProps) {
       <Separator className="my-12" />
 
       <RecommendedPosts currentPostId={post.id || null} currentPostContent={post.content} />
+      */}
     </div>
   );
 }
 
-export const revalidate = 60;
-    
+// export const revalidate = 60; // Пока закомментировано

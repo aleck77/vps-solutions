@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lowcode.artelegis.com.ua', // Оставляем этот хост, если он используется
+        hostname: 'lowcode.artelegis.com.ua',
         port: '',
         pathname: '/wp-content/uploads/**',
       },
@@ -23,20 +23,16 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: [
         "http://localhost:3000", // General local dev
         "http://localhost:9002", // Port used in IDX / Firebase Studio for main preview
-        "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
+        "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations (should cover the specific one)
+        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicitly added
+        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", // Explicitly added for other potential ports
         "https://*.googleusercontent.com", // Also may be used for previews
-        // Явно добавляем URL-ы, которые вызывали проблемы CORS, включая те, что для HMR
-        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
-        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"
     ],
   },
   // УБЕДИТЬСЯ, ЧТО НЕТ НИКАКОЙ WEBPACK-СПЕЦИФИЧНОЙ КОНФИГУРАЦИИ
-  // typescript: {
-  //   ignoreBuildErrors: true, // Пример того, что могло быть и что нужно убрать
-  // },
-  // eslint: {
-  //   ignoreDuringBuilds: true, // Пример того, что могло быть и что нужно убрать
-  // },
+  // Если Webpack-конфиг был здесь для решения проблемы с @opentelemetry/exporter-jaeger,
+  // он был удален, так как конфликтовал с Turbopack.
+  // Проблема с @opentelemetry/exporter-jaeger будет решаться при необходимости во время 'npm run build'.
 };
 
 export default nextConfig;

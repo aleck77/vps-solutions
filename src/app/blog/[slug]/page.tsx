@@ -1,79 +1,89 @@
 // src/app/blog/[slug]/page.tsx
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-// Убраны импорты, которые не используются в упрощенной версии, для чистоты теста
-// import Image from 'next/image';
-// import Link from 'next/link';
-// import { CalendarDays, UserCircle, Tag, ArrowLeft, TagsIcon } from 'lucide-react';
-// import { Button } from '@/components/ui/button';
-// import { Separator } from '@/components/ui/separator';
-// import RecommendedPosts from '@/components/blog/RecommendedPosts';
-// import { getPostBySlug, getAllPostSlugs } from '@/lib/firestoreBlog';
-// import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
-// import { Badge } from '@/components/ui/badge';
-// import { unslugify } from '@/lib/utils';
+import Image from 'next/image';
+import Link from 'next/link';
+import { CalendarDays, UserCircle, Tag as TagIcon, ArrowLeft, TagsIcon as TagsIconLucide } from 'lucide-react'; // Renamed Tag to TagIcon to avoid conflict if any
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import RecommendedPosts from '@/components/blog/RecommendedPosts';
+import { getPostBySlug } from '@/lib/firestoreBlog'; // Removed getAllPostSlugs as it's not used here
+import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
+import { Badge } from '@/components/ui/badge';
+import { unslugify } from '@/lib/utils';
 
-interface PostPageProps {
-  params: {
-    slug: string;
-  };
-}
+// Removed PostPageProps interface, will type params inline
 
-// Упрощенная generateStaticParams, если она нужна Next.js для определения маршрутов
+// generateStaticParams is temporarily commented out to ensure fully dynamic rendering for testing params
 // export async function generateStaticParams() {
-//   // const slugs = await getAllPostSlugs(); // Пока закомментировано для упрощения
+//   // const slugs = await getAllPostSlugs();
 //   // return slugs.map((slug) => ({ slug }));
-//   return [{ slug: 'test-post' }]; // Возвращаем хотя бы один тестовый слаг
+//   return [{ slug: 'test-post-from-static-params' }]; // Placeholder
 // }
 
 export async function generateMetadata(
-  { params }: PostPageProps
+  { params }: { params: { slug: string } } // Inline typing for params
 ): Promise<Metadata> {
-  const slugFromParams = params.slug; // Просто получаем значение
-  console.log('[generateMetadata] Received slug from params:', slugFromParams);
+  const slug = params.slug; // Access slug directly
+  console.log('[generateMetadata] Received slug from params:', slug);
 
-  if (!slugFromParams || typeof slugFromParams !== 'string') {
+  if (!slug || typeof slug !== 'string') {
     console.warn('[generateMetadata] Slug is missing or invalid in params:', params);
     return { title: 'Post Not Found - Invalid Slug' };
   }
-  // const post = await getPostBySlug(slugFromParams); // Пока закомментировано
-  // if (!post) {
-  //   return { title: 'Post Not Found' };
-  // }
-  // return {
-  //   title: `${post.title} | VHost Solutions Blog`,
-  //   description: post.excerpt,
-  //   keywords: post.tags?.join(', '),
-  // };
-  return {
-    title: `Post: ${slugFromParams}`,
+  const post = await getPostBySlug(slug);
+  if (!post) {
+    return { title: 'Post Not Found' };
   }
+  return {
+    title: `${post.title} | VHost Solutions Blog`,
+    description: post.excerpt,
+    keywords: post.tags?.join(', '),
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      images: post.imageUrl ? [{ url: post.imageUrl }] : [],
+      type: 'article',
+      publishedTime: post.date instanceof Date ? post.date.toISOString() : new Date(post.date as any).toISOString(), // Handle Timestamp/Date
+      authors: [post.author],
+      tags: post.tags,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: post.imageUrl ? [post.imageUrl] : [],
+    },
+  };
 }
 
 export default async function PostPage(
-  { params }: PostPageProps
+  { params }: { params: { slug: string } } // Inline typing for params
 ): Promise<JSX.Element> {
-  const slugFromParams = params.slug; // Просто получаем значение
-  console.log('[PostPage] Received slug from params:', slugFromParams);
+  const slug = params.slug; // Access slug directly
+  console.log('[PostPage] Received slug from params:', slug);
 
-  if (!slugFromParams || typeof slugFromParams !== 'string') {
+  if (!slug || typeof slug !== 'string') {
     console.error('[PostPage] Slug is missing or invalid in params:', params);
-    // notFound(); // notFound() здесь может вызывать проблемы при рендеринге, пока просто вернем ошибку
+    notFound();
+    // Next.js's notFound() throws an error, so this line might not be reached,
+    // but as a fallback for type checking:
     return <div>Error: Slug is missing or invalid.</div>;
   }
 
-  // const post = await getPostBySlug(slugFromParams); // Пока закомментировано
-  // if (!post) {
-  //   notFound();
-  //   return <></>; // Обязательно что-то вернуть после notFound
-  // }
+  const post = await getPostBySlug(slug);
+
+  if (!post) {
+    notFound();
+    // Fallback for type checking:
+    return <div>Error: Post not found.</div>;
+  }
+
+  // Convert Firestore Timestamp to Date if necessary for client-side display
+  const displayDate = post.date instanceof Date ? post.date : new Date((post.date as any).seconds * 1000 + (post.date as any).nanoseconds / 1000000);
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold">Post Page for Slug: {slugFromParams}</h1>
-      <p>This is a simplified test page for the slug: <strong>{slugFromParams}</strong>.</p>
-      <p>Original content and components are commented out for testing purposes.</p>
-      {/*
+    <div className="max-w-3xl mx-auto">
       <article className="space-y-8">
         <header className="space-y-4">
           <div className="flex flex-wrap gap-2 items-center mb-6">
@@ -87,27 +97,32 @@ export default async function PostPage(
           </div>
           <Link href={`/blog/category/${post.category.toLowerCase()}`} className="text-accent font-semibold hover:underline">
             <div className="flex items-center text-sm">
-                <Tag className="h-4 w-4 mr-1" />{unslugify(post.category)}
+                <TagIcon className="h-4 w-4 mr-1" />{unslugify(post.category)}
             </div>
           </Link>
           <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">{post.title}</h1>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-muted-foreground text-sm">
-            <span className="flex items-center"><CalendarDays className="h-4 w-4 mr-1.5" /> Published on {new Date(post.date as any).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span className="flex items-center">
+              <CalendarDays className="h-4 w-4 mr-1.5" />
+              Published on {displayDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
             <span className="flex items-center"><UserCircle className="h-4 w-4 mr-1.5" /> By {post.author}</span>
           </div>
         </header>
 
-        <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-lg">
-          <Image
-            src={post.imageUrl}
-            alt={post.title}
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
-            data-ai-hint={post.title.split(' ').slice(0,2).join(' ') || post.category || "article"}
-            className="object-cover"
-          />
-        </div>
+        {post.imageUrl && (
+          <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden shadow-lg my-6">
+            <Image
+              src={post.imageUrl}
+              alt={post.title}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 80vw, 60vw"
+              className="object-cover"
+              data-ai-hint={post.dataAiHint || post.title.split(' ').slice(0,2).join(' ') || "blog header"}
+            />
+          </div>
+        )}
 
         <Separator />
 
@@ -119,7 +134,7 @@ export default async function PostPage(
         {post.tags && post.tags.length > 0 && (
           <div className="mt-8 pt-6 border-t">
             <h3 className="text-lg font-semibold text-muted-foreground mb-3 flex items-center">
-              <TagsIcon className="h-5 w-5 mr-2 text-primary" />
+              <TagsIconLucide className="h-5 w-5 mr-2 text-primary" />
               Tags
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -138,9 +153,9 @@ export default async function PostPage(
       <Separator className="my-12" />
 
       <RecommendedPosts currentPostId={post.id || null} currentPostContent={post.content} />
-      */}
     </div>
   );
 }
 
-// export const revalidate = 60; // Пока закомментировано
+// Re-enable revalidate if needed for production
+export const revalidate = 60;

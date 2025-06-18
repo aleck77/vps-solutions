@@ -31,3 +31,4 @@ services:
 networks:
   n8n_default:
     external: true
+

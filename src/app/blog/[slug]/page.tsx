@@ -17,17 +17,18 @@ import type { BlogPost } from '@/types';
 // export async function generateStaticParams() {
 //   // const slugs = await getAllPostSlugs();
 //   // return slugs.map((slug) => ({ slug }));
-//   return []; 
+//   return [];
 // }
 
+// Используем более общий тип для props, чтобы получить params
 export async function generateMetadata(
-  { params }: { params: { slug: string } } // Явная инлайн-типизация params
+  props: { params: { slug: string } }
 ): Promise<Metadata> {
-  const { slug } = params; // Деструктуризация slug из params
+  const slug = props.params.slug; // Прямой доступ к props.params.slug
   console.log('[generateMetadata] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
-    console.warn('[generateMetadata] Slug is missing or invalid in params:', params);
+    console.warn('[generateMetadata] Slug is missing or invalid in params:', props.params);
     return { title: 'Post Not Found - Invalid Slug' };
   }
   const post = await getPostBySlug(slug);
@@ -57,15 +58,16 @@ export async function generateMetadata(
 }
 
 export default async function PostPage(
-  { params }: { params: { slug: string } } // Явная инлайн-типизация params
+  props: { params: { slug: string } }
 ): Promise<JSX.Element> {
-  const { slug } = params; // Деструктуризация slug из params
+  const slug = props.params.slug; // Прямой доступ к props.params.slug
   console.log('[PostPage] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
-    console.error('[PostPage] Slug is missing or invalid in params:', params);
-    notFound(); 
-    return <div>Error: Slug is missing or invalid.</div>; // Для TypeScript, notFound() выбрасывает ошибку
+    console.error('[PostPage] Slug is missing or invalid in params:', props.params);
+    notFound();
+    // TypeScript требует возврата JSX даже после notFound(), хотя он выбрасывает ошибку
+    return <div>Error: Slug is missing or invalid.</div>; 
   }
 
   const post = await getPostBySlug(slug);
@@ -153,4 +155,3 @@ export default async function PostPage(
 }
 
 export const revalidate = 60;
-    

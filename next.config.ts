@@ -21,18 +21,18 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     allowedDevOrigins: [
-        "http://localhost:3000",
-        "http://localhost:9002", // Firebase Studio main preview
-        "https://*.cloudworkstations.dev", // Wildcard for Cloud Workstations
-        // Явные URL из логов для портов 9000 и 6000 (если они используются для HMR)
+        "http://localhost:3000", // Common local dev
+        "http://localhost:9002", // Firebase Studio main preview (from your logs)
+        // Specific URLs from logs - ensure these match your current Firebase Studio URLs
         "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
         "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
-        // Общий шаблон для Firebase Studio, покрывающий различные порты и префиксы
-        "https://*.cluster-*.cloudworkstations.dev", 
-        "https://*.googleusercontent.com", // Также может использоваться для превью
+        // Broader wildcards for Firebase Studio
+        "https://*.cloudworkstations.dev", 
+        "https://*.googleusercontent.com", 
+        // Add any other specific origins if HMR errors persist for them
     ],
   },
-  // Убрана Webpack-специфичная конфигурация, чтобы избежать конфликта с Turbopack
+  // Webpack-specific configuration is removed to avoid conflict with Turbopack
 };
 
 export default nextConfig;

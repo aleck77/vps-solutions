@@ -13,6 +13,13 @@ import { Badge } from '@/components/ui/badge';
 import { unslugify } from '@/lib/utils';
 import type { BlogPost } from '@/types';
 
+// Interface for page props
+interface PostPageProps {
+  params: {
+    slug: string;
+  };
+}
+
 // generateStaticParams остается закомментированным для полной динамики во время отладки
 // export async function generateStaticParams() {
 //   // const slugs = await getAllPostSlugs();
@@ -20,15 +27,14 @@ import type { BlogPost } from '@/types';
 //   return [];
 // }
 
-// Используем более общий тип для props, чтобы получить params
 export async function generateMetadata(
-  props: { params: { slug: string } }
+  { params }: PostPageProps // Используем PostPageProps
 ): Promise<Metadata> {
-  const slug = props.params.slug; // Прямой доступ к props.params.slug
+  const slug = params.slug; // Прямой доступ к params.slug
   console.log('[generateMetadata] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
-    console.warn('[generateMetadata] Slug is missing or invalid in params:', props.params);
+    console.warn('[generateMetadata] Slug is missing or invalid in params:', params);
     return { title: 'Post Not Found - Invalid Slug' };
   }
   const post = await getPostBySlug(slug);
@@ -58,23 +64,22 @@ export async function generateMetadata(
 }
 
 export default async function PostPage(
-  props: { params: { slug: string } }
+  { params }: PostPageProps // Используем PostPageProps
 ): Promise<JSX.Element> {
-  const slug = props.params.slug; // Прямой доступ к props.params.slug
+  const slug = params.slug; // Прямой доступ к params.slug
   console.log('[PostPage] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
-    console.error('[PostPage] Slug is missing or invalid in params:', props.params);
+    console.error('[PostPage] Slug is missing or invalid in params:', params);
     notFound();
-    // TypeScript требует возврата JSX даже после notFound(), хотя он выбрасывает ошибку
-    return <div>Error: Slug is missing or invalid.</div>; 
+    return <div>Error: Slug is missing or invalid.</div>;
   }
 
   const post = await getPostBySlug(slug);
 
   if (!post) {
     notFound();
-    return <div>Error: Post not found.</div>; // Для TypeScript
+    return <div>Error: Post not found.</div>;
   }
 
   const displayDate = post.date instanceof Date ? post.date : new Date((post.date as any).seconds * 1000 + (post.date as any).nanoseconds / 1000000);
@@ -155,3 +160,5 @@ export default async function PostPage(
 }
 
 export const revalidate = 60;
+
+    

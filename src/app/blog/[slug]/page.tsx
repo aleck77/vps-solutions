@@ -25,7 +25,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params: { slug } }: PostPageProps) { // Corrected: Destructure slug from params
+export async function generateMetadata({ params: { slug } }: PostPageProps) { // Деструктуризация slug из params
   const post = await getPostBySlug(slug);
   if (!post) {
     return { title: 'Post Not Found' };
@@ -37,7 +37,7 @@ export async function generateMetadata({ params: { slug } }: PostPageProps) { //
   };
 }
 
-export default async function PostPage({ params: { slug } }: PostPageProps) { // Corrected: Destructure slug from params
+export default async function PostPage({ params: { slug } }: PostPageProps) { // Деструктуризация slug из params
   const post = await getPostBySlug(slug);
 
   if (!post) {

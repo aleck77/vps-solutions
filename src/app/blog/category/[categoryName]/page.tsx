@@ -22,16 +22,16 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params: { categoryName: categoryNameParam } }: CategoryPageProps) { // Corrected: Destructure categoryName from params
-  if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
+export async function generateMetadata({ params: { categoryName } }: CategoryPageProps) { // Деструктуризация categoryName из params
+  if (typeof categoryName !== 'string' || categoryName.trim() === '') {
     return {
       title: 'Invalid Category | VHost Solutions Blog',
       description: 'The requested blog category was not found or is invalid.',
     };
   }
   
-  const originalCategory = blogCategories.find(cat => slugify(cat) === categoryNameParam);
-  const categoryTitle = originalCategory ? unslugify(originalCategory) : unslugify(categoryNameParam); 
+  const originalCategory = blogCategories.find(cat => slugify(cat) === categoryName);
+  const categoryTitle = originalCategory ? unslugify(originalCategory) : unslugify(categoryName); 
 
   return {
     title: `Blog Category: ${categoryTitle} | VHost Solutions`,
@@ -39,14 +39,14 @@ export async function generateMetadata({ params: { categoryName: categoryNamePar
   };
 }
 
-export default async function CategoryPage({ params: { categoryName: categoryNameParam } }: CategoryPageProps) { // Corrected: Destructure categoryName from params
-  if (typeof categoryNameParam !== 'string' || categoryNameParam.trim() === '') {
-    console.error('[CategoryPage] Invalid or missing categoryName in params:', { categoryName: categoryNameParam }); // Log the actual param received
+export default async function CategoryPage({ params: { categoryName } }: CategoryPageProps) { // Деструктуризация categoryName из params
+  if (typeof categoryName !== 'string' || categoryName.trim() === '') {
+    console.error('[CategoryPage] Invalid or missing categoryName in params:', { categoryName }); // Log the actual param received
     notFound();
     return null; 
   }
 
-  const categorySlug = categoryNameParam; 
+  const categorySlug = categoryName; 
   const posts = await getPostsByCategory(categorySlug);
 
   const originalCategory = blogCategories.find(cat => slugify(cat) === categorySlug);

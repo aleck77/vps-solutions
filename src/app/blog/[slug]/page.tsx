@@ -24,7 +24,7 @@ export async function generateStaticParams() {
 export async function generateMetadata(
   { params }: PostPageProps
 ): Promise<Metadata> {
-  const slug = params.slug; // Direct access
+  const slug = params.slug; // Прямой доступ к типизированному params.slug
   console.log('[generateMetadata] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
@@ -57,7 +57,7 @@ export async function generateMetadata(
 export default async function PostPage(
   { params }: PostPageProps
 ): Promise<JSX.Element> {
-  const slug = params.slug; // Direct access
+  const slug = params.slug; // Прямой доступ к типизированному params.slug
   console.log('[PostPage] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {

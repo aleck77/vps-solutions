@@ -1,13 +1,12 @@
 
 import PostCard from '@/components/blog/PostCard';
-// import CategoryFilter from '@/components/blog/CategoryFilter'; // Can be reused or a new TagFilter created
 import type { BlogPost } from '@/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { getPostsByTag, getAllUniqueTagSlugs } from '@/lib/firestoreBlog';
 import { notFound } from 'next/navigation';
-import { unslugify } from '@/lib/utils'; // For displaying tag name nicely
+import { unslugify } from '@/lib/utils'; 
 import type { Metadata } from 'next';
 
 interface TagPageProps {
@@ -19,13 +18,11 @@ interface TagPageProps {
 export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
-  // Возвращаем пустой массив, чтобы Next.js не пытался ничего предрендерить,
-  // все будет генерироваться динамически.
   return [];
 }
 
 export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
-  const tagName = params.tagName; // Direct access
+  const tagName = params.tagName;
   console.log('[TagPage generateMetadata] Received tagName from props.params:', tagName);
   const displayName = unslugify(tagName);
   return {
@@ -35,7 +32,7 @@ export async function generateMetadata({ params }: TagPageProps): Promise<Metada
 }
 
 export default async function TagPage({ params }: TagPageProps) {
-  const tagName = params.tagName; // Direct access
+  const tagName = params.tagName;
   console.log('[TagPage] Received tagName from props.params:', tagName);
 
   if (!tagName) {

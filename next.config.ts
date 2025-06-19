@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // experimental.allowedDevOrigins removed as it's not supported by Webpack
+  // experimental.allowedDevOrigins removed as it's specific to Turbopack and not recognized by Webpack
 };
 
 export default nextConfig;

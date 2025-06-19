@@ -20,14 +20,12 @@ interface CategoryPageProps {
 export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
-  // Возвращаем пустой массив, чтобы Next.js не пытался ничего предрендерить,
-  // все будет генерироваться динамически.
   return [];
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-  const categoryName = params.categoryName; // Direct access
-  console.log('[CategoryPage generateMetadata] Received categoryName from props.params:', categoryName);
+  const categoryName = params.categoryName;
+  console.log('[CategoryPage generateMetadata] Received categoryName from params:', categoryName);
 
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {
     return {
@@ -46,8 +44,8 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const categoryName = params.categoryName; // Direct access
-  console.log('[CategoryPage] Received categoryName from props.params:', categoryName);
+  const categoryName = params.categoryName;
+  console.log('[CategoryPage] Received categoryName from params:', categoryName);
 
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {
     console.error('[CategoryPage] Invalid or missing categoryName in params:', { categoryName }); 

@@ -10,15 +10,22 @@ import { notFound } from 'next/navigation';
 import { unslugify } from '@/lib/utils'; // For displaying tag name nicely
 import type { Metadata } from 'next';
 
-// export async function generateStaticParams() {
-//   const tagSlugs = await getAllUniqueTagSlugs();
-//   return tagSlugs.map((slug) => ({
-//     tagName: slug,
-//   }));
-// }
+interface TagPageProps {
+  params: {
+    tagName: string;
+  };
+}
 
-export async function generateMetadata(props: any): Promise<Metadata> {
-  const tagSlug = props.params.tagName as string;
+export const dynamic = 'force-dynamic';
+
+export async function generateStaticParams() {
+  // Возвращаем пустой массив, чтобы Next.js не пытался ничего предрендерить,
+  // все будет генерироваться динамически.
+  return [];
+}
+
+export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
+  const tagSlug = params.tagName;
   console.log('[TagPage generateMetadata] Received tagName from props.params:', tagSlug);
   const displayName = unslugify(tagSlug);
   return {
@@ -27,8 +34,8 @@ export async function generateMetadata(props: any): Promise<Metadata> {
   };
 }
 
-export default async function TagPage(props: any) {
-  const tagSlug = props.params.tagName as string;
+export default async function TagPage({ params }: TagPageProps) {
+  const tagSlug = params.tagName;
   console.log('[TagPage] Received tagName from props.params:', tagSlug);
 
   if (!tagSlug) {

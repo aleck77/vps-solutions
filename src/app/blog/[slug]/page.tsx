@@ -1,10 +1,9 @@
-
 // src/app/blog/[slug]/page.tsx
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/firestoreBlog';
-import RecommendedPosts from '@/components/blog/RecommendedPosts'; // Убедимся, что он есть
-import EditPostLinkClient from '@/components/blog/EditPostLinkClient'; // Убедимся, что он есть
+import RecommendedPosts from '@/components/blog/RecommendedPosts';
+import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import { CalendarDays, UserCircle, Tag } from 'lucide-react';
 import Image from 'next/image';
 
@@ -15,11 +14,19 @@ interface PostPageProps {
   };
 }
 
+export const dynamic = 'force-dynamic';
+
+export async function generateStaticParams() {
+  // Возвращаем пустой массив, чтобы Next.js не пытался ничего предрендерить,
+  // все будет генерироваться динамически.
+  return [];
+}
+
 // Используем PostPageProps для generateMetadata
 export async function generateMetadata(
   { params }: PostPageProps
 ): Promise<Metadata> {
-  const slug = params.slug; // Прямой доступ к типизированному params.slug
+  const slug = params.slug; 
   console.log('[generateMetadata] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
@@ -53,7 +60,7 @@ export async function generateMetadata(
 export default async function PostPage(
   { params }: PostPageProps
 ): Promise<JSX.Element> {
-  const slug = params.slug; // Прямой доступ к типизированному params.slug
+  const slug = params.slug; 
   console.log('[PostPage] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
@@ -130,12 +137,5 @@ export default async function PostPage(
     </div>
   );
 }
-
-// generateStaticParams остается закомментированной или возвращает пустой массив для полной динамики
-// export async function generateStaticParams() {
-//   // const posts = await getAllPostSlugs(); // Нужна функция для получения всех слагов
-//   // return posts.map((slug) => ({ slug }));
-//   return [];
-// }
 
 export const revalidate = 60; // Revalidate every 60 seconds

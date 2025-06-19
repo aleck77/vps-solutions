@@ -11,14 +11,22 @@ import { notFound } from 'next/navigation';
 import { slugify, unslugify } from '@/lib/utils';
 import type { Metadata } from 'next';
 
-// export async function generateStaticParams() {
-//   return blogCategories.map((category) => ({
-//     categoryName: slugify(category),
-//   }));
-// }
+interface CategoryPageProps {
+  params: {
+    categoryName: string;
+  };
+}
 
-export async function generateMetadata(props: any): Promise<Metadata> {
-  const categoryName = props.params.categoryName as string;
+export const dynamic = 'force-dynamic';
+
+export async function generateStaticParams() {
+  // Возвращаем пустой массив, чтобы Next.js не пытался ничего предрендерить,
+  // все будет генерироваться динамически.
+  return [];
+}
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const categoryName = params.categoryName;
   console.log('[CategoryPage generateMetadata] Received categoryName from props.params:', categoryName);
 
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {
@@ -37,8 +45,8 @@ export async function generateMetadata(props: any): Promise<Metadata> {
   };
 }
 
-export default async function CategoryPage(props: any) {
-  const categoryName = props.params.categoryName as string;
+export default async function CategoryPage({ params }: CategoryPageProps) {
+  const categoryName = params.categoryName;
   console.log('[CategoryPage] Received categoryName from props.params:', categoryName);
 
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {

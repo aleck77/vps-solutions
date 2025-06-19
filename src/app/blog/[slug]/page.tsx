@@ -7,7 +7,6 @@ import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import { CalendarDays, UserCircle, Tag } from 'lucide-react';
 import Image from 'next/image';
 
-// Определяем интерфейс для пропсов страницы
 interface PostPageProps {
   params: {
     slug: string;
@@ -22,7 +21,6 @@ export async function generateStaticParams() {
   return [];
 }
 
-// Используем PostPageProps для generateMetadata
 export async function generateMetadata(
   { params }: PostPageProps
 ): Promise<Metadata> {
@@ -56,7 +54,6 @@ export async function generateMetadata(
   };
 }
 
-// Используем PostPageProps для компонента страницы
 export default async function PostPage(
   { params }: PostPageProps
 ): Promise<JSX.Element> {
@@ -77,7 +74,6 @@ export default async function PostPage(
   
   console.log(`[PostPage] Rendering post: "${post.title}"`);
 
-  // Полный рендеринг страницы поста
   return (
     <div className="grid md:grid-cols-12 gap-8 items-start">
       <div className="md:col-span-9 space-y-8">
@@ -138,4 +134,4 @@ export default async function PostPage(
   );
 }
 
-export const revalidate = 60; // Revalidate every 60 seconds
+export const revalidate = 60;

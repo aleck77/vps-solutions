@@ -25,10 +25,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
-  const currentParams = { ...params }; // Explicitly create a new object
-  const tagSlug = currentParams.tagName;
-  console.log('[TagPage generateMetadata] Received tagName from props.params:', tagSlug);
-  const displayName = unslugify(tagSlug);
+  const tagName = params.tagName; // Direct access
+  console.log('[TagPage generateMetadata] Received tagName from props.params:', tagName);
+  const displayName = unslugify(tagName);
   return {
     title: `Posts tagged with "${displayName}" | VHost Solutions Blog`,
     description: `Browse all blog posts tagged with "${displayName}" on VHost Solutions.`,
@@ -36,16 +35,15 @@ export async function generateMetadata({ params }: TagPageProps): Promise<Metada
 }
 
 export default async function TagPage({ params }: TagPageProps) {
-  const currentParams = { ...params }; // Explicitly create a new object
-  const tagSlug = currentParams.tagName;
-  console.log('[TagPage] Received tagName from props.params:', tagSlug);
+  const tagName = params.tagName; // Direct access
+  console.log('[TagPage] Received tagName from props.params:', tagName);
 
-  if (!tagSlug) {
+  if (!tagName) {
     notFound();
   }
 
-  const posts = await getPostsByTag(tagSlug);
-  const displayName = unslugify(tagSlug);
+  const posts = await getPostsByTag(tagName);
+  const displayName = unslugify(tagName);
 
   return (
     <div className="space-y-12">

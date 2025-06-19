@@ -19,18 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    allowedDevOrigins: [
-        "http://localhost:3000",
-        "http://localhost:9002",
-        // Добавлены все известные варианты URL из логов
-        "https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev", 
-        "https://6000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev",
-        // Более широкие wildcard, которые должны покрывать варианты Firebase Studio
-        "https://*.cloudworkstations.dev", 
-        "https://*.googleusercontent.com", 
-    ],
-  },
+  // experimental.allowedDevOrigins removed as it's not supported by Webpack
 };
 
 export default nextConfig;

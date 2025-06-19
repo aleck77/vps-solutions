@@ -1,7 +1,7 @@
 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPostBySlug } from '@/lib/firestoreBlog';
+import { getPostBySlug } from '@/lib/firestoreBlog'; // getPostBySlug теперь будет принимать params
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import { CalendarDays, UserCircle, Tag } from 'lucide-react';
@@ -24,15 +24,16 @@ export async function generateStaticParams() {
 export async function generateMetadata(
   { params }: PostPageProps
 ): Promise<Metadata> {
-  const slug = params.slug; // Прямой доступ к типизированному params.slug
-  console.log('[generateMetadata] Received slug from params:', slug);
+  // Передаем весь объект params в getPostBySlug
+  // const slug = params.slug; // Убираем прямой доступ здесь
+  console.log('[generateMetadata] Received params object:', JSON.stringify(params));
 
-  if (!slug || typeof slug !== 'string') {
-    console.warn('[generateMetadata] Slug is missing or invalid:', slug);
+  if (!params || typeof params.slug !== 'string' || params.slug.trim() === '') {
+    console.warn('[generateMetadata] Slug is missing or invalid in params:', params);
     return { title: 'Post Not Found' };
   }
   
-  const post = await getPostBySlug(slug);
+  const post = await getPostBySlug(params); // Передаем params
   if (!post) {
     return {
       title: 'Post Not Found | VHost Solutions',
@@ -57,18 +58,19 @@ export async function generateMetadata(
 export default async function PostPage(
   { params }: PostPageProps
 ): Promise<JSX.Element> {
-  const slug = params.slug; // Прямой доступ к типизированному params.slug
-  console.log('[PostPage] Received slug from params:', slug);
+  // Передаем весь объект params в getPostBySlug
+  // const slug = params.slug; // Убираем прямой доступ здесь
+  console.log('[PostPage] Received params object:', JSON.stringify(params));
 
-  if (!slug || typeof slug !== 'string') {
-    console.error('[PostPage] Slug is missing or invalid:', slug);
+  if (!params || typeof params.slug !== 'string' || params.slug.trim() === '') {
+    console.error('[PostPage] Slug is missing or invalid in params:', params);
     notFound();
   }
 
-  const post = await getPostBySlug(slug);
+  const post = await getPostBySlug(params); // Передаем params
 
   if (!post) {
-    console.log(`[PostPage] Post with slug "${slug}" not found, rendering notFound().`);
+    console.log(`[PostPage] Post with params "${JSON.stringify(params)}" not found, rendering notFound().`);
     notFound();
   }
   
@@ -135,3 +137,4 @@ export default async function PostPage(
 }
 
 export const revalidate = 60;
+    

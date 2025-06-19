@@ -25,7 +25,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
-  const tagSlug = params.tagName;
+  const currentParams = { ...params }; // Explicitly create a new object
+  const tagSlug = currentParams.tagName;
   console.log('[TagPage generateMetadata] Received tagName from props.params:', tagSlug);
   const displayName = unslugify(tagSlug);
   return {
@@ -35,7 +36,8 @@ export async function generateMetadata({ params }: TagPageProps): Promise<Metada
 }
 
 export default async function TagPage({ params }: TagPageProps) {
-  const tagSlug = params.tagName;
+  const currentParams = { ...params }; // Explicitly create a new object
+  const tagSlug = currentParams.tagName;
   console.log('[TagPage] Received tagName from props.params:', tagSlug);
 
   if (!tagSlug) {

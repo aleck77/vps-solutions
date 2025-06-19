@@ -1,4 +1,4 @@
-// src/app/blog/[slug]/page.tsx
+
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/firestoreBlog';
@@ -11,6 +11,7 @@ interface PostPageProps {
   params: {
     slug: string;
   };
+  // searchParams?: { [key: string]: string | string[] | undefined }; // Not used currently
 }
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,8 @@ export async function generateStaticParams() {
 export async function generateMetadata(
   { params }: PostPageProps
 ): Promise<Metadata> {
-  const slug = params.slug; 
+  const currentParams = { ...params }; // Explicitly create a new object
+  const slug = currentParams.slug;
   console.log('[generateMetadata] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {
@@ -57,7 +59,8 @@ export async function generateMetadata(
 export default async function PostPage(
   { params }: PostPageProps
 ): Promise<JSX.Element> {
-  const slug = params.slug; 
+  const currentParams = { ...params }; // Explicitly create a new object
+  const slug = currentParams.slug;
   console.log('[PostPage] Received slug from params:', slug);
 
   if (!slug || typeof slug !== 'string') {

@@ -26,7 +26,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-  const categoryName = params.categoryName;
+  const currentParams = { ...params }; // Explicitly create a new object
+  const categoryName = currentParams.categoryName;
   console.log('[CategoryPage generateMetadata] Received categoryName from props.params:', categoryName);
 
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {
@@ -46,7 +47,8 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const categoryName = params.categoryName;
+  const currentParams = { ...params }; // Explicitly create a new object
+  const categoryName = currentParams.categoryName;
   console.log('[CategoryPage] Received categoryName from props.params:', categoryName);
 
   if (typeof categoryName !== 'string' || categoryName.trim() === '') {

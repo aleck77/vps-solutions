@@ -19,10 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    // Re-added for Turbopack to handle cross-origin requests from the preview environment
-    allowedDevOrigins: ["https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"]
-  },
+  // The experimental block is removed to avoid unrecognized key errors.
 };
 
 export default nextConfig;

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo, useActionState, startTransition, useRef } from 'react';
+import { useEffect, useState, useMemo, startTransition, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getAllPostsForAdmin } from '@/lib/firestoreBlog';
@@ -21,18 +21,6 @@ import { deletePostAction, deleteMultiplePostsAction } from '@/app/actions/postA
 import { unslugify } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 
-type DeleteState = {
-  success: boolean;
-  message: string;
-  errors?: any;
-} | undefined;
-
-type MultipleDeleteState = {
-  success: boolean;
-  message: string;
-  deletedCount?: number;
-  errors?: any;
-} | undefined;
 
 export default function PostsAdminPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -41,47 +29,13 @@ export default function PostsAdminPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   
+  const [isDeleting, setIsDeleting] = useState(false);
   const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false); 
   const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
 
   const { toast } = useToast();
   const selectAllCheckboxRef = useRef<HTMLButtonElement>(null);
-
-
-  const [singleDeleteState, submitSingleDeleteAction, isSingleDeletePending] = useActionState<DeleteState, string>(
-    async (previousState, postIdToDelete) => {
-      const result = await deletePostAction(postIdToDelete);
-      if (result.success) {
-        toast({ title: 'Post Deleted', description: result.message });
-        setPosts(prevPosts => prevPosts.filter(p => p.id !== postIdToDelete));
-        setSelectedPostIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(postIdToDelete);
-          return newSet;
-        });
-      } else {
-        toast({ title: 'Error Deleting Post', description: result.message, variant: 'destructive' });
-      }
-      return result;
-    },
-    undefined
-  );
-
-  const [multipleDeleteState, submitMultipleDeleteAction, isMultipleDeletePending] = useActionState<MultipleDeleteState, string[]>(
-    async (previousState, postIdsToDelete) => {
-      const result = await deleteMultiplePostsAction(postIdsToDelete);
-      if (result.success) {
-        toast({ title: 'Posts Deleted', description: result.message });
-        setPosts(prevPosts => prevPosts.filter(p => p.id && !postIdsToDelete.includes(p.id)));
-        setSelectedPostIds(new Set());
-      } else {
-        toast({ title: 'Error Deleting Posts', description: result.message, variant: 'destructive' });
-      }
-      return result;
-    },
-    undefined
-  );
 
 
   useEffect(() => {
@@ -120,12 +74,32 @@ export default function PostsAdminPage() {
   };
 
   const confirmSingleDelete = () => {
-    if (postToDelete && postToDelete.id) {
-      startTransition(() => {
-         submitSingleDeleteAction(postToDelete.id!);
-      });
-    }
-    setPostToDelete(null);
+    if (!postToDelete || !postToDelete.id) return;
+
+    const idToDelete = postToDelete.id;
+    setIsDeleting(true);
+    
+    startTransition(async () => {
+      try {
+        const result = await deletePostAction(idToDelete);
+        if (result.success) {
+          toast({ title: 'Post Deleted', description: result.message });
+          setPosts(prevPosts => prevPosts.filter(p => p.id !== idToDelete));
+          setSelectedPostIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(idToDelete);
+            return newSet;
+          });
+        } else {
+          toast({ title: 'Error Deleting Post', description: result.message, variant: 'destructive' });
+        }
+      } catch (error: any) {
+        toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
+      } finally {
+        setIsDeleting(false);
+        setPostToDelete(null);
+      }
+    });
   };
 
   const handleSelectPost = (postId: string, checked: boolean) => {
@@ -165,12 +139,28 @@ export default function PostsAdminPage() {
   };
 
   const confirmBulkDelete = () => {
-    if (selectedPostIds.size > 0) {
-      startTransition(() => {
-        submitMultipleDeleteAction(Array.from(selectedPostIds));
-      });
-    }
-    setShowBulkDeleteDialog(false); 
+    if (selectedPostIds.size === 0) return;
+
+    const idsToDelete = Array.from(selectedPostIds);
+    setIsDeleting(true);
+    setShowBulkDeleteDialog(false);
+
+    startTransition(async () => {
+      try {
+        const result = await deleteMultiplePostsAction(idsToDelete);
+        if (result.success) {
+          toast({ title: 'Posts Deleted', description: result.message });
+          setPosts(prevPosts => prevPosts.filter(p => p.id && !idsToDelete.includes(p.id)));
+          setSelectedPostIds(new Set());
+        } else {
+          toast({ title: 'Error Deleting Posts', description: result.message, variant: 'destructive' });
+        }
+      } catch (error: any) {
+        toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
+      } finally {
+        setIsDeleting(false);
+      }
+    });
   };
   
   const getCategoryDisplayName = (slug: string): string => {
@@ -254,10 +244,10 @@ export default function PostsAdminPage() {
             </div>
             {selectedPostIds.size > 0 && (
               <div className="mt-4">
-                <Button variant="destructive" onClick={handleBulkDeleteClick} disabled={isMultipleDeletePending || isSingleDeletePending}>
+                <Button variant="destructive" onClick={handleBulkDeleteClick} disabled={isDeleting}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Selected ({selectedPostIds.size})
-                  {isMultipleDeletePending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                  {isDeleting && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                 </Button>
               </div>
             )}
@@ -326,8 +316,8 @@ export default function PostsAdminPage() {
                           <FilePenLine className="h-4 w-4 mr-1" /> Edit
                         </Link>
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleSingleDeleteClick(post)} disabled={isSingleDeletePending && postToDelete?.id === post.id}>
-                        {isSingleDeletePending && postToDelete?.id === post.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />} Delete
+                      <Button variant="destructive" size="sm" onClick={() => handleSingleDeleteClick(post)} disabled={isDeleting && postToDelete?.id === post.id}>
+                        {isDeleting && postToDelete?.id === post.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />} Delete
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -351,9 +341,9 @@ export default function PostsAdminPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isSingleDeletePending}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmSingleDelete} disabled={isSingleDeletePending} className="bg-destructive hover:bg-destructive/90">
-                {isSingleDeletePending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : 'Yes, delete post'}
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSingleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                {isDeleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : 'Yes, delete post'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -370,9 +360,9 @@ export default function PostsAdminPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isMultipleDeletePending} onClick={() => setShowBulkDeleteDialog(false)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmBulkDelete} disabled={isMultipleDeletePending} className="bg-destructive hover:bg-destructive/90">
-                {isMultipleDeletePending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : `Yes, delete ${selectedPostIds.size} posts`}
+              <AlertDialogCancel disabled={isDeleting} onClick={() => setShowBulkDeleteDialog(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmBulkDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                {isDeleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : `Yes, delete ${selectedPostIds.size} posts`}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -381,3 +371,5 @@ export default function PostsAdminPage() {
     </div>
   );
 }
+
+    

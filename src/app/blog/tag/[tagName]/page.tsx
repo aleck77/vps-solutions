@@ -1,13 +1,15 @@
 
+import React, { Suspense } from 'react';
 import PostCard from '@/components/blog/PostCard';
 import type { BlogPost } from '@/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
-import { getPostsByTag, getAllUniqueTagSlugs } from '@/lib/firestoreBlog';
+import { getPostsByTag } from '@/lib/firestoreBlog';
 import { notFound } from 'next/navigation';
-import { unslugify } from '@/lib/utils'; 
+import { unslugify } from '@/lib/utils';
 import type { Metadata } from 'next';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TagPageProps {
   params: {
@@ -15,35 +17,13 @@ interface TagPageProps {
   };
 }
 
-export const dynamic = 'force-dynamic';
-
-export async function generateStaticParams() {
-  return [];
-}
-
-export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
-  const tagName = params.tagName;
-  console.log('[TagPage generateMetadata] Received tagName from props.params:', tagName);
-  const displayName = unslugify(tagName);
-  return {
-    title: `Posts tagged with "${displayName}" | VHost Solutions Blog`,
-    description: `Browse all blog posts tagged with "${displayName}" on VHost Solutions.`,
-  };
-}
-
-export default async function TagPage({ params }: TagPageProps) {
-  const tagName = params.tagName;
-  console.log('[TagPage] Received tagName from props.params:', tagName);
-
-  if (!tagName) {
-    notFound();
-  }
-
+// Async component to fetch and display the actual posts
+async function TagPostList({ tagName }: { tagName: string }) {
   const posts = await getPostsByTag(tagName);
   const displayName = unslugify(tagName);
 
   return (
-    <div className="space-y-12">
+    <>
       <section className="text-center py-12 bg-primary/5 rounded-lg">
         <h1 className="text-4xl font-bold font-headline text-primary mb-4">
           Tag: {displayName}
@@ -79,8 +59,69 @@ export default async function TagPage({ params }: TagPageProps) {
           <RecommendedPosts currentPostId={null} />
         </aside>
       </div>
+    </>
+  );
+}
+
+// Skeleton component for loading state
+function TagPageSkeleton() {
+  return (
+    <div className="space-y-12">
+      <section className="text-center py-12 bg-primary/5 rounded-lg">
+        <Skeleton className="h-10 w-1/2 mx-auto mb-4" />
+        <Skeleton className="h-6 w-3/4 mx-auto" />
+      </section>
+       <div className="grid md:grid-cols-12 gap-8">
+        <div className="md:col-span-9">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, index) => (
+                <div key={index} className="flex flex-col space-y-3 p-4 border rounded-lg shadow-lg">
+                  <Skeleton className="h-48 w-full rounded-md" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+        </div>
+        <aside className="md:col-span-3 space-y-6">
+          <Skeleton className="h-64 w-full rounded-lg" />
+        </aside>
+      </div>
     </div>
   );
 }
 
-export const revalidate = 60;
+export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
+  const { tagName } = params;
+  if (!tagName) return { title: 'Blog Tag' };
+  
+  const displayName = unslugify(tagName);
+  return {
+    title: `Posts tagged with "${displayName}" | VHost Solutions Blog`,
+    description: `Browse all blog posts tagged with "${displayName}" on VHost Solutions.`,
+  };
+}
+
+// Main page component is now synchronous
+export default function TagPage({ params }: TagPageProps) {
+  const { tagName } = params;
+
+  if (!tagName) {
+    notFound();
+  }
+
+  return (
+    <Suspense fallback={<TagPageSkeleton />}>
+      <TagPostList tagName={tagName} />
+    </Suspense>
+  );
+}
+
+export const dynamic = 'force-dynamic';
+
+export async function generateStaticParams() {
+  return [];
+}

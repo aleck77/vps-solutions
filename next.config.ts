@@ -19,7 +19,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // experimental.allowedDevOrigins removed as it's specific to Turbopack and not recognized by Webpack
+  experimental: {
+    // Re-added for Turbopack to handle cross-origin requests from the preview environment
+    allowedDevOrigins: ["https://9000-firebase-studio-1749175060262.cluster-jbb3mjctu5cbgsi6hwq6u4btwe.cloudworkstations.dev"]
+  },
 };
 
 export default nextConfig;

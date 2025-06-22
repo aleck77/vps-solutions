@@ -1,11 +1,13 @@
 
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPostBySlug } from '@/lib/firestoreBlog'; // getPostBySlug теперь будет принимать params
+import { getPostBySlug } from '@/lib/firestoreBlog';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import { CalendarDays, UserCircle, Tag } from 'lucide-react';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PostPageProps {
   params: {
@@ -13,68 +15,13 @@ interface PostPageProps {
   };
 }
 
-export const dynamic = 'force-dynamic';
-
-export async function generateStaticParams() {
-  // Возвращаем пустой массив, чтобы Next.js не пытался ничего предрендерить,
-  // все будет генерироваться динамически.
-  return [];
-}
-
-export async function generateMetadata(
-  { params }: PostPageProps
-): Promise<Metadata> {
-  // Передаем весь объект params в getPostBySlug
-  // const slug = params.slug; // Убираем прямой доступ здесь
-  console.log('[generateMetadata] Received params object:', JSON.stringify(params));
-
-  if (!params || typeof params.slug !== 'string' || params.slug.trim() === '') {
-    console.warn('[generateMetadata] Slug is missing or invalid in params:', params);
-    return { title: 'Post Not Found' };
-  }
-  
-  const post = await getPostBySlug(params); // Передаем params
-  if (!post) {
-    return {
-      title: 'Post Not Found | VHost Solutions',
-      description: 'The blog post you are looking for could not be found.',
-    };
-  }
-  return {
-    title: `${post.title} | VHost Solutions Blog`,
-    description: post.excerpt,
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      type: 'article',
-      // @ts-ignore
-      publishedTime: new Date(post.date as any).toISOString(),
-      authors: [post.author],
-      images: [{ url: post.imageUrl }],
-    },
-  };
-}
-
-export default async function PostPage(
-  { params }: PostPageProps
-): Promise<JSX.Element> {
-  // Передаем весь объект params в getPostBySlug
-  // const slug = params.slug; // Убираем прямой доступ здесь
-  console.log('[PostPage] Received params object:', JSON.stringify(params));
-
-  if (!params || typeof params.slug !== 'string' || params.slug.trim() === '') {
-    console.error('[PostPage] Slug is missing or invalid in params:', params);
-    notFound();
-  }
-
-  const post = await getPostBySlug(params); // Передаем params
+// Async component to fetch and display the actual post data
+async function PostDisplay({ slug }: { slug: string }) {
+  const post = await getPostBySlug(slug);
 
   if (!post) {
-    console.log(`[PostPage] Post with params "${JSON.stringify(params)}" not found, rendering notFound().`);
     notFound();
   }
-  
-  console.log(`[PostPage] Rendering post: "${post.title}"`);
 
   return (
     <div className="grid md:grid-cols-12 gap-8 items-start">
@@ -95,9 +42,9 @@ export default async function PostPage(
               <div className="mt-4 text-sm">
                 <strong className="text-muted-foreground">Tags:</strong>
                 {post.tags.map(tag => (
-                  <a 
-                    key={tag} 
-                    href={`/blog/tag/${tag.toLowerCase().replace(/\s+/g, '-')}`} 
+                  <a
+                    key={tag}
+                    href={`/blog/tag/${tag.toLowerCase().replace(/\s+/g, '-')}`}
                     className="ml-2 px-2.5 py-1 bg-muted text-muted-foreground rounded-full hover:bg-accent/20 hover:text-accent transition-colors text-xs font-medium"
                   >
                     {tag}
@@ -119,9 +66,9 @@ export default async function PostPage(
               />
             </div>
           )}
-          <div 
+          <div
             className="prose-p:text-foreground prose-headings:text-primary prose-strong:text-foreground prose-a:text-accent hover:prose-a:text-accent/80"
-            dangerouslySetInnerHTML={{ __html: post.content }} 
+            dangerouslySetInnerHTML={{ __html: post.content }}
           />
         </article>
         <div className="mt-8">
@@ -129,12 +76,78 @@ export default async function PostPage(
         </div>
       </div>
       <aside className="md:col-span-3 space-y-6 sticky top-24">
-        {/* @ts-ignore TODO: fix currentPostContent or type of RecommendedPostsProps */}
         <RecommendedPosts currentPostId={post.id} currentPostContent={post.content} />
       </aside>
     </div>
   );
 }
 
-export const revalidate = 60;
-    
+// Skeleton component for loading state
+function PostSkeleton() {
+  return (
+    <div className="grid md:grid-cols-12 gap-8 items-start">
+      <div className="md:col-span-9 space-y-8">
+        <div className="prose dark:prose-invert lg:prose-xl max-w-none bg-card p-6 sm:p-8 rounded-lg shadow-lg">
+          <Skeleton className="h-10 w-3/4 mb-4" />
+          <div className="flex gap-4 mb-6">
+            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-5 w-1/4" />
+          </div>
+          <Skeleton className="w-full aspect-[16/9] rounded-md mb-8" />
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+        </div>
+      </div>
+      <aside className="md:col-span-3 space-y-6 sticky top-24">
+         <Skeleton className="h-64 w-full rounded-lg" />
+      </aside>
+    </div>
+  );
+}
+
+export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
+  const slug = params.slug;
+  if (!slug) return { title: 'Post Not Found' };
+
+  const post = await getPostBySlug(slug);
+  if (!post) {
+    return {
+      title: 'Post Not Found | VHost Solutions',
+      description: 'The blog post you are looking for could not be found.',
+    };
+  }
+  return {
+    title: `${post.title} | VHost Solutions Blog`,
+    description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      type: 'article',
+      // @ts-ignore
+      publishedTime: new Date(post.date as any).toISOString(),
+      authors: [post.author],
+      images: [{ url: post.imageUrl }],
+    },
+  };
+}
+
+// Main page component is now synchronous
+export default function PostPage({ params }: PostPageProps) {
+  const { slug } = params;
+
+  return (
+    <Suspense fallback={<PostSkeleton />}>
+      <PostDisplay slug={slug} />
+    </Suspense>
+  );
+}
+
+export const dynamic = 'force-dynamic';
+
+export async function generateStaticParams() {
+  return [];
+}

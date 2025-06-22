@@ -52,32 +52,24 @@ export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
   }
 }
 
-// Modified to accept params object
-export async function getPostBySlug(params: { slug: string }): Promise<BlogPost | null> {
-  const slug = params.slug;
-  console.log(`[firestoreBlog/getPostBySlug] Received slug: ${slug} from params object`);
+// Reverted to accept a simple string slug
+export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
+  console.log(`[firestoreBlog/getPostBySlug] Received slug: ${slug}`);
   const db = getDb(); // Use client SDK for public reads
   try {
     const postsCollection = collection(db, 'posts');
-    // First, try to find a published post with the slug
     const qPublished = query(postsCollection, where('slug', '==', slug), where('published', '==', true), limit(1));
     const querySnapshotPublished = await getDocs(qPublished);
     if (!querySnapshotPublished.empty) {
       return processPostDocument(querySnapshotPublished.docs[0]);
     }
 
-    // If no published post is found, try to find any post with the slug (e.g., a draft, for admin previews or direct access if logic allows)
-    // This part might be adjusted based on desired behavior for non-published posts.
-    // For now, we assume if a slug exists, it should be findable, but publish status is checked first for public views.
     const qAny = query(postsCollection, where('slug', '==', slug), limit(1));
     const querySnapshotAny = await getDocs(qAny);
     if (querySnapshotAny.empty) {
       console.log(`[firestoreBlog/getPostBySlug] No post found with slug: ${slug}`);
       return null;
     }
-    // If found, but not published, it implies it's a draft or otherwise not public.
-    // The calling function (e.g., page component) might decide what to do (e.g., show 404 for public, allow for admin)
-    // For now, we return it, and the page logic handles visibility/notFound.
     console.log(`[firestoreBlog/getPostBySlug] Found a post (possibly not published) with slug: ${slug}`);
     return processPostDocument(querySnapshotAny.docs[0]);
   } catch (error) {
@@ -105,7 +97,7 @@ export async function getPostByIdForEditing(postId: string): Promise<BlogPost | 
 
 
 export async function getPostsByCategory(categorySlug: string): Promise<BlogPost[]> {
-  const db = getDb(); 
+  const db = getDb();
   try {
     const postsCollection = collection(db, 'posts');
     const q = query(
@@ -235,25 +227,8 @@ export async function getRecommendedPosts(currentPostId: string | null, count: n
   }
 }
 
-// processPostDocWithCategory is no longer used with the new getPostBySlug logic that fetches based on slug directly.
-// Keeping it commented out for now, can be removed if definitely not needed.
-/*
-export const processPostDocWithCategory = async (docSnapshot: any): Promise<BlogPost> => {
-  const postData = docSnapshot.data();
-  return {
-    id: docSnapshot.id,
-    ...postData,
-    category: postData.category, // Assuming category slug is stored
-    date: postData.date instanceof Timestamp ? postData.date.toDate() : (postData.date?._seconds ? new Timestamp(postData.date._seconds, postData.date._nanoseconds).toDate() : new Date(postData.date)),
-    createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : (postData.createdAt?._seconds ? new Timestamp(postData.createdAt._seconds, postData.createdAt._nanoseconds).toDate() : new Date(postData.createdAt)),
-    updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : (postData.updatedAt?._seconds ? new Timestamp(postData.updatedAt._seconds, postData.updatedAt._nanoseconds).toDate() : new Date(postData.updatedAt)),
-    tags: postData.tags || [],
-  } as BlogPost;
-};
-*/
-
 export async function addBlogPost(postData: NewBlogPost): Promise<string | null> {
-  const adminDb = await getAdminFirestore(); 
+  const adminDb = await getAdminFirestore();
   try {
     const postsCollection = adminDb.collection('posts');
     const docRef = await postsCollection.add({
@@ -274,12 +249,12 @@ export async function updateBlogPost(
   postId: string,
   postData: Partial<Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'date'>>
 ): Promise<{ success: boolean; oldPost?: BlogPost | null }> {
-  const adminDb = await getAdminFirestore(); 
-  const clientDb = getDb(); 
+  const adminDb = await getAdminFirestore();
+  const clientDb = getDb();
 
   const postRefAdmin = adminDb.collection('posts').doc(postId);
   const postRefClient = doc(clientDb, 'posts', postId);
-  
+
   let oldPostForRevalidation: BlogPost | null = null;
 
   try {
@@ -291,7 +266,7 @@ export async function updateBlogPost(
     await postRefAdmin.update({
       ...postData,
       tags: postData.tags || [],
-      updatedAt: AdminFieldValue.serverTimestamp(), 
+      updatedAt: AdminFieldValue.serverTimestamp(),
     });
 
     return { success: true, oldPost: oldPostForRevalidation };
@@ -300,4 +275,3 @@ export async function updateBlogPost(
     return { success: false, oldPost: null };
   }
 }
-    

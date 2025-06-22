@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useActionState, startTransition } from 'react'; // Добавлен startTransition
+import { useState, startTransition } from 'react';
 import { useAuth } from '@/lib/authContext';
 import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -37,10 +37,10 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleSeedDatabase = () => { // Убрал async, так как startTransition работает с промисами
+  const handleSeedDatabase = () => {
     setIsSeeding(true);
     console.log('[AdminDashboardPage] Calling seedDatabaseAction...');
-    startTransition(async () => { // Обертка в startTransition
+    startTransition(async () => {
       try {
         const result = await seedDatabaseAction();
         console.log('[AdminDashboardPage] seedDatabaseAction result:', result);
@@ -58,11 +58,11 @@ export default function AdminDashboardPage() {
     });
   };
 
-  const handleTestBasicGeneration = () => { // Убрал async
+  const handleTestBasicGeneration = () => {
     setIsTestingGen(true);
     setTestGenResult(null);
     console.log('[AdminDashboardPage] Calling testBasicGeneration...');
-    startTransition(async () => { // Обертка в startTransition
+    startTransition(async () => {
       try {
         const result: TestBasicGenerationOutput = await testBasicGeneration();
         console.log('[AdminDashboardPage] testBasicGeneration result:', result);
@@ -175,4 +175,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-    

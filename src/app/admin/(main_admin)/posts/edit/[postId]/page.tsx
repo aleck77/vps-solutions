@@ -72,6 +72,10 @@ export default function EditPostPage() {
     },
     mode: 'onChange',
   });
+  
+  const [state, formAction] = useActionState(updatePostAction.bind(null, postId), undefined);
+
+  const isPendingSubmit = form.formState.isSubmitting;
 
   const titleValue = form.watch('title');
   const currentSlugValue = form.watch('slug');
@@ -140,44 +144,40 @@ export default function EditPostPage() {
     fetchPost();
   }, [postId, form, router, toast]);
 
-  const [state, formAction, isPendingSubmit] = useActionState(updatePostAction.bind(null, postId), undefined);
-
   useEffect(() => {
     if (state?.success === false && state.message) {
       toast({
         title: 'Error Updating Post',
-        description: state.message + (state.errors ? ` ${state.errors.map(e => e.message).join(', ')}` : ''),
+        description: state.message + (state.errors ? ` ${state.errors.map((e: any) => e.message).join(', ')}` : ''),
         variant: 'destructive',
       });
     }
+    // No success redirect here, as useActionState handles redirect from the server action
   }, [state, toast]);
 
-  // Removed custom onSubmit, formAction from useActionState will be passed directly to handleSubmit
-  // const onSubmit = async (data: PostFormValues) => {
-  //   formAction(data);
-  // };
-
-  const handleGenerateTitles = async () => {
+  const handleGenerateTitles = () => {
     if (!topicForTitle.trim()) {
       toast({ title: 'Info', description: 'Please enter a topic to generate titles.', variant: 'default' });
       return;
     }
     setIsGeneratingTitles(true);
     setGeneratedTitles([]);
-    try {
-      const result = await generatePostTitle({ topic: topicForTitle, count: 3 });
-      if (result.titles && result.titles.length > 0 && !result.titles[0].startsWith("AI title generation failed")) {
-        setGeneratedTitles(result.titles);
-      } else if (result.titles && result.titles[0].startsWith("AI title generation failed")) {
-        toast({ title: 'AI Error', description: result.titles[0], variant: 'destructive' });
-      } else {
-         toast({ title: 'AI Error', description: 'Failed to generate titles: No titles returned.', variant: 'destructive' });
+    startTransition(async () => {
+      try {
+        const result = await generatePostTitle({ topic: topicForTitle, count: 3 });
+        if (result.titles && result.titles.length > 0 && !result.titles[0].startsWith("AI title generation failed")) {
+          setGeneratedTitles(result.titles);
+        } else if (result.titles && result.titles[0].startsWith("AI title generation failed")) {
+          toast({ title: 'AI Error', description: result.titles[0], variant: 'destructive' });
+        } else {
+           toast({ title: 'AI Error', description: 'Failed to generate titles: No titles returned.', variant: 'destructive' });
+        }
+      } catch (error: any) {
+        toast({ title: 'AI Error', description: `Failed to generate titles: ${error.message || 'Unknown error'}`, variant: 'destructive' });
+      } finally {
+        setIsGeneratingTitles(false);
       }
-    } catch (error: any) {
-      toast({ title: 'AI Error', description: `Failed to generate titles: ${error.message || 'Unknown error'}`, variant: 'destructive' });
-    } finally {
-      setIsGeneratingTitles(false);
-    }
+    });
   };
 
   const handleSelectTitle = (selectedTitle: string) => {
@@ -187,47 +187,38 @@ export default function EditPostPage() {
     setGeneratedTitles([]);
   };
 
-  const handleGenerateContent = async () => {
+  const handleGenerateContent = () => {
     const titleForContentPrompt = aiContentTopic.trim() || form.getValues('title').trim();
     if (!titleForContentPrompt) {
       toast({ title: 'Info', description: 'Please provide a title or topic for content generation.', variant: 'default' });
       return;
     }
     setIsGeneratingContent(true);
-    try {
-      const keywordsArray = aiContentKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
-      const result = await generatePostContent({
-        title: titleForContentPrompt,
-        topic: aiContentTopic.trim() ? aiContentTopic.trim() : undefined,
-        keywords: keywordsArray.length > 0 ? keywordsArray : undefined,
-        length: aiContentLength,
-        outputFormat: 'markdown_basic' // Request Markdown
-      });
-      if (result.content && !result.content.startsWith("AI content generation failed")) {
-        form.setValue('content', result.content, { shouldValidate: true }); // Set Markdown content
-        toast({ title: 'Content Generated', description: 'AI has generated content in Markdown format. It will be converted to HTML on save.' });
-      } else {
-        toast({ title: 'AI Error', description: result.content || 'Failed to generate content.', variant: 'destructive' });
+    startTransition(async () => {
+      try {
+        const keywordsArray = aiContentKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+        const result = await generatePostContent({
+          title: titleForContentPrompt,
+          topic: aiContentTopic.trim() ? aiContentTopic.trim() : undefined,
+          keywords: keywordsArray.length > 0 ? keywordsArray : undefined,
+          length: aiContentLength,
+          outputFormat: 'markdown_basic' // Request Markdown
+        });
+        if (result.content && !result.content.startsWith("AI content generation failed")) {
+          form.setValue('content', result.content, { shouldValidate: true }); // Set Markdown content
+          toast({ title: 'Content Generated', description: 'AI has generated content in Markdown format. It will be converted to HTML on save.' });
+        } else {
+          toast({ title: 'AI Error', description: result.content || 'Failed to generate content.', variant: 'destructive' });
+        }
+      } catch (error: any) {
+        toast({ title: 'AI Error', description: `Failed to generate content: ${error.message || 'Unknown error'}`, variant: 'destructive' });
+      } finally {
+        setIsGeneratingContent(false);
       }
-    } catch (error: any) {
-      toast({ title: 'AI Error', description: `Failed to generate content: ${error.message || 'Unknown error'}`, variant: 'destructive' });
-    } finally {
-      setIsGeneratingContent(false);
-    }
+    });
   };
   
-  function dataURItoBlob(dataURI: string): Blob {
-    const byteString = atob(dataURI.split(',')[1]);
-    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([ab], { type: mimeString });
-  }
-
-  const handleGenerateImage = async () => {
+  const handleGenerateImage = () => {
     if (!imagePrompt.trim()) {
       toast({ title: 'Info', description: 'Please enter a topic or prompt for the image.', variant: 'default' });
       return;
@@ -235,25 +226,27 @@ export default function EditPostPage() {
     setIsGeneratingImage(true);
     setAiGeneratedPreviewUri(null);
     setImageGenError(null);
-    try {
-      const result = await generatePostImage({ prompt: imagePrompt });
-      if (result.imageDataUri) {
-        setAiGeneratedPreviewUri(result.imageDataUri);
-        toast({ title: 'Success', description: 'Image generated! Now you can upload it or clear it.' });
-      } else {
-        setImageGenError(result.error || 'Image generation failed: No image data received.');
-        toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
+    startTransition(async () => {
+      try {
+        const result = await generatePostImage({ prompt: imagePrompt });
+        if (result.imageDataUri) {
+          setAiGeneratedPreviewUri(result.imageDataUri);
+          toast({ title: 'Success', description: 'Image generated! Now you can upload it or clear it.' });
+        } else {
+          setImageGenError(result.error || 'Image generation failed: No image data received.');
+          toast({ title: 'AI Image Error', description: result.error || 'Image generation failed.', variant: 'destructive' });
+        }
+      } catch (error: any) {
+        const errMsg = error.message || 'Unknown error during image generation.';
+        setImageGenError(errMsg);
+        toast({ title: 'AI Image Error', description: errMsg, variant: 'destructive' });
+      } finally {
+        setIsGeneratingImage(false);
       }
-    } catch (error: any) {
-      const errMsg = error.message || 'Unknown error during image generation.';
-      setImageGenError(errMsg);
-      toast({ title: 'AI Image Error', description: errMsg, variant: 'destructive' });
-    } finally {
-      setIsGeneratingImage(false);
-    }
+    });
   };
 
-  const handleUploadGeneratedImage = async () => {
+  const handleUploadGeneratedImage = () => {
     if (!aiGeneratedPreviewUri) {
       toast({ title: 'Info', description: 'Please generate an image first.', variant: 'default' });
       return;
@@ -267,69 +260,61 @@ export default function EditPostPage() {
     setIsUploadingImage(true);
     setUploadError(null);
 
-    try {
-      const postTitleSlug = slugify(postTitle) || 'untitled-image';
-      const timestamp = Date.now();
-      const filename = `${postTitleSlug}-${timestamp}.png`;
-
-      const payload = {
-        imageDataUri: aiGeneratedPreviewUri,
-        postTitle: postTitle,
-        filename: filename,
-      };
-      
-      console.log('[handleUploadGeneratedImage] Sending to n8n:', JSON.stringify(payload, (k,v) => k === "imageDataUri" ? v.substring(0,50) + "..." : v));
-
-      const response = await fetch('https://n8n.artelegis.com.ua/webhook/wp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await response.text();
-      console.log('[handleUploadGeneratedImage] Raw response from n8n:', responseText);
-
-      if (!response.ok) {
-        let errorDetail = `HTTP error! status: ${response.status}. Raw Response: ${responseText.substring(0, 500)}`;
-        try {
-          const errorJson = JSON.parse(responseText);
-          errorDetail = errorJson.error || errorJson.message || JSON.stringify(errorJson);
-        } catch (e) { /* Not JSON */ }
-        throw new Error(`Upload failed: ${errorDetail}`);
-      }
-      
-      let result;
+    startTransition(async () => {
       try {
-        result = JSON.parse(responseText);
-        console.log('[handleUploadGeneratedImage] Parsed n8n response:', result);
-      } catch (jsonError: any) {
-        console.error('[handleUploadGeneratedImage] Failed to parse n8n response as JSON:', jsonError.message);
-        throw new Error(`Upload failed: Could not parse JSON response from server. Server said: ${responseText.substring(0,500)}`);
-      }
+        const postTitleSlug = slugify(postTitle) || 'untitled-image';
+        const timestamp = Date.now();
+        const filename = `${postTitleSlug}-${timestamp}.png`;
 
-      if (result && typeof result.success === 'boolean') {
-        if (result.success) {
-          if (result.imageUrl) {
+        const payload = {
+          imageDataUri: aiGeneratedPreviewUri,
+          postTitle: postTitle,
+          filename: filename,
+        };
+        
+        const response = await fetch('https://n8n.artelegis.com.ua/webhook/wp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+          let errorDetail = `HTTP error! status: ${response.status}. Raw Response: ${responseText.substring(0, 500)}`;
+          try {
+            const errorJson = JSON.parse(responseText);
+            errorDetail = errorJson.error || errorJson.message || JSON.stringify(errorJson);
+          } catch (e) { /* Not JSON */ }
+          throw new Error(`Upload failed: ${errorDetail}`);
+        }
+        
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (jsonError: any) {
+          throw new Error(`Upload failed: Could not parse JSON response from server. Server said: ${responseText.substring(0,500)}`);
+        }
+
+        if (result && typeof result.success === 'boolean') {
+          if (result.success && result.imageUrl) {
             form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
             setAiGeneratedPreviewUri(null);
             toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
           } else {
-            toast({ title: 'Upload Acknowledged', description: result.message || 'n8n confirmed receipt, but no imageUrl returned. Form not updated.' });
+            throw new Error(result.error || result.message || 'Upload failed: n8n reported an error.');
           }
         } else {
-          throw new Error(result.error || result.message || 'Upload failed: n8n reported an error.');
+           throw new Error('Upload failed: Invalid response structure from server.');
         }
-      } else {
-         console.error('[handleUploadGeneratedImage] n8n response JSON does not have a boolean "success" field. Response:', result);
-         throw new Error('Upload failed: Invalid response structure from server. Expected a "success" field.');
+      } catch (error: any) {
+        const detailedError = error.message || 'An unknown error occurred during upload.';
+        setUploadError(detailedError);
+        toast({ title: 'Upload Failed', description: detailedError, variant: 'destructive' });
+      } finally {
+        setIsUploadingImage(false);
       }
-    } catch (error: any) {
-      const detailedError = error.message || 'An unknown error occurred during upload.';
-      setUploadError(detailedError);
-      toast({ title: 'Upload Failed', description: detailedError, variant: 'destructive' });
-    } finally {
-      setIsUploadingImage(false);
-    }
+    });
   };
 
   const handleClearAiImage = () => {
@@ -439,8 +424,12 @@ export default function EditPostPage() {
           </div>
 
           <Form {...form}>
-            {/* Pass formAction directly to handleSubmit */}
-            <form onSubmit={form.handleSubmit(formAction)} className="space-y-8">
+            <form action={formAction} onSubmit={(evt) => {
+              evt.preventDefault();
+              form.handleSubmit(() => {
+                formAction(form.getValues());
+              })(evt);
+            }} className="space-y-8">
               <FormField
                 control={form.control}
                 name="title"
@@ -610,7 +599,6 @@ export default function EditPostPage() {
                 )}
               />
 
-              {/* AI Content Generation Section */}
               <div className="space-y-4 p-4 border rounded-lg shadow-sm bg-muted/30">
                 <Label className="font-semibold text-lg">AI Content Helper</Label>
                 <FormItem>

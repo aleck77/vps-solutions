@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/firestoreBlog';
 import type { BlogPost } from '@/types';
@@ -11,6 +12,7 @@ import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Skeleton component for loading state
 function PostSkeleton() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -74,13 +76,8 @@ export default function PostPage() {
     return <PostSkeleton />;
   }
 
-  if (error) {
-    // Optionally render a custom error component
+  if (error || !post) {
     notFound();
-  }
-  
-  if (!post) {
-      return notFound();
   }
 
   return (

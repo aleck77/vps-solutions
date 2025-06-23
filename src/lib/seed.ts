@@ -1,13 +1,26 @@
 
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
-import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, BlogCategoryType } from '@/types';
+import type { BlogCategoryType } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
+import { marked } from 'marked';
+
+// Define a simple, correct interface for our mock data structure
+interface MockPostData {
+  slug: string;
+  title: string;
+  date: string;
+  author: string;
+  category: BlogCategoryType;
+  excerpt: string;
+  content: string; // Content is now raw markdown
+  tags: string[];
+  dataAiHint?: string;
+}
 
 // Define mockPosts structure directly here or import if it's substantial
-const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 'published' | 'tags' | 'category' | 'imageUrl'> & { date: string, category: BlogCategoryType, tags: string[] }[] = [
+const mockPostsData: MockPostData[] = [
   {
     slug: 'getting-started-with-ai',
     title: 'Getting Started with AI in Your Projects',
@@ -15,7 +28,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     author: 'AI Enthusiast',
     category: 'AI',
     excerpt: 'A beginner-friendly guide to integrating AI into your applications and workflows.',
-    content: '<p>Full content about getting started with AI...</p><p>More details here.</p>',
+    content: 'Full content about getting started with AI...',
     tags: ['AI', 'Machine Learning', 'Beginners Guide'],
     dataAiHint: 'artificial intelligence',
   },
@@ -26,7 +39,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     author: 'No-Coder Jane',
     category: 'No-code',
     excerpt: 'Explore how no-code platforms are empowering creators to build powerful applications.',
-    content: '<p>Detailed exploration of no-code platforms and their impact...</p>',
+    content: 'Detailed exploration of no-code platforms and their impact...',
     tags: ['No-code', 'App Development', 'Productivity Tools'],
     dataAiHint: 'visual programming',
   },
@@ -37,7 +50,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     author: 'Code Master Flex',
     category: 'Vibe coding',
     excerpt: 'Dive into the latest trends and best practices in vibe coding for 2024.',
-    content: '<p>Comprehensive guide to modern vibe coding...</p>',
+    content: 'Comprehensive guide to modern vibe coding...',
     tags: ['JavaScript', 'React Framework', 'Next.js Guide', 'CSS Styling'],
     dataAiHint: 'web development',
   },
@@ -48,7 +61,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     author: 'Automation Ally',
     category: 'Automation',
     excerpt: 'Discover tools and strategies to automate repetitive tasks and boost efficiency.',
-    content: '<p>Practical automation tips for small businesses...</p>',
+    content: 'Practical automation tips for small businesses...',
     tags: ['Automation Software', 'Small Business Tips', 'Productivity Hacks'],
     dataAiHint: 'business automation',
   },
@@ -59,7 +72,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     author: 'Tool Time Tim',
     category: 'Tools',
     excerpt: 'A curated list of indispensable tools that every developer should know.',
-    content: '<p>List and review of top developer tools...</p>',
+    content: 'List and review of top developer tools...',
     tags: ['Developer Tools', 'Software Development IDE', 'Version Control Systems'],
     dataAiHint: 'coding tools',
   },
@@ -70,7 +83,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
     author: 'Cloudy McCloudface',
     category: 'Cloud Hosting',
     excerpt: 'A guide to navigating the options and selecting the best cloud hosting provider.',
-    content: '<p>In-depth analysis of cloud hosting options...</p>',
+    content: 'In-depth analysis of cloud hosting options...',
     tags: ['Cloud Hosting Services', 'VPS Hosting', 'Infrastructure as a Service', 'Platform as a Service'],
     dataAiHint: 'server hosting',
   },
@@ -90,25 +103,27 @@ export async function seedDatabase() {
     console.log('[seedDatabase] Posts collection is not empty. Skipping posts seeding.');
   } else {
     const postsBatch = adminDb.batch();
-    mockPostsData.forEach((postData) => {
-      const postRef = postsCollection.doc(); 
-      const processedTags = postData.tags.map(tag => slugify(tag.trim())).filter(tag => tag.length > 0);
-      
-      // Generate a dynamic Unsplash URL based on the data-ai-hint
-      const imageUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(postData.dataAiHint || 'technology')}`;
+    for (const postData of mockPostsData) {
+        const postRef = postsCollection.doc();
+        const processedTags = postData.tags.map(tag => slugify(tag.trim())).filter(tag => tag.length > 0);
+        const imageUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(postData.dataAiHint || 'technology')}`;
+        
+        // Parse markdown content to HTML before seeding
+        const htmlContent = await marked.parse(postData.content);
 
-      const postToSeed = {
-        ...postData,
-        imageUrl: imageUrl, // Use the generated Unsplash URL
-        category: slugify(postData.category),
-        tags: processedTags,
-        date: new Date(postData.date),
-        published: true,
-        createdAt: nowJSDate,
-        updatedAt: nowJSDate,
-      };
-      postsBatch.set(postRef, postToSeed);
-    });
+        const postToSeed = {
+            ...postData,
+            content: htmlContent, // Store parsed HTML
+            imageUrl: imageUrl,
+            category: slugify(postData.category),
+            tags: processedTags,
+            date: new Date(postData.date),
+            published: true,
+            createdAt: nowJSDate,
+            updatedAt: nowJSDate,
+        };
+        postsBatch.set(postRef, postToSeed);
+    }
     await postsBatch.commit();
     console.log(`[seedDatabase] ${mockPostsData.length} posts have been seeded with Unsplash images.`);
   }

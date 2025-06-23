@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import { deletePostAction, deleteMultiplePostsAction } from '@/app/actions/postActions';
 import { unslugify } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { Timestamp } from 'firebase/firestore';
+
 
 export default function PostsAdminPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -298,7 +300,7 @@ export default function PostsAdminPage() {
                     <TableCell className="font-medium max-w-xs truncate" title={post.title}>{post.title}</TableCell>
                     <TableCell>{getCategoryDisplayName(post.category)}</TableCell>
                     <TableCell>{post.author}</TableCell>
-                    <TableCell>{post.date.toLocaleDateString()}</TableCell>
+                    <TableCell>{(post.date instanceof Date ? post.date : post.date.toDate()).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Badge variant={post.published ? 'default' : 'secondary'} className="flex items-center w-fit">
                         {post.published ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}

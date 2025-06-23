@@ -81,7 +81,7 @@ export default function PostPage() {
   }
 
   return (
-    <div className="grid md:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
         <div className="md:col-span-8 lg:col-span-9">
             <article className="prose dark:prose-invert lg:prose-xl max-w-none bg-card p-6 sm:p-8 rounded-lg shadow-lg">
                 <header className="mb-8 border-b pb-6">
@@ -120,7 +120,7 @@ export default function PostPage() {
                 <EditPostLinkClient postId={post.id} />
             </div>
         </div>
-        <aside className="md:col-span-4 lg:col-span-3 space-y-6 sticky top-24">
+        <aside className="md:col-span-4 lg:col-span-3 space-y-6 md:sticky top-24">
              <RecommendedPosts currentPostId={post.id!} currentPostContent={post.content} />
         </aside>
     </div>

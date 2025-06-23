@@ -23,7 +23,7 @@ import { mockVpsPlans } from '@/data/vpsPlans';
 import type { VPSPlan } from '@/types';
 import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-
+import { Skeleton } from '@/components/ui/skeleton';
 const orderFormSchema = z.object({
   planId: z.string().min(1, { message: 'Please select a VPS plan.' }),
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -78,7 +78,52 @@ async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan 
   return { success: true, orderId: orderId };
 }
 
-export default function OrderPage() {
+function OrderPageSkeleton() {
+  return (
+    <div className="space-y-12">
+      <section className="text-center py-12 bg-primary/5 rounded-lg">
+        <Skeleton className="h-10 w-1/2 mx-auto mb-4" />
+        <Skeleton className="h-5 w-3/4 mx-auto" />
+      </section>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="md:col-span-2 space-y-4">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-8 w-1/2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <Skeleton className="h-12 w-full mt-4" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="space-y-4">
+           <Card className="shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-1/2 mb-4" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function OrderPageComponent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const initialPlanId = searchParams.get('plan') || (mockVpsPlans.length > 0 ? mockVpsPlans[0].id : '');
@@ -166,7 +211,7 @@ export default function OrderPage() {
         </p>
       </section>
 
-      <div className="grid md:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
         <Card className="md:col-span-2 shadow-lg">
           <CardHeader>
             <CardTitle className="font-headline text-2xl text-primary flex items-center">
@@ -277,7 +322,7 @@ export default function OrderPage() {
         </Card>
 
         {selectedPlan && (
-          <Card className="sticky top-24 shadow-lg">
+          <Card className="md:sticky top-24 shadow-lg">
             <CardHeader>
               <CardTitle className="font-headline text-xl text-primary">{selectedPlan.name}</CardTitle>
               <CardDescription>Summary of your selected plan.</CardDescription>
@@ -308,7 +353,7 @@ export default function OrderPage() {
           </Card>
         )}
          {!selectedPlan && mockVpsPlans.length > 0 && (
-          <Card className="sticky top-24 shadow-lg">
+          <Card className="md:sticky top-24 shadow-lg">
             <CardHeader>
               <CardTitle className="font-headline text-xl text-primary">Select a Plan</CardTitle>
               <CardDescription>Choose a plan to see its details here.</CardDescription>

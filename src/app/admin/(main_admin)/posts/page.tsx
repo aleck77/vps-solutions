@@ -21,7 +21,6 @@ import { deletePostAction, deleteMultiplePostsAction } from '@/app/actions/postA
 import { unslugify } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 
-
 export default function PostsAdminPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +35,6 @@ export default function PostsAdminPage() {
 
   const { toast } = useToast();
   const selectAllCheckboxRef = useRef<HTMLButtonElement>(null);
-
 
   useEffect(() => {
     async function fetchPosts() {
@@ -72,14 +70,13 @@ export default function PostsAdminPage() {
   const handleSingleDeleteClick = (post: BlogPost) => {
     setPostToDelete(post);
   };
-
-  const confirmSingleDelete = () => {
+  
+  const handleConfirmSingleDelete = () => {
     if (!postToDelete || !postToDelete.id) return;
-
     const idToDelete = postToDelete.id;
-    setIsDeleting(true);
     
     startTransition(async () => {
+      setIsDeleting(true);
       try {
         const result = await deletePostAction(idToDelete);
         if (result.success) {
@@ -131,21 +128,18 @@ export default function PostsAdminPage() {
     }
   }, [isIndeterminate, isAllSelected]);
 
-
   const handleBulkDeleteClick = () => {
     if (selectedPostIds.size > 0) {
       setShowBulkDeleteDialog(true); 
     }
   };
 
-  const confirmBulkDelete = () => {
+  const handleConfirmBulkDelete = () => {
     if (selectedPostIds.size === 0) return;
-
     const idsToDelete = Array.from(selectedPostIds);
-    setIsDeleting(true);
-    setShowBulkDeleteDialog(false);
-
+    
     startTransition(async () => {
+      setIsDeleting(true);
       try {
         const result = await deleteMultiplePostsAction(idsToDelete);
         if (result.success) {
@@ -159,6 +153,7 @@ export default function PostsAdminPage() {
         toast({ title: 'Operation Failed', description: error.message, variant: 'destructive' });
       } finally {
         setIsDeleting(false);
+        setShowBulkDeleteDialog(false);
       }
     });
   };
@@ -342,7 +337,7 @@ export default function PostsAdminPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmSingleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              <AlertDialogAction onClick={handleConfirmSingleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
                 {isDeleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : 'Yes, delete post'}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -361,7 +356,7 @@ export default function PostsAdminPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isDeleting} onClick={() => setShowBulkDeleteDialog(false)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmBulkDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              <AlertDialogAction onClick={handleConfirmBulkDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
                 {isDeleting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</> : `Yes, delete ${selectedPostIds.size} posts`}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -371,5 +366,3 @@ export default function PostsAdminPage() {
     </div>
   );
 }
-
-    

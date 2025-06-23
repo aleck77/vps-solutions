@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Target, Users, Zap } from 'lucide-react';
@@ -48,7 +49,7 @@ export default function AboutPage() {
         </div>
         <div className="rounded-lg overflow-hidden shadow-xl">
           <Image
-            src="https://placehold.co/600x400.png"
+            src="https://source.unsplash.com/600x400/?team,office"
             alt="VHost Solutions Team"
             width={600}
             height={400}

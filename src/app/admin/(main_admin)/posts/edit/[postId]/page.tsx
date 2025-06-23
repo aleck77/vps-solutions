@@ -63,7 +63,7 @@ export default function EditPostPage() {
       title: '',
       slug: '',
       author: '',
-      imageUrl: 'https://placehold.co/600x400.png',
+      imageUrl: 'https://source.unsplash.com/600x400/?technology,abstract',
       category: undefined,
       excerpt: '',
       content: '',
@@ -319,7 +319,7 @@ export default function EditPostPage() {
 
   const handleClearAiImage = () => {
     setAiGeneratedPreviewUri(null);
-    form.setValue('imageUrl', post?.imageUrl || 'https://placehold.co/600x400.png', { shouldValidate: true }); 
+    form.setValue('imageUrl', post?.imageUrl || 'https://source.unsplash.com/600x400/?technology,abstract', { shouldValidate: true }); 
     setImageGenError(null);
     setUploadError(null);
     toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to original or placeholder.' });
@@ -482,7 +482,7 @@ export default function EditPostPage() {
                     <FormControl>
                       <Input 
                         type="text" 
-                        placeholder="https://placehold.co/600x400.png or uploaded image URL" 
+                        placeholder="https://source.unsplash.com/600x400/?technology or uploaded image URL" 
                         {...field}
                         disabled={isPendingSubmit || isGeneratingImage || isUploadingImage}
                       />

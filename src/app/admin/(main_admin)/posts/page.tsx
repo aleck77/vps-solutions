@@ -75,8 +75,8 @@ export default function PostsAdminPage() {
     if (!postToDelete || !postToDelete.id) return;
     const idToDelete = postToDelete.id;
     
+    setIsDeleting(true);
     startTransition(async () => {
-      setIsDeleting(true);
       try {
         const result = await deletePostAction(idToDelete);
         if (result.success) {
@@ -138,8 +138,8 @@ export default function PostsAdminPage() {
     if (selectedPostIds.size === 0) return;
     const idsToDelete = Array.from(selectedPostIds);
     
+    setIsDeleting(true);
     startTransition(async () => {
-      setIsDeleting(true);
       try {
         const result = await deleteMultiplePostsAction(idsToDelete);
         if (result.success) {

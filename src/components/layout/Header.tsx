@@ -1,7 +1,9 @@
 
+'use client';
+
 import Link from 'next/link';
-import Image from 'next/image'; // Import next/image
-import { Server, Briefcase, Newspaper, Users, Mail, Menu, X, LogIn } from 'lucide-react';
+import Image from 'next/image';
+import { Server, Briefcase, Newspaper, Users, Mail, Menu, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -13,6 +15,11 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import * as React from 'react';
+import { useAuth } from '@/lib/authContext';
+import { getAuthInstance } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const navLinks = [
   { href: '/', label: 'Home', icon: <Server className="h-5 w-5" /> },
@@ -20,19 +27,36 @@ const navLinks = [
   { href: '/order', label: 'Order VPS', icon: <Briefcase className="h-5 w-5" /> },
   { href: '/about', label: 'About Us', icon: <Users className="h-5 w-5" /> },
   { href: '/contact', label: 'Contact', icon: <Mail className="h-5 w-5" /> },
-  { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> },
 ];
 
 const mobileMenuDescriptionId = "mobile-menu-description";
 
 export default function Header() {
+  const { user, loading } = useAuth();
+  const auth = getAuthInstance();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+      router.push('/admin/login');
+    } catch (error: any) {
+      toast({ title: 'Logout Failed', description: error.message, variant: 'destructive' });
+      console.error('Logout error:', error);
+    }
+  };
+
+  const adminNavLink = { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> };
+  const allNavLinks = [...navLinks, adminNavLink];
+
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-2">
-          {/* Logo Image */}
           <Image 
-            src="/images/vhost-logo.svg" // Path relative to public folder, changed to SVG
+            src="/images/vhost-logo.svg"
             alt="VHost Solutions Logo" 
             width={40} 
             height={40} 
@@ -50,6 +74,15 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+          {!loading && user ? (
+            <Button onClick={handleLogout} variant="outline" size="sm">
+              <LogOut className="h-4 w-4 mr-2" /> Logout
+            </Button>
+          ) : (
+            <Link href="/admin/dashboard" className="text-foreground hover:text-primary transition-colors font-medium">
+              Admin
+            </Link>
+          )}
           <Button asChild variant="default">
             <Link href="/order">Get Started</Link>
           </Button>
@@ -98,6 +131,29 @@ export default function Header() {
                       </Link>
                     </SheetClose>
                   ))}
+                  <div className="pt-2 border-t">
+                    {!loading && user ? (
+                      <SheetClose asChild>
+                         <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium w-full text-left"
+                        >
+                          <LogOut className="h-5 w-5" />
+                          <span>Logout</span>
+                        </button>
+                      </SheetClose>
+                    ) : (
+                      <SheetClose asChild>
+                         <Link
+                          href="/admin/dashboard"
+                          className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium"
+                        >
+                          <LogIn className="h-5 w-5" />
+                          <span>Admin Login</span>
+                        </Link>
+                      </SheetClose>
+                    )}
+                  </div>
                   <SheetClose asChild>
                     <Button asChild variant="default" className="mt-6 w-full text-lg py-3">
                       <Link href="/order">Get Started</Link>

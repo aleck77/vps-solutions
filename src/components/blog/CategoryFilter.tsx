@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { blogCategories, type BlogCategory } from '@/types';
+import { blogCategories, type BlogCategoryType } from '@/types';
 import { cn, slugify } from '@/lib/utils'; // Imported slugify
 
 interface CategoryFilterProps {

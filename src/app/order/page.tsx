@@ -22,7 +22,8 @@ import { CheckCircle, CreditCard, Server } from 'lucide-react';
 import { mockVpsPlans } from '@/data/vpsPlans';
 import type { VPSPlan } from '@/types';
 import { useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const orderFormSchema = z.object({
   planId: z.string().min(1, { message: 'Please select a VPS plan.' }),
@@ -48,12 +49,8 @@ async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan 
     name: data.name,
     order_number: orderId,
     source_amount: `${selectedPlanDetails.cpu}, ${selectedPlanDetails.ram} → $${selectedPlanDetails.priceMonthly.toFixed(2)}`,
-    // You might want to include companyName and paymentMethod if your n8n workflow can use them
-    // companyName: data.companyName,
-    // paymentMethod: data.paymentMethod,
   };
 
-  // Simulate API call to n8n backend
   try {
     const response = await fetch("https://n8n.artelegis.com.ua/webhook/brevo", {
       method: "POST",
@@ -62,7 +59,6 @@ async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan 
     });
 
     if (!response.ok) {
-      // Log more details for non-ok responses
       const errorBody = await response.text();
       console.error("Webhook response error:", response.status, errorBody);
       throw new Error(`Webhook failed with status: ${response.status}. ${errorBody}`);
@@ -73,12 +69,56 @@ async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan 
     throw new Error('Failed to communicate with the order processing service.');
   }
 
-  await new Promise(resolve => setTimeout(resolve, 1500)); // Keep simulation for UI feedback
-  // Simulate success
+  await new Promise(resolve => setTimeout(resolve, 1500));
   return { success: true, orderId: orderId };
 }
 
-export default function OrderPage() {
+function OrderPageSkeleton() {
+  return (
+    <div className="space-y-12">
+      <section className="text-center py-12 bg-primary/5 rounded-lg">
+        <Skeleton className="h-10 w-1/2 mx-auto mb-4" />
+        <Skeleton className="h-5 w-3/4 mx-auto" />
+      </section>
+      <div className="grid md:grid-cols-3 gap-8 items-start">
+        <div className="md:col-span-2 space-y-4">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-8 w-1/2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+              <Skeleton className="h-12 w-full mt-4" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="space-y-4">
+           <Card className="shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-1/2 mb-4" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function OrderPageComponent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const initialPlanId = searchParams.get('plan') || (mockVpsPlans.length > 0 ? mockVpsPlans[0].id : '');
@@ -94,7 +134,7 @@ export default function OrderPage() {
       name: '',
       email: '',
       companyName: '',
-      paymentMethod: 'crypto', // Set default to crypto as it's the only visible option now
+      paymentMethod: 'crypto',
     },
   });
 
@@ -105,7 +145,6 @@ export default function OrderPage() {
       form.setValue('planId', planFromUrl);
       setSelectedPlan(foundPlan);
     } else if (mockVpsPlans.length > 0 && !form.getValues('planId')) {
-      // Set a default if no plan in URL and no planId already set
       form.setValue('planId', mockVpsPlans[0].id);
       setSelectedPlan(mockVpsPlans[0]);
     }
@@ -139,11 +178,11 @@ export default function OrderPage() {
           description: `Your VPS order (ID: ${result.orderId}) has been placed. We'll be in touch shortly.`,
         });
         form.reset({ 
-            planId: data.planId, // Keep the selected plan
+            planId: data.planId,
             name: '', 
             email: '', 
             companyName: '', 
-            paymentMethod: 'crypto' // Reset to crypto
+            paymentMethod: 'crypto'
         });
       } else {
         throw new Error('Order processing failed.');
@@ -258,8 +297,6 @@ export default function OrderPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {/* <SelectItem value="credit_card">Credit Card</SelectItem> */}
-                          {/* <SelectItem value="paypal">PayPal</SelectItem> */}
                           <SelectItem value="crypto">Cryptocurrency</SelectItem>
                         </SelectContent>
                       </Select>
@@ -323,3 +360,10 @@ export default function OrderPage() {
   );
 }
 
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<OrderPageSkeleton />}>
+      <OrderPageComponent />
+    </Suspense>
+  );
+}

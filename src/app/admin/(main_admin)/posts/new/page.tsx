@@ -69,7 +69,7 @@ export default function NewPostPage() {
     mode: 'onChange', 
   });
   
-  const isPendingSubmit = form.formState.isSubmitting;
+  const { isSubmitting: isPendingSubmit } = form.formState;
 
   const titleValue = form.watch('title');
   const currentImageUrlFromForm = form.watch('imageUrl'); 
@@ -275,6 +275,12 @@ export default function NewPostPage() {
 
   const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
 
+  const processFormSubmit = (data: PostFormValues) => {
+    startTransition(() => {
+      formAction(data);
+    });
+  };
+
 
   return (
     <div className="container mx-auto py-10">
@@ -346,12 +352,7 @@ export default function NewPostPage() {
           </div>
         
           <Form {...form}>
-            <form action={formAction} onSubmit={(evt) => {
-                evt.preventDefault();
-                form.handleSubmit(() => {
-                    formAction(form.getValues());
-                })(evt);
-            }} className="space-y-8">
+            <form onSubmit={form.handleSubmit(processFormSubmit)} className="space-y-8">
               <FormField
                 control={form.control}
                 name="title"

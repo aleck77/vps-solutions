@@ -1,6 +1,4 @@
 
-version: '3.8'
-
 services:
   vps-app:
     build:
@@ -31,4 +29,3 @@ services:
 networks:
   n8n_default:
     external: true
-

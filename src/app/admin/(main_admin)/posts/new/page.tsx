@@ -25,7 +25,7 @@ import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon,
 
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent, type GeneratePostContentInput } from '@/ai/flows/generate-post-content-flow';
-import { generatePostImage } from '@/ai/flows/generate-post-image-flow.ts';
+import { generatePostImage } from '@/ai/flows/generate-post-image-flow';
 
 
 export default function NewPostPage() {
@@ -272,14 +272,14 @@ export default function NewPostPage() {
     setUploadError(null);
     toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to placeholder.' });
   };
-
-  const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
-
+  
   const processFormSubmit = (data: PostFormValues) => {
     startTransition(() => {
       formAction(data);
     });
   };
+  
+  const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
 
 
   return (

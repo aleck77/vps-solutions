@@ -49,7 +49,7 @@ export default function AboutPage() {
         </div>
         <div className="rounded-lg overflow-hidden shadow-xl">
           <Image
-            src="https://source.unsplash.com/600x400/?team,office"
+            src="https://lowcode.artelegis.com.ua/wp-content/uploads/2025/06/stop-working-harder-start-working-smarter-automation-strategies-for-small-business-success-1749660906524.png"
             alt="VHost Solutions Team"
             width={600}
             height={400}

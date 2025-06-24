@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/authContext';
+import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 
 export const metadata: Metadata = {
   title: 'VHost Solutions - Premier VPS Hosting',
@@ -20,9 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
+       <head>
         {/* Updated favicon link to SVG */}
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/images/vhost-logo.svg" type="image/svg+xml" />
+        <GoogleAnalytics trackingId={process.env.NEXT_PUBLIC_GA_ID || ''} />
       </head>
       {/* font-body and font-headline are applied via globals.css using Tailwind's @layer base */}
       <body className="antialiased flex flex-col min-h-screen">

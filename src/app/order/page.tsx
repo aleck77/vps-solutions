@@ -123,7 +123,7 @@ function OrderPageSkeleton() {
 }
 
 
-function OrderPageComponent() {
+export default function OrderPageComponent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const initialPlanId = searchParams.get('plan') || (mockVpsPlans.length > 0 ? mockVpsPlans[0].id : '');

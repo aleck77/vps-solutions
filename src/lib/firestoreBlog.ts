@@ -4,7 +4,7 @@
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc, serverTimestamp as clientServerTimestamp } from 'firebase/firestore'; // Renamed client's serverTimestamp
 import { getDb } from '@/lib/firebase'; // Client SDK Firestore instance for reads
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore instance for writes
-import type { BlogPost, Category, NewBlogPost } from '@/types';
+import type { BlogPost, Category, NewBlogPost, PageData } from '@/types';
 // import type { PostFormValues } from '@/lib/schemas'; // Not used directly in this file
 import { slugify } from '@/lib/utils';
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
@@ -273,5 +273,23 @@ export async function updateBlogPost(
   } catch (error: any) {
     console.error(`Error updating blog post ${postId} with Admin SDK:`, error);
     return { success: false, oldPost: null };
+  }
+}
+
+// --- Page Content Functions ---
+export async function getPageBySlug(slug: string): Promise<PageData | null> {
+  const db = getDb();
+  try {
+    const pageRef = doc(db, 'pages', slug);
+    const docSnap = await getDoc(pageRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as PageData;
+    } else {
+      console.log(`[getPageBySlug] No page document found with slug: ${slug}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`[getPageBySlug] Error fetching page by slug ${slug}:`, error);
+    return null;
   }
 }

@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface BlogPost {
@@ -77,7 +78,7 @@ export interface ImageBlock extends BaseBlock {
 
 export interface ValueCardBlock extends BaseBlock {
   type: 'value_card';
-  icon: 'zap' | 'users' | 'shield_check';
+  icon: string;
   title: string;
   text: string;
 }

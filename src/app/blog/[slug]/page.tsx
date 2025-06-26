@@ -87,7 +87,7 @@ export default function PostPage() {
                 <header className="mb-8 border-b pb-6">
                 <h1 className="font-headline text-3xl sm:text-4xl font-bold text-primary !mb-3">{post.title}</h1>
                 <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-2">
-                    <span className="flex items-center"><CalendarDays className="h-4 w-4 mr-1.5" /> Published on {new Date(post.date as any).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    <span className="flex items-center"><CalendarDays className="h-4 w-4 mr-1.5" /> Published on {new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     <span className="flex items-center"><UserCircle className="h-4 w-4 mr-1.5" /> By {post.author}</span>
                     <Link href={`/blog/category/${post.category}`} className="flex items-center hover:underline text-accent">
                         <Tag className="h-4 w-4 mr-1.5" /> {post.category}

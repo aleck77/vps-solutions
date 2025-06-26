@@ -33,11 +33,11 @@ const mobileMenuDescriptionId = "mobile-menu-description";
 
 export default function Header() {
   const { user, loading } = useAuth();
-  const auth = getAuthInstance();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogout = async () => {
+    const auth = getAuthInstance(); // Moved here to ensure it's only called on client-side
     try {
       await signOut(auth);
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });

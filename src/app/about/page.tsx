@@ -13,12 +13,14 @@ import { getPageBySlug } from '@/lib/firestoreBlog';
 // --- Helper to convert string to PascalCase for Lucide icons ---
 function toPascalCase(str: string) {
   if (!str) return '';
-  // This handles snake_case and kebab-case by splitting, capitalizing, and rejoining.
+  // This handles snake_case, kebab-case, and regular words by splitting on non-alphanumeric characters,
+  // capitalizing each part, and rejoining.
   return str
-    .split(/[-_]/)
+    .split(/[^a-zA-Z0-9]+/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join('');
 }
+
 
 // --- Dynamic Icon Renderer ---
 interface DynamicLucideIconProps extends LucideProps {
@@ -26,12 +28,10 @@ interface DynamicLucideIconProps extends LucideProps {
 }
 
 const DynamicLucideIcon = ({ name, ...props }: DynamicLucideIconProps) => {
-  // Convert the name from the database (e.g., "shield_check") to the required format ("ShieldCheck")
   const iconNameInPascalCase = toPascalCase(name);
   const IconComponent = icons[iconNameInPascalCase as keyof typeof icons];
 
   if (!IconComponent) {
-    // Return a default fallback icon if the name is invalid or not found
     console.warn(`[DynamicLucideIcon] Icon not found for name: "${name}". Rendering fallback.`);
     return <Smile {...props} />;
   }
@@ -54,14 +54,15 @@ function renderBlock(block: ContentBlock, index: number | string) {
     case 'image':
       return (
         <div key={index} className="rounded-lg overflow-hidden shadow-xl my-6">
-          <Image
-            src={block.url}
-            alt={block.alt}
-            width={600}
-            height={400}
-            data-ai-hint={block.dataAiHint || 'page image'}
-            className="w-full h-auto object-cover"
-          />
+          <div className="relative w-full aspect-video">
+            <Image
+              src={block.url}
+              alt={block.alt}
+              fill
+              data-ai-hint={block.dataAiHint || 'page image'}
+              className="object-cover"
+            />
+          </div>
         </div>
       );
 

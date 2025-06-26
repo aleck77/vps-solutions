@@ -283,7 +283,13 @@ export async function getPageBySlug(slug: string): Promise<PageData | null> {
     const pageRef = doc(db, 'pages', slug);
     const docSnap = await getDoc(pageRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as PageData;
+      const data = docSnap.data();
+      return { 
+        id: docSnap.id, 
+        ...data,
+        // Ensure contentBlocks is always an array
+        contentBlocks: Array.isArray(data.contentBlocks) ? data.contentBlocks : [],
+       } as PageData;
     } else {
       console.log(`[getPageBySlug] No page document found with slug: ${slug}`);
       return null;
@@ -292,4 +298,20 @@ export async function getPageBySlug(slug: string): Promise<PageData | null> {
     console.error(`[getPageBySlug] Error fetching page by slug ${slug}:`, error);
     return null;
   }
+}
+
+export async function getAllPagesForAdmin(): Promise<PageData[]> {
+    const db = getDb();
+    try {
+        const pagesCollection = collection(db, 'pages');
+        const q = query(pagesCollection, orderBy('title', 'asc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        } as PageData));
+    } catch (error) {
+        console.error("Error fetching all pages for admin:", error);
+        return [];
+    }
 }

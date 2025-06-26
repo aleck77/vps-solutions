@@ -76,11 +76,11 @@ export default function AdminDashboardPage() {
                     <BookOpen className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-muted-foreground">Editing for static pages is under construction.</p>
+                    <p className="text-sm text-muted-foreground">Edit static pages like "About Us".</p>
                 </CardContent>
                  <div className="p-6 pt-0">
-                    <Button disabled>
-                       Coming Soon
+                    <Button asChild>
+                       <Link href="/admin/pages">Manage Pages</Link>
                     </Button>
                 </div>
             </Card>

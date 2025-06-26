@@ -1,4 +1,3 @@
-
 {
   "indexes": [
     {
@@ -22,6 +21,24 @@
         {
           "fieldPath": "category",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "published",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tags",
+          "arrayConfig": "CONTAINS"
         },
         {
           "fieldPath": "published",

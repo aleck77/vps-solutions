@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/lib/authContext';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Newspaper, Settings } from 'lucide-react';
+import { BookOpen, Newspaper, Settings, Wrench } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const { user, loading } = useAuth();
@@ -56,7 +55,7 @@ export default function AdminDashboardPage() {
           <CardTitle>Admin Dashboard</CardTitle>
           <CardDescription>Welcome, {user.email}. This is the main admin dashboard.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-lg font-medium">Manage Blog Posts</CardTitle>
@@ -73,14 +72,16 @@ export default function AdminDashboardPage() {
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-lg font-medium">Manage Pages</CardTitle>
+                    <CardTitle className="text-lg font-medium">Manage Site Pages</CardTitle>
                     <BookOpen className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-muted-foreground">Edit content for static pages like 'About Us'.</p>
+                    <p className="text-sm text-muted-foreground">Editing for static pages is under construction.</p>
                 </CardContent>
                  <div className="p-6 pt-0">
-                    <Button disabled>Coming Soon</Button>
+                    <Button disabled>
+                       Coming Soon
+                    </Button>
                 </div>
             </Card>
         </CardContent>

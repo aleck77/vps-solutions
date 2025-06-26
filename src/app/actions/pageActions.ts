@@ -5,21 +5,71 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getAdminFirestore } from '@/app/actions/adminActions';
-import { pageFormSchema, type PageFormValues } from '@/lib/schemas';
+import { pageFormSchema, createPageFormSchema, type PageFormValues, type CreatePageFormValues } from '@/lib/schemas';
 import { FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
 import type { PageData } from '@/types';
 
-interface UpdatePageResult {
+interface ActionResult {
   success: boolean;
   message: string;
   errors?: z.ZodIssue[];
 }
 
+export async function createPageAction(
+  prevState: ActionResult | undefined,
+  formData: CreatePageFormValues
+): Promise<ActionResult> {
+  const validatedFields = createPageFormSchema.safeParse(formData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: 'Validation failed. Please check the form for errors.',
+      errors: validatedFields.error.issues,
+    };
+  }
+
+  const { title, slug } = validatedFields.data;
+
+  try {
+    const adminDb = await getAdminFirestore();
+    const pageRef = adminDb.collection('pages').doc(slug);
+    
+    const doc = await pageRef.get();
+    if (doc.exists) {
+      return { success: false, message: `A page with the slug "${slug}" already exists.` };
+    }
+
+    const newPageData: Omit<PageData, 'id'> = {
+      title,
+      metaDescription: `This is the ${title} page.`,
+      contentBlocks: [],
+      updatedAt: new Date().toISOString(), // set initial date
+    };
+
+    await pageRef.set({
+      ...newPageData,
+      updatedAt: AdminFieldValue.serverTimestamp(),
+      createdAt: AdminFieldValue.serverTimestamp(),
+    });
+
+    revalidatePath('/admin/pages');
+    revalidatePath(`/${slug}`);
+
+  } catch (error: any) {
+    console.error(`Error creating page ${slug}:`, error);
+    return { success: false, message: `Failed to create page: ${error.message}` };
+  }
+
+  redirect('/admin/pages');
+}
+
+
 export async function updatePageAction(
   pageId: string,
-  prevState: UpdatePageResult | undefined,
+  prevState: ActionResult | undefined,
   formData: PageFormValues
-): Promise<UpdatePageResult> {
+): Promise<ActionResult> {
   if (!pageId) {
     return { success: false, message: 'Page ID is missing. Cannot update page.' };
   }
@@ -39,7 +89,7 @@ export async function updatePageAction(
   const pageUpdateData: Partial<PageData> = {
     title,
     metaDescription,
-    contentBlocks: contentBlocks || [], // Ensure contentBlocks is an array
+    contentBlocks: contentBlocks?.map(({id, ...rest}) => rest) || [], // Remove temporary DND id
   };
 
   try {

@@ -28,8 +28,9 @@ export type PostFormValues = z.infer<typeof postFormSchema>;
 
 
 const contentBlockSchema = z.object({
+    id: z.string().optional(), // Added for drag-and-drop keying
     type: z.enum(['heading', 'paragraph', 'image', 'value_card']),
-    level: z.number().optional(),
+    level: z.coerce.number().optional(),
     text: z.string().optional(),
     url: z.string().optional(),
     alt: z.string().optional(),
@@ -46,3 +47,13 @@ export const pageFormSchema = z.object({
 });
 
 export type PageFormValues = z.infer<typeof pageFormSchema>;
+
+export const createPageFormSchema = z.object({
+  title: z.string().min(5, { message: 'Title must be at least 5 characters.' }).max(150, { message: 'Title must be 150 characters or less.' }),
+  slug: z.string()
+    .min(3, { message: 'Slug must be at least 3 characters.' })
+    .max(100, { message: 'Slug must be 100 characters or less.' })
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'Slug must be lowercase and contain only letters, numbers, and hyphens.' }),
+});
+
+export type CreatePageFormValues = z.infer<typeof createPageFormSchema>;

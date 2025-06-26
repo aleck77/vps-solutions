@@ -14,12 +14,16 @@ import { uploadPageImageAction } from '@/app/actions/uploadActions';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 import type { PageData } from '@/types';
 
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { ArrowLeft, Save, Loader2, PlusCircle, Trash2, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, PlusCircle, Trash2, UploadCloud, GripVertical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -87,7 +91,7 @@ function ImageBlockUploader({ control, index, form }: { control: any, index: num
     });
   };
   
-  const currentUrl = form.watch(`contentBlocks.${index}.url`);
+  const currentUrl = useWatch({ control, name: `contentBlocks.${index}.url` });
   useEffect(() => {
     if (currentUrl !== preview && !dataUri) {
         setPreview(currentUrl);
@@ -138,100 +142,118 @@ function ImageBlockUploader({ control, index, form }: { control: any, index: num
 }
 
 
-function ContentBlockEditor({ control, index, remove, form }: { control: any, index: number, remove: (index: number) => void, form: any }) {
+function ContentBlockEditor({ control, index, remove, form, fieldId }: { control: any, index: number, remove: (index: number) => void, form: any, fieldId: string }) {
   const blockType = useWatch({
     control,
     name: `contentBlocks.${index}.type`,
   });
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({id: fieldId});
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
-    <Card className="p-4 bg-muted/50 space-y-4 relative">
-      <FormField
-        control={control}
-        name={`contentBlocks.${index}.type`}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Block Type</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a block type" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="heading">Heading</SelectItem>
-                <SelectItem value="paragraph">Paragraph</SelectItem>
-                <SelectItem value="image">Image</SelectItem>
-                <SelectItem value="value_card">Value Card</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
+    <div ref={setNodeRef} style={style} >
+      <Card className="p-4 bg-muted/50 space-y-4 relative">
+        <button type="button" {...attributes} {...listeners} className="absolute top-2 left-2 cursor-grab active:cursor-grabbing text-muted-foreground p-1">
+          <GripVertical className="h-5 w-5" />
+        </button>
+        <FormField
+          control={control}
+          name={`contentBlocks.${index}.type`}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Block Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a block type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="heading">Heading</SelectItem>
+                  <SelectItem value="paragraph">Paragraph</SelectItem>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="value_card">Value Card</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {blockType === 'heading' && (
+          <>
+            <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Input {...field} placeholder="Heading text" /></FormControl><FormMessage /></FormItem> )} />
+            <FormField
+              control={control}
+              name={`contentBlocks.${index}.level`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Level (1-6)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      placeholder="e.g., 2" 
+                      onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
-      />
-      
-      {blockType === 'heading' && (
-        <>
-          <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Input {...field} placeholder="Heading text" /></FormControl><FormMessage /></FormItem> )} />
-          <FormField
-            control={control}
-            name={`contentBlocks.${index}.level`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Level (1-6)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    placeholder="e.g., 2" 
-                    onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </>
-      )}
-      
-      {blockType === 'paragraph' && (
-        <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...field} placeholder="Paragraph content..." className="min-h-[120px]"/></FormControl><FormMessage /></FormItem> )} />
-      )}
+        
+        {blockType === 'paragraph' && (
+          <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...field} placeholder="Paragraph content..." className="min-h-[120px]"/></FormControl><FormMessage /></FormItem> )} />
+        )}
 
-      {blockType === 'image' && (
-          <ImageBlockUploader control={control} index={index} form={form} />
-      )}
-      
-      {blockType === 'value_card' && (
-        <>
-           <FormField
-            control={control}
-            name={`contentBlocks.${index}.icon`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Icon Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g., 'Server', 'Cloud', 'ShieldCheck'" />
-                </FormControl>
-                <FormDescription>
-                  Enter any valid icon name from{' '}
-                  <a href="https://lucide.dev/" target="_blank" rel="noopener noreferrer" className="text-accent underline">
-                    lucide.dev
-                  </a> (use PascalCase, e.g., ShieldCheck).
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField control={control} name={`contentBlocks.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Card Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Innovation" /></FormControl><FormMessage /></FormItem> )} />
-          <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Card Text</FormLabel><FormControl><Textarea {...field} placeholder="Description for the card..." /></FormControl><FormMessage /></FormItem> )} />
-        </>
-      )}
+        {blockType === 'image' && (
+            <ImageBlockUploader control={control} index={index} form={form} />
+        )}
+        
+        {blockType === 'value_card' && (
+          <>
+            <FormField
+              control={control}
+              name={`contentBlocks.${index}.icon`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Icon Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., 'Server', 'Cloud', 'ShieldCheck'" />
+                  </FormControl>
+                  <FormDescription>
+                    Enter any valid icon name from{' '}
+                    <a href="https://lucide.dev/" target="_blank" rel="noopener noreferrer" className="text-accent underline">
+                      lucide.dev
+                    </a> (use PascalCase, e.g., ShieldCheck).
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField control={control} name={`contentBlocks.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Card Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Innovation" /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Card Text</FormLabel><FormControl><Textarea {...field} placeholder="Description for the card..." /></FormControl><FormMessage /></FormItem> )} />
+          </>
+        )}
 
-      <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => remove(index)}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </Card>
+        <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => remove(index)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </Card>
+    </div>
   );
 }
 
@@ -253,7 +275,7 @@ export default function EditPage() {
     mode: 'onChange',
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, move } = useFieldArray({
     control: form.control,
     name: "contentBlocks",
   });
@@ -275,7 +297,8 @@ export default function EditPage() {
           form.reset({
             title: fetchedData.title,
             metaDescription: fetchedData.metaDescription,
-            contentBlocks: fetchedData.contentBlocks || [],
+            // Add a unique ID to each block for dnd-kit
+            contentBlocks: fetchedData.contentBlocks?.map(block => ({...block, id: Math.random().toString()})) || [],
           });
         } else {
           toast({ title: 'Error', description: 'Page not found.', variant: 'destructive' });
@@ -319,9 +342,18 @@ export default function EditPage() {
       default:
         return;
     }
-    append(newBlock);
+    append({...newBlock, id: Math.random().toString()});
   };
 
+  function handleDragEnd(event: DragEndEvent) {
+    const {active, over} = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((field) => field.id === active.id);
+      const newIndex = fields.findIndex((field) => field.id === over.id);
+      move(oldIndex, newIndex);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -360,7 +392,7 @@ export default function EditPage() {
             <Save className="h-7 w-7 mr-3 text-accent" />
             Edit Page: {form.getValues('title')}
           </CardTitle>
-          <CardDescription>Update the details of the page below. Use the controls to manage content blocks.</CardDescription>
+          <CardDescription>Update the details of the page below. Drag and drop content blocks to reorder them.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -405,9 +437,19 @@ export default function EditPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Content Blocks</h3>
                 <div className="space-y-4">
-                  {fields.map((field, index) => (
-                    <ContentBlockEditor key={field.id} control={form.control} index={index} remove={remove} form={form}/>
-                  ))}
+                  <DndContext
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={fields.map(field => field.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {fields.map((field, index) => (
+                        <ContentBlockEditor key={field.id} fieldId={field.id} control={form.control} index={index} remove={remove} form={form}/>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 </div>
                  <div className="flex flex-wrap gap-2 pt-4">
                     <Button type="button" variant="outline" size="sm" onClick={() => addNewBlock('heading')}>
@@ -444,5 +486,3 @@ export default function EditPage() {
     </div>
   );
 }
-
-    

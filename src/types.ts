@@ -14,7 +14,7 @@ export interface BlogPost {
   published: boolean;
   createdAt: Date | Timestamp;
   updatedAt: Date | Timestamp;
-  dataAiHint?: string; // RESTORED
+  dataAiHint?: string;
 }
 
 // For creating new posts, some fields are set by the server or have defaults
@@ -85,8 +85,9 @@ export interface ValueCardBlock extends BaseBlock {
 export type ContentBlock = HeadingBlock | ParagraphBlock | ImageBlock | ValueCardBlock;
 
 export interface PageData {
-  id?: string;
+  id?: string; // This will be the slug, e.g., "about"
   title: string;
   metaDescription: string;
   contentBlocks: ContentBlock[];
+  updatedAt?: Date | Timestamp;
 }

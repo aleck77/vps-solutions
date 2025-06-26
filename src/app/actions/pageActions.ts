@@ -1,0 +1,65 @@
+'use server';
+
+import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { getAdminFirestore } from '@/app/actions/adminActions';
+import { pageFormSchema, type PageFormValues } from '@/lib/schemas';
+import { AdminFieldValue } from 'firebase-admin/firestore';
+import type { PageData } from '@/types';
+
+interface UpdatePageResult {
+  success: boolean;
+  message: string;
+  errors?: z.ZodIssue[];
+}
+
+export async function updatePageAction(
+  pageId: string,
+  prevState: UpdatePageResult | undefined,
+  formData: PageFormValues
+): Promise<UpdatePageResult> {
+  if (!pageId) {
+    return { success: false, message: 'Page ID is missing. Cannot update page.' };
+  }
+
+  const validatedFields = pageFormSchema.safeParse(formData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: 'Validation failed. Please check the form for errors.',
+      errors: validatedFields.error.issues,
+    };
+  }
+
+  const { title, metaDescription } = validatedFields.data;
+
+  // For now, we only update title and metaDescription.
+  // The contentBlocks editor will be a future enhancement.
+  const pageUpdateData: Partial<Pick<PageData, 'title' | 'metaDescription'>> = {
+    title,
+    metaDescription,
+  };
+
+  try {
+    const adminDb = await getAdminFirestore();
+    const pageRef = adminDb.collection('pages').doc(pageId);
+
+    await pageRef.update({
+      ...pageUpdateData,
+      updatedAt: AdminFieldValue.serverTimestamp(),
+    });
+
+    // Revalidate the public-facing page path. The pageId is the slug.
+    revalidatePath(`/${pageId}`);
+    revalidatePath('/admin/pages');
+    revalidatePath(`/admin/pages/edit/${pageId}`);
+
+  } catch (error: any) {
+    console.error(`Error updating page ${pageId}:`, error);
+    return { success: false, message: `Failed to update page: ${error.message}` };
+  }
+
+  redirect('/admin/pages');
+}

@@ -45,10 +45,10 @@ export default function PagesAdminPage() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle className="font-headline text-3xl text-primary">Manage Site Pages</CardTitle>
-            <Button asChild disabled>
+            <Button asChild>
               <Link href="/admin/pages/new" className="flex items-center">
                 <PlusCircle className="h-4 w-4 mr-2" />
-                Create New Page (Soon)
+                Create New Page
               </Link>
             </Button>
           </div>

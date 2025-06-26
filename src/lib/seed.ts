@@ -76,22 +76,38 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
   },
 ];
 
-const aboutPageData: Omit<PageData, 'id'> = {
-  title: "About VHost Solutions",
-  metaDescription: "Empowering innovation with reliable and high-performance hosting.",
-  contentBlocks: [
-    { type: "heading", level: 2, text: "Our Mission" },
-    { type: "paragraph", text: "At VHost Solutions, our mission is to provide cutting-edge VPS hosting services that are powerful, reliable, and accessible. We strive to empower developers, entrepreneurs, and businesses of all sizes to achieve their online goals by offering top-tier infrastructure, exceptional customer support, and a commitment to continuous innovation." },
-    { type: "paragraph", text: "We believe that great hosting is the foundation of online success, and we are dedicated to building that foundation for our clients with integrity and expertise." },
-    { type: "heading", level: 2, text: "Our Story" },
-    { type: "paragraph", text: "Founded by a team of passionate engineers and tech enthusiasts, VHost Solutions was born out of a desire to create a hosting company that truly understands the needs of its users. We saw a gap in the market for a provider that combines state-of-the-art technology with a customer-centric approach." },
-    { type: "paragraph", text: "Since our inception, we've grown steadily, driven by our core values of performance, reliability, and support. We are constantly exploring new technologies and refining our services to ensure we offer the best possible hosting experience." },
-    { type: "image", url: "https://source.unsplash.com/600x400/?team,office", alt: "VHost Solutions Team", dataAiHint: "team office" },
-    { type: "heading", level: 2, text: "Our Values" },
-    { type: "value_card", icon: "zap", title: "Innovation", text: "We embrace new technologies to provide cutting-edge solutions." },
-    { type: "value_card", icon: "users", title: "Customer Focus", text: "Our customers are at the heart of everything we do." },
-    { type: "value_card", icon: "shield_check", title: "Reliability", text: "We deliver consistent and dependable hosting services." }
-  ]
+const pagesToSeed: { [slug: string]: Omit<PageData, 'id'> } = {
+  'about': {
+    title: "About VHost Solutions",
+    metaDescription: "Empowering innovation with reliable and high-performance hosting.",
+    contentBlocks: [
+      { type: "paragraph", text: "At VHost Solutions, our mission is to provide cutting-edge VPS hosting services that are powerful, reliable, and accessible. We strive to empower developers, entrepreneurs, and businesses of all sizes to achieve their online goals by offering top-tier infrastructure, exceptional customer support, and a commitment to continuous innovation." },
+      { type: "paragraph", text: "We believe that great hosting is the foundation of online success, and we are dedicated to building that foundation for our clients with integrity and expertise." },
+      { type: "image", url: "https://source.unsplash.com/600x400/?team,office", alt: "VHost Solutions Team", dataAiHint: "team office" },
+      { type: "heading", level: 2, text: "Our Values" },
+      { type: "value_card", icon: "Zap", title: "Innovation", text: "We embrace new technologies to provide cutting-edge solutions." },
+      { type: "value_card", icon: "Users", title: "Customer Focus", text: "Our customers are at the heart of everything we do." },
+      { type: "value_card", icon: "ShieldCheck", title: "Reliability", text: "We deliver consistent and dependable hosting services." }
+    ]
+  },
+  'privacy-policy': {
+    title: "Privacy Policy",
+    metaDescription: "Read the VHost Solutions privacy policy.",
+    contentBlocks: [
+        { type: "paragraph", text: "Welcome to VHost Solutions. We are committed to protecting your personal information and your right to privacy. This privacy policy applies to all information collected through our website and/or any related services." },
+        { type: "heading", level: 2, text: "Information We Collect" },
+        { type: "paragraph", text: "We collect personal information that you voluntarily provide to us when registering, expressing an interest in obtaining information about us or our products and services, or otherwise contacting us." }
+    ]
+  },
+  'terms-of-service': {
+    title: "Terms of Service",
+    metaDescription: "Read the VHost Solutions terms of service.",
+    contentBlocks: [
+        { type: "paragraph", text: "These Terms of Service constitute a legally binding agreement made between you and VHost Solutions concerning your access to and use of the website." },
+        { type: "heading", level: 2, text: "Agreement to Terms" },
+        { type: "paragraph", text: "By accessing the Site, you agree that you have read, understood, and agree to be bound by all of these Terms of Service. If you do not agree, you are expressly prohibited from using the Site and must discontinue use immediately." }
+    ]
+  }
 };
 
 
@@ -99,7 +115,7 @@ export async function seedDatabase() {
   const adminDb = await getAdminFirestore();
   const postsCollection = adminDb.collection('posts');
   const categoriesCollection = adminDb.collection('categories');
-  const pagesCollection = adminDb.collection('pages'); // New pages collection
+  const pagesCollection = adminDb.collection('pages');
   
   const nowJSDate = new Date();
 
@@ -153,11 +169,27 @@ export async function seedDatabase() {
   }
 
   // Seed Pages
-  const aboutPageDoc = await pagesCollection.doc('about').get();
-  if (aboutPageDoc.exists) {
-      console.log('[seedDatabase] "about" page already exists. Skipping page seeding.');
+  const pagesBatch = adminDb.batch();
+  let pagesSeededCount = 0;
+  for (const slug in pagesToSeed) {
+    const pageRef = pagesCollection.doc(slug);
+    const doc = await pageRef.get();
+    if (!doc.exists) {
+      pagesBatch.set(pageRef, {
+        ...pagesToSeed[slug],
+        updatedAt: AdminFieldValue.serverTimestamp(),
+        createdAt: AdminFieldValue.serverTimestamp(),
+      });
+      pagesSeededCount++;
+      console.log(`[seedDatabase] Queued page "${slug}" for seeding.`);
+    } else {
+       console.log(`[seedDatabase] Page "${slug}" already exists. Skipping.`);
+    }
+  }
+  if (pagesSeededCount > 0) {
+    await pagesBatch.commit();
+    console.log(`[seedDatabase] ${pagesSeededCount} new page(s) have been seeded.`);
   } else {
-      await pagesCollection.doc('about').set(aboutPageData);
-      console.log('[seedDatabase] "about" page has been seeded.');
+    console.log('[seedDatabase] All pages already exist. No new pages were seeded.');
   }
 }

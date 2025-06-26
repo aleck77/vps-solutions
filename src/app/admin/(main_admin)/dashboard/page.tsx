@@ -75,6 +75,19 @@ export default function AdminDashboardPage() {
             </Button>
         </CardContent>
       </Card>
+       <Card>
+        <CardHeader>
+            <CardTitle>Headless CMS (Experimental)</CardTitle>
+            <CardDescription>
+              This is the experimental area for the new Headless CMS integration (FireCMS).
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button asChild>
+              <Link href="/admin/cms">Go to CMS</Link>
+            </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

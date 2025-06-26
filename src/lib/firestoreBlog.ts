@@ -40,14 +40,14 @@ export async function getAllPublishedPosts(count?: number): Promise<BlogPost[]> 
 }
 
 export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
-  const db = getDb(); // Use client SDK, admin page might have specific auth checks on client
+  const adminDb = await getAdminFirestore(); // Use Admin SDK to bypass client-side rules
   try {
-    const postsCollection = collection(db, 'posts');
-    const q = query(postsCollection, orderBy('date', 'desc'));
-    const querySnapshot = await getDocs(q);
+    const postsCollection = adminDb.collection('posts');
+    const q = postsCollection.orderBy('date', 'desc');
+    const querySnapshot = await q.get();
     return querySnapshot.docs.map(processPostDocument);
   } catch (error) {
-    console.error("Error fetching all posts for admin:", error);
+    console.error("Error fetching all posts for admin with Admin SDK:", error);
     return [];
   }
 }

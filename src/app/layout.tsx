@@ -24,7 +24,7 @@ export default function RootLayout({
        <head>
         {/* Updated favicon link to SVG */}
         <link rel="icon" href="/images/vhost-logo.svg" type="image/svg+xml" />
-        <GoogleAnalytics trackingId={process.env.NEXT_PUBLIC_GA_ID || ''} />
+        <GoogleAnalytics />
       </head>
       {/* font-body and font-headline are applied via globals.css using Tailwind's @layer base */}
       <body className="antialiased flex flex-col min-h-screen">

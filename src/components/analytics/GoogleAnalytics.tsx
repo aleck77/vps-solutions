@@ -3,13 +3,11 @@
 
 import Script from 'next/script'
 
-interface GoogleAnalyticsProps {
-    trackingId: string;
-}
+export default function GoogleAnalytics() {
+  const trackingId = process.env.NEXT_PUBLIC_GA_ID || process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
 
-export default function GoogleAnalytics({ trackingId }: GoogleAnalyticsProps) {
   if (!trackingId) {
-    console.warn("Google Analytics tracking ID is missing. Analytics will not be enabled.");
+    console.warn("[Google Analytics] Tracking ID (NEXT_PUBLIC_GA_ID or NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID) is missing. Analytics will not be enabled.");
     return null;
   }
 

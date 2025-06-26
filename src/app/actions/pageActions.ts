@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -5,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getAdminFirestore } from '@/app/actions/adminActions';
 import { pageFormSchema, type PageFormValues } from '@/lib/schemas';
-import { AdminFieldValue } from 'firebase-admin/firestore';
+import { FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
 import type { PageData } from '@/types';
 
 interface UpdatePageResult {

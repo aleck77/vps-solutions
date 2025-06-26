@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useActionState, startTransition } from 'react';
-import { useForm, useFieldArray, useController } from 'react-hook-form';
+import { useForm, useFieldArray, useController, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -259,8 +259,7 @@ export default function EditPage() {
   });
 
   const [state, formAction] = useActionState(updatePageAction.bind(null, pageId), undefined);
-  const isPendingSubmit = form.formState.isSubmitting;
-
+  
   useEffect(() => {
     if (!pageId) {
       toast({ title: 'Error', description: 'Page ID is missing.', variant: 'destructive' });
@@ -366,10 +365,12 @@ export default function EditPage() {
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={(e) => {
-                  e.preventDefault();
-                  formAction(form.getValues());
-              }}
+               action={formAction}
+               onSubmit={form.handleSubmit((data) => {
+                 startTransition(() => {
+                   formAction(data);
+                 });
+               })}
               className="space-y-8"
             >
               <FormField
@@ -379,7 +380,7 @@ export default function EditPage() {
                   <FormItem>
                     <FormLabel>Page Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter page title" {...field} disabled={isPendingSubmit} />
+                      <Input placeholder="Enter page title" {...field} disabled={form.formState.isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -393,7 +394,7 @@ export default function EditPage() {
                   <FormItem>
                     <FormLabel>Meta Description</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="A short description for search engines" className="min-h-[100px]" {...field} disabled={isPendingSubmit} />
+                      <Textarea placeholder="A short description for search engines" className="min-h-[100px]" {...field} disabled={form.formState.isSubmitting} />
                     </FormControl>
                     <FormDescription>This is used for SEO purposes.</FormDescription>
                     <FormMessage />
@@ -425,11 +426,11 @@ export default function EditPage() {
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => router.push('/admin/pages')} disabled={isPendingSubmit}>
+                <Button type="button" variant="outline" onClick={() => router.push('/admin/pages')} disabled={form.formState.isSubmitting}>
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPendingSubmit}>
-                  {isPendingSubmit ? (
+                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving Changes...</>
                   ) : (
                     'Save Changes'
@@ -443,3 +444,5 @@ export default function EditPage() {
     </div>
   );
 }
+
+    

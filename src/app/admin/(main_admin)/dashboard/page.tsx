@@ -8,6 +8,7 @@ import { seedDatabaseAction } from '@/app/actions/adminActions';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function AdminDashboardPage() {
   const { user, loading } = useAuth();
@@ -52,10 +53,13 @@ export default function AdminDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Admin Dashboard</CardTitle>
-          <CardDescription>Welcome, {user.email}. The content management system is currently under construction.</CardDescription>
+          <CardDescription>Welcome, {user.email}. This is the main admin dashboard.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <p>The previous attempt to integrate FireCMS failed due to package installation issues. We will now proceed with a different CMS solution.</p>
+        <CardContent className="space-y-4">
+          <p>From here you can manage your blog posts and other site content.</p>
+           <Button asChild>
+              <Link href="/admin/posts">Manage Blog Posts</Link>
+            </Button>
         </CardContent>
       </Card>
       <Card>

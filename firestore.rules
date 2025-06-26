@@ -3,22 +3,39 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
+    
+    // Существующие правила для постов
     match /posts/{postId} {
-      allow read: if true; // Anyone can read posts
-      allow create, update, delete: if request.auth != null && request.auth.token.admin == true; // Only admins can write
+      // Любой может читать опубликованные посты
+      allow read: if resource.data.published == true;
+      // Только администраторы могут создавать, обновлять или удалять посты
+      allow write: if request.auth.token.admin == true;
     }
+    
+    // Существующие правила для категорий
     match /categories/{categoryId} {
-      allow read: if true; // Anyone can read categories
-      allow create, update, delete: if request.auth != null && request.auth.token.admin == true; // Only admins can write
+      // Любой может читать список категорий
+      allow read: if true;
+      // Только администраторы могут изменять категории
+      allow write: if request.auth.token.admin == true;
     }
+
+    // Существующие правила для подписчиков
     match /subscribers/{subscriberId} {
-      // Allow anyone to create (subscribe)
-      allow create: if true;
-      // Allow only authenticated admins to read, update, or delete subscribers
-      allow read, update, delete: if request.auth != null && request.auth.token.admin == true;
+        // Никто не может читать чужие email-адреса
+        allow read: if false;
+        // Любой может создать новую подписку (добавить свой email)
+        allow create: if true;
+        // Никто не может изменять или удалять подписки
+        allow update, delete: if false;
+    }
+
+    // --- НОВОЕ ПРАВИЛО ДЛЯ СТРАНИЦ ---
+    // Любой может читать содержимое страниц (About, Contact и т.д.)
+    match /pages/{pageId} {
+      allow read: if true;
+      // Только администраторы могут создавать или изменять страницы
+      allow write: if request.auth.token.admin == true;
     }
   }
 }

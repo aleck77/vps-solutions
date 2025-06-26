@@ -2,7 +2,7 @@
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, BlogCategoryType } from '@/types';
+import type { BlogPost, Category, BlogCategoryType, PageData } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
@@ -76,14 +76,34 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
   },
 ];
 
+const aboutPageData: Omit<PageData, 'id'> = {
+  title: "About VHost Solutions",
+  metaDescription: "Empowering innovation with reliable and high-performance hosting.",
+  contentBlocks: [
+    { type: "heading", level: 2, text: "Our Mission" },
+    { type: "paragraph", text: "At VHost Solutions, our mission is to provide cutting-edge VPS hosting services that are powerful, reliable, and accessible. We strive to empower developers, entrepreneurs, and businesses of all sizes to achieve their online goals by offering top-tier infrastructure, exceptional customer support, and a commitment to continuous innovation." },
+    { type: "paragraph", text: "We believe that great hosting is the foundation of online success, and we are dedicated to building that foundation for our clients with integrity and expertise." },
+    { type: "heading", level: 2, text: "Our Story" },
+    { type: "paragraph", text: "Founded by a team of passionate engineers and tech enthusiasts, VHost Solutions was born out of a desire to create a hosting company that truly understands the needs of its users. We saw a gap in the market for a provider that combines state-of-the-art technology with a customer-centric approach." },
+    { type: "paragraph", text: "Since our inception, we've grown steadily, driven by our core values of performance, reliability, and support. We are constantly exploring new technologies and refining our services to ensure we offer the best possible hosting experience." },
+    { type: "image", url: "https://source.unsplash.com/600x400/?team,office", alt: "VHost Solutions Team", dataAiHint: "team office" },
+    { type: "heading", level: 2, text: "Our Values" },
+    { type: "value_card", icon: "zap", title: "Innovation", text: "We embrace new technologies to provide cutting-edge solutions." },
+    { type: "value_card", icon: "users", title: "Customer Focus", text: "Our customers are at the heart of everything we do." },
+    { type: "value_card", icon: "shield_check", title: "Reliability", text: "We deliver consistent and dependable hosting services." }
+  ]
+};
+
 
 export async function seedDatabase() {
   const adminDb = await getAdminFirestore();
   const postsCollection = adminDb.collection('posts');
   const categoriesCollection = adminDb.collection('categories');
+  const pagesCollection = adminDb.collection('pages'); // New pages collection
   
   const nowJSDate = new Date();
 
+  // Seed Posts
   const postsQuery = postsCollection.limit(1);
   const postsSnapshot = await postsQuery.get();
   if (!postsSnapshot.empty) {
@@ -94,12 +114,11 @@ export async function seedDatabase() {
       const postRef = postsCollection.doc(); 
       const processedTags = postData.tags.map(tag => slugify(tag.trim())).filter(tag => tag.length > 0);
       
-      // Generate a dynamic Unsplash URL based on the data-ai-hint
       const imageUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(postData.dataAiHint || 'technology')}`;
 
       const postToSeed = {
         ...postData,
-        imageUrl: imageUrl, // Use the generated Unsplash URL
+        imageUrl: imageUrl,
         category: slugify(postData.category),
         tags: processedTags,
         date: new Date(postData.date),
@@ -113,6 +132,7 @@ export async function seedDatabase() {
     console.log(`[seedDatabase] ${mockPostsData.length} posts have been seeded with Unsplash images.`);
   }
 
+  // Seed Categories
   const categoriesQuery = categoriesCollection.limit(1);
   const categoriesSnapshot = await categoriesQuery.get();
   if (!categoriesSnapshot.empty) {
@@ -130,5 +150,14 @@ export async function seedDatabase() {
     });
     await categoriesBatch.commit();
     console.log(`[seedDatabase] ${uniqueCategoryNames.size} categories have been seeded.`);
+  }
+
+  // Seed Pages
+  const aboutPageDoc = await pagesCollection.doc('about').get();
+  if (aboutPageDoc.exists) {
+      console.log('[seedDatabase] "about" page already exists. Skipping page seeding.');
+  } else {
+      await pagesCollection.doc('about').set(aboutPageData);
+      console.log('[seedDatabase] "about" page has been seeded.');
   }
 }

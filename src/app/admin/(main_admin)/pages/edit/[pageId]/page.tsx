@@ -1,14 +1,16 @@
 
 'use client';
 
-import { useEffect, useState, useActionState } from 'react';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useEffect, useState, useActionState, startTransition } from 'react';
+import { useForm, useFieldArray, useController } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { pageFormSchema, type PageFormValues } from '@/lib/schemas';
 import { updatePageAction } from '@/app/actions/pageActions';
+import { uploadPageImageAction } from '@/app/actions/uploadActions';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 import type { PageData } from '@/types';
 
@@ -17,11 +19,126 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { ArrowLeft, Save, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, PlusCircle, Trash2, UploadCloud } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-function ContentBlockEditor({ control, index, remove }: { control: any, index: number, remove: (index: number) => void }) {
+function toPascalCase(str: string) {
+  if (!str) return '';
+  return str
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
+}
+
+function ImageBlockUploader({ control, index, form }: { control: any, index: number, form: any }) {
+  const { field } = useController({ name: `contentBlocks.${index}`, control });
+  const { toast } = useToast();
+
+  const [preview, setPreview] = useState<string | null>(field.value.url || null);
+  const [dataUri, setDataUri] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const pageTitle = form.getValues('title');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      toast({ title: "File too large", description: "Please select an image smaller than 2MB.", variant: "destructive" });
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please select a JPG, PNG, or WEBP image.", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setPreview(result);
+      setDataUri(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpload = async () => {
+    if (!dataUri) {
+      toast({ title: "No new image selected", description: "Please select a file to upload first.", variant: "default" });
+      return;
+    }
+    if (!pageTitle) {
+      toast({ title: "Cannot Upload", description: "Please set a page title before uploading images.", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    startTransition(async () => {
+      const result = await uploadPageImageAction(dataUri, pageTitle);
+      if (result.success && result.imageUrl) {
+        form.setValue(`contentBlocks.${index}.url`, result.imageUrl, { shouldValidate: true });
+        toast({ title: "Success", description: result.message });
+        setPreview(result.imageUrl);
+        setDataUri(null); // Clear the data URI after successful upload
+      } else {
+        toast({ title: "Upload Failed", description: result.message, variant: "destructive" });
+      }
+      setIsUploading(false);
+    });
+  };
+  
+  const currentUrl = form.watch(`contentBlocks.${index}.url`);
+  useEffect(() => {
+    if (currentUrl !== preview && !dataUri) {
+        setPreview(currentUrl);
+    }
+  }, [currentUrl, preview, dataUri]);
+
+
+  return (
+    <>
+      <FormField
+        control={control}
+        name={`contentBlocks.${index}.url`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Image URL</FormLabel>
+            <FormControl>
+              <Input {...field} placeholder="https://... or upload a file below" disabled={isUploading} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="space-y-2">
+        <FormLabel>Upload New Image</FormLabel>
+        <div className="flex items-center gap-2">
+            <Input type="file" accept="image/png, image/jpeg, image/webp" onChange={handleFileChange} className="flex-grow" disabled={isUploading}/>
+            <Button type="button" onClick={handleUpload} disabled={isUploading || !dataUri}>
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+            </Button>
+        </div>
+        <FormDescription>Max 2MB. Replaces the URL above upon successful upload.</FormDescription>
+      </div>
+
+      {preview && (
+        <div className="mt-2">
+          <FormLabel>Preview</FormLabel>
+          <div className="mt-1 relative w-full aspect-video rounded-md border overflow-hidden bg-muted">
+            <Image src={preview} alt="Image preview" fill className="object-cover" />
+          </div>
+        </div>
+      )}
+
+      <FormField control={control} name={`contentBlocks.${index}.alt`} render={({ field }) => ( <FormItem><FormLabel>Alt Text</FormLabel><FormControl><Input {...field} placeholder="Description of the image" /></FormControl><FormMessage /></FormItem> )} />
+      <FormField control={control} name={`contentBlocks.${index}.dataAiHint`} render={({ field }) => ( <FormItem><FormLabel>AI Hint</FormLabel><FormControl><Input {...field} placeholder="e.g., 'team office'" /></FormControl><FormMessage /></FormItem> )} />
+    </>
+  );
+}
+
+
+function ContentBlockEditor({ control, index, remove, form }: { control: any, index: number, remove: (index: number) => void, form: any }) {
   const blockType = useWatch({
     control,
     name: `contentBlocks.${index}.type`,
@@ -82,11 +199,7 @@ function ContentBlockEditor({ control, index, remove }: { control: any, index: n
       )}
 
       {blockType === 'image' && (
-        <>
-          <FormField control={control} name={`contentBlocks.${index}.url`} render={({ field }) => ( <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem> )} />
-          <FormField control={control} name={`contentBlocks.${index}.alt`} render={({ field }) => ( <FormItem><FormLabel>Alt Text</FormLabel><FormControl><Input {...field} placeholder="Description of the image" /></FormControl><FormMessage /></FormItem> )} />
-          <FormField control={control} name={`contentBlocks.${index}.dataAiHint`} render={({ field }) => ( <FormItem><FormLabel>AI Hint</FormLabel><FormControl><Input {...field} placeholder="e.g., 'team office'" /></FormControl><FormMessage /></FormItem> )} />
-        </>
+          <ImageBlockUploader control={control} index={index} form={form} />
       )}
       
       {blockType === 'value_card' && (
@@ -104,7 +217,7 @@ function ContentBlockEditor({ control, index, remove }: { control: any, index: n
                   Enter any valid icon name from{' '}
                   <a href="https://lucide.dev/" target="_blank" rel="noopener noreferrer" className="text-accent underline">
                     lucide.dev
-                  </a>.
+                  </a> (use PascalCase, e.g., ShieldCheck).
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -253,7 +366,10 @@ export default function EditPage() {
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(formAction)}
+              onSubmit={(e) => {
+                  e.preventDefault();
+                  formAction(form.getValues());
+              }}
               className="space-y-8"
             >
               <FormField
@@ -289,7 +405,7 @@ export default function EditPage() {
                 <h3 className="text-lg font-semibold">Content Blocks</h3>
                 <div className="space-y-4">
                   {fields.map((field, index) => (
-                    <ContentBlockEditor key={field.id} control={form.control} index={index} remove={remove} />
+                    <ContentBlockEditor key={field.id} control={form.control} index={index} remove={remove} form={form}/>
                   ))}
                 </div>
                  <div className="flex flex-wrap gap-2 pt-4">

@@ -1,25 +1,27 @@
 
 'use server';
 
-import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc, serverTimestamp as clientServerTimestamp } from 'firebase/firestore'; // Renamed client's serverTimestamp
+import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore'; 
 import { getDb } from '@/lib/firebase'; // Client SDK Firestore instance for reads
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore instance for writes
 import type { BlogPost, Category, NewBlogPost, PageData } from '@/types';
-// import type { PostFormValues } from '@/lib/schemas'; // Not used directly in this file
 import { slugify } from '@/lib/utils';
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
 
-// Helper to convert Firestore Timestamps to JS Date objects or ISO strings in the post objects
-const processPostDocument = (documentSnapshot: any): BlogPost => {
+// Helper to convert Firestore document to a plain, serializable object
+const toSerializable = <T extends { id?: string }>(documentSnapshot: any): T => {
   const data = documentSnapshot.data();
-  return {
-    ...data,
-    id: documentSnapshot.id,
-    date: data.date instanceof Timestamp ? data.date.toDate() : (data.date?._seconds ? new Timestamp(data.date._seconds, data.date._nanoseconds).toDate() : new Date(data.date)),
-    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : (data.createdAt?._seconds ? new Timestamp(data.createdAt._seconds, data.createdAt._nanoseconds).toDate() : new Date(data.createdAt)),
-    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : (data.updatedAt?._seconds ? new Timestamp(data.updatedAt._seconds, data.updatedAt._nanoseconds).toDate() : new Date(data.updatedAt)),
-    tags: data.tags || [],
-  } as BlogPost;
+  const id = documentSnapshot.id;
+  const serializableData: { [key: string]: any } = { id, ...data };
+
+  // Convert all Timestamp fields to ISO strings
+  for (const key in serializableData) {
+    const value = serializableData[key];
+    if (value && typeof value.toDate === 'function') {
+      serializableData[key] = value.toDate().toISOString();
+    }
+  }
+  return serializableData as T;
 };
 
 
@@ -32,7 +34,7 @@ export async function getAllPublishedPosts(count?: number): Promise<BlogPost[]> 
       q = query(postsCollection, where('published', '==', true), orderBy('date', 'desc'), limit(count));
     }
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(processPostDocument);
+    return querySnapshot.docs.map(doc => toSerializable<BlogPost>(doc));
   } catch (error) {
     console.error("Error fetching all published posts:", error);
     return [];
@@ -45,14 +47,13 @@ export async function getAllPostsForAdmin(): Promise<BlogPost[]> {
     const postsCollection = adminDb.collection('posts');
     const q = postsCollection.orderBy('date', 'desc');
     const querySnapshot = await q.get();
-    return querySnapshot.docs.map(processPostDocument);
+    return querySnapshot.docs.map(doc => toSerializable<BlogPost>(doc));
   } catch (error) {
     console.error("Error fetching all posts for admin with Admin SDK:", error);
     return [];
   }
 }
 
-// Reverted to accept a simple string slug
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   console.log(`[firestoreBlog/getPostBySlug] Received slug: ${slug}`);
   const db = getDb(); // Use client SDK for public reads
@@ -61,7 +62,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     const qPublished = query(postsCollection, where('slug', '==', slug), where('published', '==', true), limit(1));
     const querySnapshotPublished = await getDocs(qPublished);
     if (!querySnapshotPublished.empty) {
-      return processPostDocument(querySnapshotPublished.docs[0]);
+      return toSerializable<BlogPost>(querySnapshotPublished.docs[0]);
     }
 
     const qAny = query(postsCollection, where('slug', '==', slug), limit(1));
@@ -71,7 +72,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
       return null;
     }
     console.log(`[firestoreBlog/getPostBySlug] Found a post (possibly not published) with slug: ${slug}`);
-    return processPostDocument(querySnapshotAny.docs[0]);
+    return toSerializable<BlogPost>(querySnapshotAny.docs[0]);
   } catch (error) {
     console.error(`[firestoreBlog/getPostBySlug] Error fetching post by slug ${slug}:`, error);
     return null;
@@ -88,7 +89,7 @@ export async function getPostByIdForEditing(postId: string): Promise<BlogPost | 
       console.log(`No post found with ID: ${postId}`);
       return null;
     }
-    return processPostDocument(docSnap);
+    return toSerializable<BlogPost>(docSnap);
   } catch (error) {
     console.error(`Error fetching post by ID ${postId}:`, error);
     return null;
@@ -107,7 +108,7 @@ export async function getPostsByCategory(categorySlug: string): Promise<BlogPost
       orderBy('date', 'desc')
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(processPostDocument);
+    return querySnapshot.docs.map(doc => toSerializable<BlogPost>(doc));
   } catch (error) {
     console.error(`Error fetching posts by category ${categorySlug}:`, error);
     return [];
@@ -125,7 +126,7 @@ export async function getPostsByTag(tagSlug: string): Promise<BlogPost[]> {
       orderBy('date', 'desc')
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(processPostDocument);
+    return querySnapshot.docs.map(doc => toSerializable<BlogPost>(doc));
   } catch (error) {
     console.error(`Error fetching posts by tag ${tagSlug}:`, error);
     return [];
@@ -159,11 +160,7 @@ export async function getAllCategories(): Promise<Category[]> {
     const categoriesCollection = collection(db, 'categories');
     const q = query(categoriesCollection, orderBy('name', 'asc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      name: docSnap.data().name,
-      slug: docSnap.data().slug || slugify(docSnap.data().name),
-    } as Category));
+    return querySnapshot.docs.map(docSnap => (toSerializable<Category>(docSnap)));
   } catch (error) {
     console.error("Error fetching all categories:", error);
     return [];
@@ -194,7 +191,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
       return null;
     }
     const categoryDoc = querySnapshot.docs[0];
-    return { id: categoryDoc.id, ...categoryDoc.data() } as Category;
+    return toSerializable<Category>(categoryDoc);
   } catch (error) {
     console.error(`Error fetching category by slug ${slug}:`, error);
     return null;
@@ -214,7 +211,7 @@ export async function getRecommendedPosts(currentPostId: string | null, count: n
     }
 
     const querySnapshot = await getDocs(q);
-    const posts = querySnapshot.docs.map(processPostDocument);
+    const posts = querySnapshot.docs.map(doc => toSerializable<BlogPost>(doc));
 
     if (currentPostId) {
       return posts.filter(post => post.id !== currentPostId).slice(0, count);
@@ -233,9 +230,6 @@ export async function addBlogPost(postData: NewBlogPost): Promise<string | null>
     const postsCollection = adminDb.collection('posts');
     const docRef = await postsCollection.add({
       ...postData,
-      date: postData.date instanceof Timestamp ? postData.date.toDate() : postData.date,
-      createdAt: postData.createdAt instanceof Timestamp ? postData.createdAt.toDate() : postData.createdAt,
-      updatedAt: postData.updatedAt instanceof Timestamp ? postData.updatedAt.toDate() : postData.updatedAt,
       tags: postData.tags || []
     });
     return docRef.id;
@@ -260,7 +254,7 @@ export async function updateBlogPost(
   try {
     const oldDocSnap = await getDoc(postRefClient);
     if (oldDocSnap.exists()) {
-      oldPostForRevalidation = processPostDocument(oldDocSnap);
+      oldPostForRevalidation = toSerializable<BlogPost>(oldDocSnap);
     }
 
     await postRefAdmin.update({
@@ -283,13 +277,7 @@ export async function getPageBySlug(slug: string): Promise<PageData | null> {
     const pageRef = doc(db, 'pages', slug);
     const docSnap = await getDoc(pageRef);
     if (docSnap.exists()) {
-      const data = docSnap.data();
-      return { 
-        id: docSnap.id, 
-        ...data,
-        // Ensure contentBlocks is always an array
-        contentBlocks: Array.isArray(data.contentBlocks) ? data.contentBlocks : [],
-       } as PageData;
+      return toSerializable<PageData>(docSnap);
     } else {
       console.log(`[getPageBySlug] No page document found with slug: ${slug}`);
       return null;
@@ -306,10 +294,7 @@ export async function getAllPagesForAdmin(): Promise<PageData[]> {
         const pagesCollection = collection(db, 'pages');
         const q = query(pagesCollection, orderBy('title', 'asc'));
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(docSnap => ({
-            id: docSnap.id,
-            ...docSnap.data()
-        } as PageData));
+        return querySnapshot.docs.map(docSnap => toSerializable<PageData>(docSnap));
     } catch (error) {
         console.error("Error fetching all pages for admin:", error);
         return [];

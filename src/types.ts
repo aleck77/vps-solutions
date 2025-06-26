@@ -5,7 +5,7 @@ export interface BlogPost {
   id?: string; // Firestore document ID
   slug: string;
   title: string;
-  date: Date | Timestamp; // Changed to allow Date for client-side processing, Firestore will store Timestamp
+  date: string; // Changed from Date | Timestamp to string for serializability
   author: string;
   category: string; // This will store the category SLUG
   excerpt: string;
@@ -13,8 +13,8 @@ export interface BlogPost {
   imageUrl: string;
   tags?: string[];
   published: boolean;
-  createdAt: Date | Timestamp;
-  updatedAt: Date | Timestamp;
+  createdAt: string; // Changed from Date | Timestamp to string
+  updatedAt: string; // Changed from Date | Timestamp to string
   dataAiHint?: string;
 }
 
@@ -90,5 +90,5 @@ export interface PageData {
   title: string;
   metaDescription: string;
   contentBlocks: ContentBlock[];
-  updatedAt?: Date | Timestamp;
+  updatedAt?: string; // Changed from Date | Timestamp to string
 }

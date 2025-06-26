@@ -298,7 +298,7 @@ export default function PostsAdminPage() {
                     <TableCell className="font-medium max-w-xs truncate" title={post.title}>{post.title}</TableCell>
                     <TableCell>{getCategoryDisplayName(post.category)}</TableCell>
                     <TableCell>{post.author}</TableCell>
-                    <TableCell>{post.date.toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(post.date).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Badge variant={post.published ? 'default' : 'secondary'} className="flex items-center w-fit">
                         {post.published ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}

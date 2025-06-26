@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import Link from 'next/link';
+import { BookOpen, Newspaper, Settings } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const { user, loading } = useAuth();
@@ -55,36 +56,47 @@ export default function AdminDashboardPage() {
           <CardTitle>Admin Dashboard</CardTitle>
           <CardDescription>Welcome, {user.email}. This is the main admin dashboard.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p>From here you can manage your blog posts and other site content.</p>
-           <Button asChild>
-              <Link href="/admin/posts">Manage Blog Posts</Link>
-            </Button>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-medium">Manage Blog Posts</CardTitle>
+                    <Newspaper className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">Create, edit, and delete blog articles.</p>
+                </CardContent>
+                <div className="p-6 pt-0">
+                    <Button asChild>
+                        <Link href="/admin/posts">Go to Posts</Link>
+                    </Button>
+                </div>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-medium">Manage Pages</CardTitle>
+                    <BookOpen className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">Edit content for static pages like 'About Us'.</p>
+                </CardContent>
+                 <div className="p-6 pt-0">
+                    <Button disabled>Coming Soon</Button>
+                </div>
+            </Card>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-            <CardTitle>Database Seeding</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Site Tools</CardTitle>
             <CardDescription>
-              Use this tool to populate your Firestore database with initial data (posts, categories, pages). This should only be run once.
+              Use these tools for site-wide operations. Be careful, these actions can be destructive.
             </CardDescription>
         </CardHeader>
         <CardContent>
-            <Button onClick={handleSeed} disabled={isSeeding}>
+            <h3 className="font-semibold mb-2">Database Seeding</h3>
+            <p className="text-sm text-muted-foreground mb-3">Populate your Firestore database with initial data (posts, categories, pages). This should only be run once on a fresh database.</p>
+            <Button onClick={handleSeed} disabled={isSeeding} variant="outline">
               {isSeeding ? 'Seeding...' : 'Seed Database'}
-            </Button>
-        </CardContent>
-      </Card>
-       <Card>
-        <CardHeader>
-            <CardTitle>Headless CMS (Experimental)</CardTitle>
-            <CardDescription>
-              This is the experimental area for the new Headless CMS integration (FireCMS).
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Button asChild>
-              <Link href="/admin/cms">Go to CMS</Link>
             </Button>
         </CardContent>
       </Card>

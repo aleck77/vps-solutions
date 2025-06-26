@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 import { blogCategories } from '@/types';
 
@@ -33,7 +34,7 @@ const contentBlockSchema = z.object({
     url: z.string().optional(),
     alt: z.string().optional(),
     dataAiHint: z.string().optional(),
-    icon: z.enum(['zap', 'users', 'shield_check']).optional(),
+    icon: z.string().optional(),
     title: z.string().optional(),
 });
 

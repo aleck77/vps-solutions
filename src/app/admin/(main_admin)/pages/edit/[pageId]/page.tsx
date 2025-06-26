@@ -91,22 +91,25 @@ function ContentBlockEditor({ control, index, remove }: { control: any, index: n
       
       {blockType === 'value_card' && (
         <>
-           <FormField control={control} name={`contentBlocks.${index}.icon`} render={({ field }) => ( 
+           <FormField
+            control={control}
+            name={`contentBlocks.${index}.icon`}
+            render={({ field }) => (
               <FormItem>
-                  <FormLabel>Icon</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select an icon" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                          <SelectItem value="zap">Zap (Innovation)</SelectItem>
-                          <SelectItem value="users">Users (Customer Focus)</SelectItem>
-                          <SelectItem value="shield_check">Shield (Reliability)</SelectItem>
-                      </SelectContent>
-                  </Select>
-                  <FormMessage />
-              </FormItem> 
-          )} />
+                <FormLabel>Icon Name</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="e.g., 'Server', 'Cloud', 'ShieldCheck'" />
+                </FormControl>
+                <FormDescription>
+                  Enter any valid icon name from{' '}
+                  <a href="https://lucide.dev/" target="_blank" rel="noopener noreferrer" className="text-accent underline">
+                    lucide.dev
+                  </a>.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField control={control} name={`contentBlocks.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Card Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Innovation" /></FormControl><FormMessage /></FormItem> )} />
           <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Card Text</FormLabel><FormControl><Textarea {...field} placeholder="Description for the card..." /></FormControl><FormMessage /></FormItem> )} />
         </>
@@ -199,7 +202,7 @@ export default function EditPage() {
         newBlock = { type: 'image', url: 'https://placehold.co/600x400.png', alt: 'placeholder', dataAiHint: 'placeholder image' };
         break;
       case 'value_card':
-        newBlock = { type: 'value_card', icon: 'zap', title: 'New Value', text: 'Description' };
+        newBlock = { type: 'value_card', icon: 'Zap', title: 'New Value', text: 'Description' };
         break;
       default:
         return;
@@ -250,13 +253,7 @@ export default function EditPage() {
         <CardContent>
           <Form {...form}>
             <form
-              action={formAction}
-              onSubmit={(evt) => {
-                evt.preventDefault();
-                form.handleSubmit(() => {
-                  formAction(form.getValues());
-                })(evt);
-              }}
+              onSubmit={form.handleSubmit(formAction)}
               className="space-y-8"
             >
               <FormField

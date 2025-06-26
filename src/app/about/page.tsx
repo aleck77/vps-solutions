@@ -1,17 +1,36 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, Users, Zap } from 'lucide-react';
+import { Target, Smile, icons, type LucideProps } from 'lucide-react';
 import { notFound } from 'next/navigation';
-import type { PageData, ContentBlock, HeadingBlock, ParagraphBlock, ImageBlock, ValueCardBlock } from '@/types';
+import type { PageData, ContentBlock, ValueCardBlock } from '@/types';
 import { getPageBySlug } from '@/lib/firestoreBlog';
+
+
+// --- Dynamic Icon Renderer ---
+interface DynamicLucideIconProps extends LucideProps {
+  name: string;
+}
+
+const DynamicLucideIcon = ({ name, ...props }: DynamicLucideIconProps) => {
+  const IconComponent = icons[name as keyof typeof icons];
+
+  if (!IconComponent) {
+    // Return a default fallback icon if the name is invalid or not provided
+    return <Smile {...props} />;
+  }
+
+  return <IconComponent {...props} />;
+};
+
 
 // --- Renderer Components for Content Blocks ---
 
-function renderBlock(block: ContentBlock, index: number) {
+function renderBlock(block: ContentBlock, index: number | string) {
   switch (block.type) {
     case 'heading':
       const HeadingTag = `h${block.level}` as keyof JSX.IntrinsicElements;
@@ -35,16 +54,11 @@ function renderBlock(block: ContentBlock, index: number) {
       );
 
     case 'value_card':
-      let iconComponent;
-      if (block.icon === 'zap') iconComponent = <Zap className="h-6 w-6 text-accent" />;
-      else if (block.icon === 'users') iconComponent = <Users className="h-6 w-6 text-accent" />;
-      else if (block.icon === 'shield_check') iconComponent = <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-accent"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>;
-      
       return (
         <Card key={index} className="text-center shadow-md hover:shadow-lg transition-shadow">
           <CardHeader>
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-accent/10 mb-4">
-              {iconComponent}
+              <DynamicLucideIcon name={block.icon} className="h-6 w-6 text-accent" />
             </div>
             <CardTitle className="font-headline">{block.title}</CardTitle>
           </CardHeader>

@@ -25,10 +25,23 @@ export const postFormSchema = z.object({
 
 export type PostFormValues = z.infer<typeof postFormSchema>;
 
+
+const contentBlockSchema = z.object({
+    type: z.enum(['heading', 'paragraph', 'image', 'value_card']),
+    level: z.number().optional(),
+    text: z.string().optional(),
+    url: z.string().optional(),
+    alt: z.string().optional(),
+    dataAiHint: z.string().optional(),
+    icon: z.enum(['zap', 'users', 'shield_check']).optional(),
+    title: z.string().optional(),
+});
+
+
 export const pageFormSchema = z.object({
   title: z.string().min(5, { message: 'Title must be at least 5 characters.' }).max(150, { message: 'Title must be 150 characters or less.' }),
   metaDescription: z.string().min(10, { message: 'Meta description must be at least 10 characters.' }).max(300, { message: 'Meta description must be 300 characters or less.' }),
-  // contentBlocks will be handled separately for now
+  contentBlocks: z.array(contentBlockSchema).optional(),
 });
 
 export type PageFormValues = z.infer<typeof pageFormSchema>;

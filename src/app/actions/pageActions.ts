@@ -33,13 +33,12 @@ export async function updatePageAction(
     };
   }
 
-  const { title, metaDescription } = validatedFields.data;
+  const { title, metaDescription, contentBlocks } = validatedFields.data;
 
-  // For now, we only update title and metaDescription.
-  // The contentBlocks editor will be a future enhancement.
-  const pageUpdateData: Partial<Pick<PageData, 'title' | 'metaDescription'>> = {
+  const pageUpdateData: Partial<PageData> = {
     title,
     metaDescription,
+    contentBlocks: contentBlocks || [], // Ensure contentBlocks is an array
   };
 
   try {

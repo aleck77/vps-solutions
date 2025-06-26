@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useEffect, useState, useActionState, startTransition } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useEffect, useState, useActionState } from 'react';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -10,96 +10,114 @@ import { useToast } from '@/hooks/use-toast';
 import { pageFormSchema, type PageFormValues } from '@/lib/schemas';
 import { updatePageAction } from '@/app/actions/pageActions';
 import { getPageBySlug } from '@/lib/firestoreBlog';
-import type { PageData, ContentBlock } from '@/types';
+import type { PageData } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { ArrowLeft, Save, Loader2, Info, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function ContentBlockEditor({ control, index, remove }: { control: any, index: number, remove: (index: number) => void }) {
-  const block = control.fields[index];
-  
+  const blockType = useWatch({
+    control,
+    name: `contentBlocks.${index}.type`,
+  });
+
   return (
     <Card className="p-4 bg-muted/50 space-y-4 relative">
-        <FormField
-          control={control}
-          name={`contentBlocks.${index}.type`}
-          render={({ field }) => (
+      <FormField
+        control={control}
+        name={`contentBlocks.${index}.type`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Block Type</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a block type" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="heading">Heading</SelectItem>
+                <SelectItem value="paragraph">Paragraph</SelectItem>
+                <SelectItem value="image">Image</SelectItem>
+                <SelectItem value="value_card">Value Card</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
+      {blockType === 'heading' && (
+        <>
+          <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Input {...field} placeholder="Heading text" /></FormControl><FormMessage /></FormItem> )} />
+          <FormField
+            control={control}
+            name={`contentBlocks.${index}.level`}
+            render={({ field }) => (
               <FormItem>
-                  <FormLabel>Block Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+                <FormLabel>Level (1-6)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    placeholder="e.g., 2" 
+                    onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </>
+      )}
+      
+      {blockType === 'paragraph' && (
+        <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...field} placeholder="Paragraph content..." className="min-h-[120px]"/></FormControl><FormMessage /></FormItem> )} />
+      )}
+
+      {blockType === 'image' && (
+        <>
+          <FormField control={control} name={`contentBlocks.${index}.url`} render={({ field }) => ( <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem> )} />
+          <FormField control={control} name={`contentBlocks.${index}.alt`} render={({ field }) => ( <FormItem><FormLabel>Alt Text</FormLabel><FormControl><Input {...field} placeholder="Description of the image" /></FormControl><FormMessage /></FormItem> )} />
+          <FormField control={control} name={`contentBlocks.${index}.dataAiHint`} render={({ field }) => ( <FormItem><FormLabel>AI Hint</FormLabel><FormControl><Input {...field} placeholder="e.g., 'team office'" /></FormControl><FormMessage /></FormItem> )} />
+        </>
+      )}
+      
+      {blockType === 'value_card' && (
+        <>
+           <FormField control={control} name={`contentBlocks.${index}.icon`} render={({ field }) => ( 
+              <FormItem>
+                  <FormLabel>Icon</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                          <SelectTrigger>
-                              <SelectValue placeholder="Select a block type" />
-                          </SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Select an icon" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                          <SelectItem value="heading">Heading</SelectItem>
-                          <SelectItem value="paragraph">Paragraph</SelectItem>
-                          <SelectItem value="image">Image</SelectItem>
-                          <SelectItem value="value_card">Value Card</SelectItem>
+                          <SelectItem value="zap">Zap (Innovation)</SelectItem>
+                          <SelectItem value="users">Users (Customer Focus)</SelectItem>
+                          <SelectItem value="shield_check">Shield (Reliability)</SelectItem>
                       </SelectContent>
                   </Select>
                   <FormMessage />
-              </FormItem>
-          )}
-        />
-        
-        {block.type === 'heading' && (
-            <>
-                <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Input {...field} placeholder="Heading text" /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={control} name={`contentBlocks.${index}.level`} render={({ field }) => ( <FormItem><FormLabel>Level (1-6)</FormLabel><FormControl><Input type="number" {...field} placeholder="e.g., 2" /></FormControl><FormMessage /></FormItem> )} />
-            </>
-        )}
-        
-        {block.type === 'paragraph' && (
-            <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...field} placeholder="Paragraph content..." className="min-h-[120px]"/></FormControl><FormMessage /></FormItem> )} />
-        )}
+              </FormItem> 
+          )} />
+          <FormField control={control} name={`contentBlocks.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Card Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Innovation" /></FormControl><FormMessage /></FormItem> )} />
+          <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Card Text</FormLabel><FormControl><Textarea {...field} placeholder="Description for the card..." /></FormControl><FormMessage /></FormItem> )} />
+        </>
+      )}
 
-        {block.type === 'image' && (
-            <>
-                <FormField control={control} name={`contentBlocks.${index}.url`} render={({ field }) => ( <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={control} name={`contentBlocks.${index}.alt`} render={({ field }) => ( <FormItem><FormLabel>Alt Text</FormLabel><FormControl><Input {...field} placeholder="Description of the image" /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={control} name={`contentBlocks.${index}.dataAiHint`} render={({ field }) => ( <FormItem><FormLabel>AI Hint</FormLabel><FormControl><Input {...field} placeholder="e.g., 'team office'" /></FormControl><FormMessage /></FormItem> )} />
-            </>
-        )}
-        
-        {block.type === 'value_card' && (
-            <>
-                 <FormField control={control} name={`contentBlocks.${index}.icon`} render={({ field }) => ( 
-                    <FormItem>
-                        <FormLabel>Icon</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select an icon" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="zap">Zap (Innovation)</SelectItem>
-                                <SelectItem value="users">Users (Customer Focus)</SelectItem>
-                                <SelectItem value="shield_check">Shield (Reliability)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem> 
-                )} />
-                <FormField control={control} name={`contentBlocks.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Card Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Innovation" /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Card Text</FormLabel><FormControl><Textarea {...field} placeholder="Description for the card..." /></FormControl><FormMessage /></FormItem> )} />
-            </>
-        )}
-
-        <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => remove(index)}>
-            <Trash2 className="h-4 w-4" />
-        </Button>
+      <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => remove(index)}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
     </Card>
   );
 }
-
 
 export default function EditPage() {
   const router = useRouter();
@@ -168,6 +186,28 @@ export default function EditPage() {
     }
   }, [state, toast]);
 
+  const addNewBlock = (type: 'heading' | 'paragraph' | 'image' | 'value_card') => {
+    let newBlock: any;
+    switch (type) {
+      case 'heading':
+        newBlock = { type: 'heading', text: 'New Heading', level: 2 };
+        break;
+      case 'paragraph':
+        newBlock = { type: 'paragraph', text: '' };
+        break;
+      case 'image':
+        newBlock = { type: 'image', url: 'https://placehold.co/600x400.png', alt: 'placeholder', dataAiHint: 'placeholder image' };
+        break;
+      case 'value_card':
+        newBlock = { type: 'value_card', icon: 'zap', title: 'New Value', text: 'Description' };
+        break;
+      default:
+        return;
+    }
+    append(newBlock);
+  };
+
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-10">
@@ -205,7 +245,7 @@ export default function EditPage() {
             <Save className="h-7 w-7 mr-3 text-accent" />
             Edit Page: {form.getValues('title')}
           </CardTitle>
-          <CardDescription>Update the details of the page below. Content block editing coming soon.</CardDescription>
+          <CardDescription>Update the details of the page below. Use the controls to manage content blocks.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -250,19 +290,25 @@ export default function EditPage() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Content Blocks</h3>
-                {fields.map((field, index) => (
-                   <ContentBlockEditor key={field.id} control={form.control} index={index} remove={remove} />
-                ))}
-                 <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => append({ type: 'paragraph', text: '' })}
-                >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Paragraph Block
-                </Button>
+                <div className="space-y-4">
+                  {fields.map((field, index) => (
+                    <ContentBlockEditor key={field.id} control={form.control} index={index} remove={remove} />
+                  ))}
+                </div>
+                 <div className="flex flex-wrap gap-2 pt-4">
+                    <Button type="button" variant="outline" size="sm" onClick={() => addNewBlock('heading')}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Heading
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => addNewBlock('paragraph')}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Paragraph
+                    </Button>
+                     <Button type="button" variant="outline" size="sm" onClick={() => addNewBlock('image')}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Image
+                    </Button>
+                     <Button type="button" variant="outline" size="sm" onClick={() => addNewBlock('value_card')}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Value Card
+                    </Button>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">

@@ -10,6 +10,15 @@ import { notFound } from 'next/navigation';
 import type { PageData, ContentBlock, ValueCardBlock } from '@/types';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 
+// --- Helper to convert string to PascalCase for Lucide icons ---
+function toPascalCase(str: string) {
+  if (!str) return '';
+  // This handles snake_case and kebab-case by splitting, capitalizing, and rejoining.
+  return str
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
+}
 
 // --- Dynamic Icon Renderer ---
 interface DynamicLucideIconProps extends LucideProps {
@@ -17,10 +26,13 @@ interface DynamicLucideIconProps extends LucideProps {
 }
 
 const DynamicLucideIcon = ({ name, ...props }: DynamicLucideIconProps) => {
-  const IconComponent = icons[name as keyof typeof icons];
+  // Convert the name from the database (e.g., "shield_check") to the required format ("ShieldCheck")
+  const iconNameInPascalCase = toPascalCase(name);
+  const IconComponent = icons[iconNameInPascalCase as keyof typeof icons];
 
   if (!IconComponent) {
-    // Return a default fallback icon if the name is invalid or not provided
+    // Return a default fallback icon if the name is invalid or not found
+    console.warn(`[DynamicLucideIcon] Icon not found for name: "${name}". Rendering fallback.`);
     return <Smile {...props} />;
   }
 
@@ -181,7 +193,7 @@ export default function AboutPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-lg text-foreground space-y-4">
-             {pageData.contentBlocks.filter(b => b.type === 'paragraph' && (b.text.includes("At VHost Solutions, our mission is to provide") || b.text.includes("We believe that great hosting is the foundation"))).map((block, index) => renderBlock(block, index))}
+             {pageData.contentBlocks.filter(b => b.type === 'paragraph' && (b.text.includes("At VHost Solutions, our mission is to provide") || b.text.includes("We believe that great hosting is the foundation"))).map((block, index) => renderBlock(block, `mission-p-${index}`))}
           </CardContent>
         </Card>
       </section>
@@ -197,7 +209,7 @@ export default function AboutPage() {
             </section>
           )
         } else { // This is a single block
-          if (item.text?.includes("Our Story")) {
+          if (item.type === 'heading' && item.text === 'Our Story') {
              return (
                <section key={index} className="grid md:grid-cols-2 gap-8 items-center">
                   <div>

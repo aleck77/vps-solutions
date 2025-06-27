@@ -30,7 +30,7 @@ import {
 } from '@/lib/schemas';
 
 import type { HomepageContent, ContactInfo, FooterContent, GeneralSettings, SocialLinkName, HomepageContentBlock, HomepageFeature } from '@/types';
-import { uploadImageAction } from '@/app/actions/uploadActions';
+import { uploadPageImageAction } from '@/app/actions/uploadActions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@ function GeneralSettingsUploader({ form }: { form: any }) {
 
     setIsUploading(true);
     startTransition(async () => {
-      const result = await uploadImageAction(dataUri, 'site-logo', 'logos/');
+      const result = await uploadPageImageAction(dataUri, 'site-logo');
       if (result.success && result.imageUrl) {
         form.setValue('logoUrl', result.imageUrl, { shouldValidate: true, shouldDirty: true });
         toast({ title: "Success", description: "Logo uploaded! Save the settings to apply the change." });

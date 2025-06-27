@@ -2,11 +2,10 @@
 
 import { z } from 'zod';
 import { slugify } from '@/lib/utils';
-import { Buffer } from 'buffer';
 
 const uploadSchema = z.object({
   imageDataUri: z.string().startsWith('data:image/', { message: 'Invalid image data URI' }),
-  targetFilename: z.string().min(1, { message: 'Filename is required.' }),
+  pageTitle: z.string().min(1, { message: 'Page title is required for filename generation.' }),
 });
 
 interface UploadResult {
@@ -15,11 +14,11 @@ interface UploadResult {
   imageUrl?: string;
 }
 
-export async function uploadImageAction(
-  imageDataUri: string,
-  targetFilename: string
-): Promise<UploadResult> {
-  const validatedFields = uploadSchema.safeParse({ imageDataUri, targetFilename });
+export async function uploadPageImageAction(imageDataUri: string, pageTitle: string): Promise<UploadResult> {
+  const validatedFields = uploadSchema.safeParse({
+    imageDataUri,
+    pageTitle,
+  });
 
   if (!validatedFields.success) {
     return {
@@ -27,75 +26,43 @@ export async function uploadImageAction(
       message: validatedFields.error.errors.map(e => e.message).join(', '),
     };
   }
-  
-  const { WORDPRESS_API_URL, WORDPRESS_USERNAME, WORDPRESS_APP_PASSWORD } = process.env;
 
-  if (!WORDPRESS_API_URL || !WORDPRESS_USERNAME || !WORDPRESS_APP_PASSWORD) {
-    const errorMessage = "Image upload service is not configured. Please set WORDPRESS_API_URL, WORDPRESS_USERNAME, and WORDPRESS_APP_PASSWORD in your .env file.";
-    console.error(`[uploadImageAction] ${errorMessage}`);
-    return {
-      success: false,
-      message: errorMessage,
-    };
-  }
+  const pageTitleSlug = slugify(pageTitle) || 'untitled-page-image';
+  const timestamp = Date.now();
+  const filename = `${pageTitleSlug}-${timestamp}.png`;
+  
+  const webhookUrl = 'https://n8n.artelegis.com.ua/webhook/wp';
+  const payload = {
+      imageDataUri,
+      postTitle: pageTitle, // n8n workflow might be expecting 'postTitle'
+      filename,
+  };
 
   try {
-    const { imageDataUri, targetFilename } = validatedFields.data;
-
-    // 1. Extract data and mime type from Data URI
-    const matches = imageDataUri.match(/^data:(.+);base64,(.*)$/);
-    if (!matches || matches.length !== 3) {
-      throw new Error("Invalid data URI format.");
-    }
-    const mimeType = matches[1];
-    const base64Data = matches[2];
-    const imageBuffer = Buffer.from(base64Data, 'base64');
-
-    // 2. Prepare for upload
-    const fileExtension = mimeType.split('/')[1] || 'jpg';
-    const finalFilename = `${slugify(targetFilename)}.${fileExtension}`;
-    
-    // Use WORDPRESS_API_URL directly as the endpoint.
-    const wpApiEndpoint = WORDPRESS_API_URL;
-
-    // 3. Prepare headers
-    const credentials = Buffer.from(`${WORDPRESS_USERNAME}:${WORDPRESS_APP_PASSWORD}`).toString('base64');
-    const headers = {
-      'Authorization': `Basic ${credentials}`,
-      'Content-Type': mimeType,
-      'Content-Disposition': `attachment; filename="${finalFilename}"`,
-    };
-
-    // 4. Make the request to the webhook/API
-    const response = await fetch(wpApiEndpoint, {
+    const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: headers,
-      body: imageBuffer,
-      cache: 'no-store'
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
-    const responseBody = await response.json();
-
+    const responseText = await response.text();
     if (!response.ok) {
-      console.error('Webhook/API Error Response:', responseBody);
-      throw new Error(responseBody.message || `Webhook responded with status ${response.status}`);
+        throw new Error(`Upload failed: Server responded with status ${response.status}. Response: ${responseText.substring(0, 500)}`);
     }
 
-    if (!responseBody.source_url) {
-      console.error('Webhook/API Success Response without URL:', responseBody);
-      throw new Error("The API returned a success response but did not provide an image URL.");
-    }
-    
-    console.log(`[uploadImageAction] Image uploaded successfully via webhook. Public URL: ${responseBody.source_url}`);
-    
-    return {
-      success: true,
-      message: 'Image uploaded successfully!',
-      imageUrl: responseBody.source_url,
-    };
+    const result = JSON.parse(responseText);
 
+    if (result.success && result.imageUrl) {
+      return {
+        success: true,
+        message: 'Image uploaded successfully!',
+        imageUrl: result.imageUrl,
+      };
+    } else {
+      throw new Error(result.error || result.message || 'Upload failed: The server reported an error.');
+    }
   } catch (error: any) {
-    console.error('[uploadImageAction] Webhook Upload Action Error:', error);
-    return { success: false, message: error.message || 'An unknown error occurred during upload to the webhook.' };
+    console.error('[uploadPageImageAction] Error:', error);
+    return { success: false, message: error.message || 'An unknown error occurred during upload.' };
   }
 }

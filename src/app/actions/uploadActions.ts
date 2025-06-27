@@ -26,15 +26,24 @@ export async function uploadPageImageAction(imageDataUri: string, pageTitle: str
       message: validatedFields.error.errors.map(e => e.message).join(', '),
     };
   }
+  
+  const webhookUrl = process.env.WORDPRESS_API_URL;
+  if (!webhookUrl) {
+    const errorMessage = 'Image upload service is not configured. Please set WORDPRESS_API_URL in your .env file.';
+    console.error(`[uploadPageImageAction] ${errorMessage}`);
+    return { 
+        success: false, 
+        message: errorMessage
+    };
+  }
 
   const pageTitleSlug = slugify(pageTitle) || 'untitled-page-image';
   const timestamp = Date.now();
   const filename = `${pageTitleSlug}-${timestamp}.png`;
   
-  const webhookUrl = 'https://n8n.artelegis.com.ua/webhook/wp';
   const payload = {
       imageDataUri,
-      postTitle: pageTitle, // n8n workflow might be expecting 'postTitle'
+      postTitle: pageTitle,
       filename,
   };
 

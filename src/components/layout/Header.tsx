@@ -1,9 +1,8 @@
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Server, Newspaper, Users, Mail, Menu, LogIn, LogOut, Briefcase } from 'lucide-react';
+import { Server, Newspaper, Users, Mail, Menu, LogIn, LogOut, Briefcase, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -34,17 +33,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
 }
 
 // A client component to render a single mobile navigation link.
-function MobileNavLink({ href, label }: { href: string; label: string }) {
-  // A map from label to icon component
-  const iconMap: { [key: string]: React.ReactNode } = {
-    'Home': <Server className="h-5 w-5" />,
-    'Blog': <Newspaper className="h-5 w-5" />,
-    'Order VPS': <Briefcase className="h-5 w-5" />,
-    'About Us': <Users className="h-5 w-5" />,
-    'Contact': <Mail className="h-5 w-5" />,
-  };
-  const icon = iconMap[label] || <Server className="h-5 w-5" />;
-
+function MobileNavLink({ href, label, icon }: { href: string; label: string; icon: React.ReactNode }) {
   return (
     <SheetClose asChild>
       <Link
@@ -77,6 +66,14 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
     }
   };
 
+  const iconMap: { [key: string]: React.ReactNode } = {
+    'Home': <Server className="h-5 w-5" />,
+    'Blog': <Newspaper className="h-5 w-5" />,
+    'Order VPS': <Briefcase className="h-5 w-5" />,
+    'About Us': <Users className="h-5 w-5" />,
+    'Contact': <Mail className="h-5 w-5" />,
+  };
+
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -98,13 +95,18 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
           {navItems.map((link) => (
             <NavLink key={link.label} href={link.href} label={link.label} />
           ))}
+          {!loading && user && (
+            <NavLink href="/admin/dashboard" label="Dashboard" />
+          )}
           {!loading && user ? (
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="h-4 w-4 mr-2" /> Logout
             </Button>
-          ) : (
-            <NavLink href="/admin/dashboard" label="Admin" />
-          )}
+          ) : !loading ? (
+             <Button asChild variant="ghost">
+                <Link href="/admin/login">Admin Login</Link>
+            </Button>
+          ) : null }
           <Button asChild variant="default">
             <Link href="/order">Get Started</Link>
           </Button>
@@ -143,30 +145,25 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
               <div className="p-6">
                 <nav className="flex flex-col space-y-3">
                   {navItems.map((link) => (
-                    <MobileNavLink key={link.label} href={link.href} label={link.label} />
+                    <MobileNavLink key={link.label} href={link.href} label={link.label} icon={iconMap[link.label] || <Server className="h-5 w-5" />} />
                   ))}
                   <div className="pt-2 border-t">
                     {!loading && user ? (
-                      <SheetClose asChild>
-                         <button
-                          onClick={handleLogout}
-                          className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium w-full text-left"
-                        >
-                          <LogOut className="h-5 w-5" />
-                          <span>Logout</span>
-                        </button>
-                      </SheetClose>
-                    ) : (
-                      <SheetClose asChild>
-                         <Link
-                          href="/admin/dashboard"
-                          className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium"
-                        >
-                          <LogIn className="h-5 w-5" />
-                          <span>Admin Login</span>
-                        </Link>
-                      </SheetClose>
-                    )}
+                       <>
+                        <MobileNavLink href="/admin/dashboard" label="Dashboard" icon={<LayoutDashboard className="h-5 w-5"/>} />
+                        <SheetClose asChild>
+                           <button
+                            onClick={handleLogout}
+                            className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium w-full text-left"
+                          >
+                            <LogOut className="h-5 w-5" />
+                            <span>Logout</span>
+                          </button>
+                        </SheetClose>
+                       </>
+                    ) : !loading ? (
+                      <MobileNavLink href="/admin/login" label="Admin Login" icon={<LogIn className="h-5 w-5" />} />
+                    ) : null}
                   </div>
                   <SheetClose asChild>
                     <Button asChild variant="default" className="mt-6 w-full text-lg py-3">

@@ -17,6 +17,9 @@ services:
       # IMPORTANT: Ensure 'service-account-key.json' is in the same directory as this docker-compose.yml
       # or provide the correct path to the key file on your host.
       - ./service-account-key.json:/app/service-account-key.json:ro
+      # Mount the static logo file into the public directory of the container.
+      # This allows changing the logo by replacing the file on the host server.
+      - ./public/images/vhost-logo.svg:/app/public/images/vhost-logo.svg:ro
     networks:
       - n8n_default # Connect to your existing Traefik network
     labels:

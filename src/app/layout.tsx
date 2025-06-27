@@ -8,17 +8,26 @@ import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/authContext';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
+import { getNavigationMenu } from '@/lib/firestoreBlog';
 
 export const metadata: Metadata = {
   title: 'VHost Solutions - Premier VPS Hosting',
   description: 'Reliable and high-performance VPS hosting solutions.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Fetch navigation data on the server
+  const headerNav = await getNavigationMenu('header-nav');
+  const footerLinks = await getNavigationMenu('footer-links');
+
+  // Fallback to empty arrays if data is not found
+  const headerNavItems = headerNav?.items || [];
+  const footerLinkItems = footerLinks?.items || [];
+
   return (
     <html lang="en">
        <head>
@@ -29,11 +38,11 @@ export default function RootLayout({
       {/* font-body and font-headline are applied via globals.css using Tailwind's @layer base */}
       <body className="antialiased flex flex-col min-h-screen">
         <AuthProvider>
-          <Header />
+          <Header navItems={headerNavItems} />
           <main className="flex-grow container mx-auto px-4 py-8">
             {children}
           </main>
-          <Footer />
+          <Footer footerLinks={footerLinkItems} />
           <Toaster />
         </AuthProvider>
       </body>

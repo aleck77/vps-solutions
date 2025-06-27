@@ -91,4 +91,17 @@ export interface PageData {
   metaDescription: string;
   contentBlocks: ContentBlock[];
   updatedAt?: string; // Changed from Date | Timestamp to string
+  createdAt?: string; // Changed from Date | Timestamp to string
+}
+
+// --- Navigation Types ---
+export interface MenuItem {
+  label: string;
+  href: string;
+  // In the future, we can add `children: MenuItem[]` for sub-menus
+}
+
+export interface NavigationMenu {
+  id?: string; // e.g., 'header-nav', 'footer-links'
+  items: MenuItem[];
 }

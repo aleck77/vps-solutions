@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Server, Briefcase, Newspaper, Users, Mail, Menu, LogIn, LogOut } from 'lucide-react';
+import { Server, Newspaper, Users, Mail, Menu, LogIn, LogOut, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -16,28 +16,57 @@ import {
 } from '@/components/ui/sheet';
 import * as React from 'react';
 import { useAuth } from '@/lib/authContext';
-import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-
-const navLinks = [
-  { href: '/', label: 'Home', icon: <Server className="h-5 w-5" /> },
-  { href: '/blog', label: 'Blog', icon: <Newspaper className="h-5 w-5" /> },
-  { href: '/order', label: 'Order VPS', icon: <Briefcase className="h-5 w-5" /> },
-  { href: '/about', label: 'About Us', icon: <Users className="h-5 w-5" /> },
-  { href: '/contact', label: 'Contact', icon: <Mail className="h-5 w-5" /> },
-];
+import type { MenuItem } from '@/types';
+import { getAuthInstance } from '@/lib/firebase';
 
 const mobileMenuDescriptionId = "mobile-menu-description";
 
-export default function Header() {
+// A client component to render a single navigation link.
+function NavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="text-foreground hover:text-primary transition-colors font-medium">
+      {label}
+    </Link>
+  );
+}
+
+// A client component to render a single mobile navigation link.
+function MobileNavLink({ href, label }: { href: string; label: string }) {
+  // A map from label to icon component
+  const iconMap: { [key: string]: React.ReactNode } = {
+    'Home': <Server className="h-5 w-5" />,
+    'Blog': <Newspaper className="h-5 w-5" />,
+    'Order VPS': <Briefcase className="h-5 w-5" />,
+    'About Us': <Users className="h-5 w-5" />,
+    'Contact': <Mail className="h-5 w-5" />,
+  };
+  const icon = iconMap[label] || <Server className="h-5 w-5" />;
+
+  return (
+    <SheetClose asChild>
+      <Link
+        href={href}
+        className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium"
+      >
+        {icon}
+        <span>{label}</span>
+      </Link>
+    </SheetClose>
+  );
+}
+
+
+export default function Header({ navItems }: { navItems: MenuItem[] }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    const auth = getAuthInstance(); // Moved here to ensure it's only called on client-side
+    // Moved here to ensure it's only called on client-side
+    const auth = getAuthInstance(); 
     try {
       await signOut(auth);
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
@@ -47,9 +76,6 @@ export default function Header() {
       console.error('Logout error:', error);
     }
   };
-
-  const adminNavLink = { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> };
-  const allNavLinks = [...navLinks, adminNavLink];
 
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
@@ -69,19 +95,15 @@ export default function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex space-x-4 items-center">
-          {navLinks.map((link) => (
-            <Link key={link.label} href={link.href} className="text-foreground hover:text-primary transition-colors font-medium">
-              {link.label}
-            </Link>
+          {navItems.map((link) => (
+            <NavLink key={link.label} href={link.href} label={link.label} />
           ))}
           {!loading && user ? (
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="h-4 w-4 mr-2" /> Logout
             </Button>
           ) : (
-            <Link href="/admin/dashboard" className="text-foreground hover:text-primary transition-colors font-medium">
-              Admin
-            </Link>
+            <NavLink href="/admin/dashboard" label="Admin" />
           )}
           <Button asChild variant="default">
             <Link href="/order">Get Started</Link>
@@ -115,21 +137,13 @@ export default function Header() {
                   </Link>
                 </SheetTitle>
                 <SheetDescription id={mobileMenuDescriptionId} className="sr-only">
-                  Mobile navigation menu for VHost Solutions. Contains links to Home, Blog, Order VPS, About Us, Contact, and Admin pages.
+                  Mobile navigation menu for VHost Solutions.
                 </SheetDescription>
               </SheetHeader>
               <div className="p-6">
                 <nav className="flex flex-col space-y-3">
-                  {navLinks.map((link) => (
-                    <SheetClose asChild key={link.label}>
-                      <Link
-                        href={link.href}
-                        className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium"
-                      >
-                        {link.icon}
-                        <span>{link.label}</span>
-                      </Link>
-                    </SheetClose>
+                  {navItems.map((link) => (
+                    <MobileNavLink key={link.label} href={link.href} label={link.label} />
                   ))}
                   <div className="pt-2 border-t">
                     {!loading && user ? (

@@ -115,8 +115,16 @@ export async function updateFooterContentAction(
   try {
     const adminDb = await getAdminFirestore();
     const docRef = adminDb.collection('site_content').doc('footer');
-    await docRef.set({
+
+    // Create a sanitized version of the data to save, removing temporary IDs
+    const sanitizedData = {
       ...validatedFields.data,
+      contentBlocks: stripTemporaryIds(validatedFields.data.contentBlocks),
+      socialLinks: stripTemporaryIds(validatedFields.data.socialLinks || []),
+    };
+
+    await docRef.set({
+      ...sanitizedData,
       updatedAt: AdminFieldValue.serverTimestamp(),
     }, { merge: true });
 

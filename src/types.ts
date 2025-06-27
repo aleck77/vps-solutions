@@ -134,3 +134,15 @@ export interface ContactInfo {
   salesHours: string;
   supportHours: string;
 }
+
+export interface SocialLink {
+  name: 'Facebook' | 'Twitter' | 'LinkedIn';
+  href: string;
+}
+
+export interface FooterContent {
+  id?: 'footer';
+  description: string;
+  copyright: string;
+  socialLinks: SocialLink[];
+}

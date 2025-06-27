@@ -95,3 +95,13 @@ export const contactInfoSchema = z.object({
   supportHours: z.string().min(5, { message: 'Support hours are required.' }),
 });
 export type ContactInfoValues = z.infer<typeof contactInfoSchema>;
+
+export const footerContentSchema = z.object({
+  description: z.string().min(10, { message: 'Description is required.' }),
+  copyright: z.string().min(5, { message: 'Copyright text is required.' }),
+  socialLinks: z.array(z.object({
+    name: z.enum(['Facebook', 'Twitter', 'LinkedIn']),
+    href: z.string().url({ message: 'Please enter a valid URL.' }),
+  })).min(1, { message: 'At least one social link is required.' }),
+});
+export type FooterContentValues = z.infer<typeof footerContentSchema>;

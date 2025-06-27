@@ -2,8 +2,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CheckCircle, Cpu, HardDrive, Zap } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, Cpu, HardDrive, Zap } from 'lucide-react';
 import { getVpsPlans, getHomepageContent } from '@/lib/firestoreBlog';
 import type { VPSPlan, HomepageContent } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -121,14 +121,14 @@ export default async function HomePage() {
                 <Card key={plan.id} className="flex flex-col shadow-md hover:shadow-xl transition-shadow duration-300">
                   <CardHeader>
                     <CardTitle className="font-headline text-primary">{plan.name}</CardTitle>
-                    <CardDescription>{plan.cpu}, {plan.ram}, {plan.storage}</CardDescription>
+                    <p className="text-sm text-muted-foreground">{plan.cpu}, {plan.ram}, {plan.storage}</p>
                   </CardHeader>
                   <CardContent className="flex-grow">
                     <p className="text-3xl font-bold mb-2">${plan.priceMonthly.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
                     <ul className="space-y-2 text-sm">
                       {plan.features.slice(0, 3).map((feature, index) => (
                         <li key={index} className="flex items-center">
-                          <CheckCircle className="h-4 w-4 text-accent mr-2" />
+                          <Check className="h-4 w-4 text-accent mr-2 flex-shrink-0" />
                           {feature}
                         </li>
                       ))}

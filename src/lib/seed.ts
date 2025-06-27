@@ -2,7 +2,7 @@
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo } from '@/types';
+import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo, FooterContent } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
@@ -217,8 +217,9 @@ const navigationToSeed: { [id: string]: Omit<NavigationMenu, 'id'> } = {
 };
 
 const siteContentToSeed: {
-  homepage: Omit<HomepageContent, 'id'>,
-  contact_info: Omit<ContactInfo, 'id'>
+  homepage: Omit<HomepageContent, 'id'>;
+  contact_info: Omit<ContactInfo, 'id'>;
+  footer: Omit<FooterContent, 'id'>;
 } = {
   homepage: {
     heroTitle: "Power Your Ambitions with VHost Solutions",
@@ -239,6 +240,15 @@ const siteContentToSeed: {
     phone: "+1 (555) 123-4567",
     salesHours: "Monday - Friday, 9 AM - 6 PM (PST)",
     supportHours: "24/7 via email and ticketing system"
+  },
+  footer: {
+    description: "Providing reliable and scalable VPS hosting for your business needs, backed by 24/7 support and a passion for technology.",
+    copyright: "VHost Solutions. All rights reserved.",
+    socialLinks: [
+      { name: 'Facebook', href: '#' },
+      { name: 'Twitter', href: '#' },
+      { name: 'LinkedIn', href: '#' },
+    ]
   }
 };
 
@@ -269,6 +279,14 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
     summaryDetails.push('Site Content: Seeded contact info.');
   } else {
      summaryDetails.push('Site Content: Skipped contact info (already exists).');
+  }
+
+  const footerDoc = await siteContentCollection.doc('footer').get();
+  if (!footerDoc.exists) {
+    await siteContentCollection.doc('footer').set(siteContentToSeed.footer);
+    summaryDetails.push('Site Content: Seeded footer content.');
+  } else {
+     summaryDetails.push('Site Content: Skipped footer (already exists).');
   }
 
 

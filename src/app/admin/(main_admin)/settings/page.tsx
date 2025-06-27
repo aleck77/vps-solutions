@@ -5,10 +5,10 @@ import { useEffect, useState, useActionState, startTransition } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
-import { getHomepageContent, getContactInfo } from '@/lib/firestoreBlog';
-import { updateHomepageContentAction, updateContactInfoAction } from '@/app/actions/settingsActions';
-import { homepageContentSchema, contactInfoSchema, type HomepageContentValues, type ContactInfoValues } from '@/lib/schemas';
-import type { HomepageContent, ContactInfo } from '@/types';
+import { getHomepageContent, getContactInfo, getFooterContent } from '@/lib/firestoreBlog';
+import { updateHomepageContentAction, updateContactInfoAction, updateFooterContentAction } from '@/app/actions/settingsActions';
+import { homepageContentSchema, contactInfoSchema, footerContentSchema, type HomepageContentValues, type ContactInfoValues, type FooterContentValues } from '@/lib/schemas';
+import type { HomepageContent, ContactInfo, FooterContent } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Save, Loader2, Home, Phone, PlusCircle, Trash2 } from 'lucide-react';
+import { Save, Loader2, Home, Phone, Code, PlusCircle, Trash2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 function HomepageSettingsForm({ defaultValues }: { defaultValues: HomepageContent | null }) {
   const { toast } = useToast();
@@ -145,21 +148,128 @@ function ContactInfoSettingsForm({ defaultValues }: { defaultValues: ContactInfo
     );
 }
 
+function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | null }) {
+  const { toast } = useToast();
+  const form = useForm<FooterContentValues>({
+    resolver: zodResolver(footerContentSchema),
+    defaultValues: defaultValues || {
+      description: '',
+      copyright: '',
+      socialLinks: [{ name: 'Facebook', href: '#' }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'socialLinks',
+  });
+
+  const [state, formAction] = useActionState(updateFooterContentAction, undefined);
+
+  useEffect(() => {
+    if (state?.success) {
+      toast({ title: 'Success!', description: state.message });
+    } else if (state?.success === false) {
+      toast({ title: 'Error', description: state.message, variant: 'destructive' });
+    }
+  }, [state, toast]);
+
+  return (
+    <Form {...form}>
+      <form
+        action={formAction}
+        onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))}
+        className="space-y-8"
+      >
+        <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Footer Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+        <FormField control={form.control} name="copyright" render={({ field }) => (<FormItem><FormLabel>Copyright Text</FormLabel><FormControl><Input {...field} placeholder="e.g., VHost Solutions. All rights reserved." /></FormControl><FormMessage /></FormItem>)} />
+        
+        <div>
+          <Label>Social Media Links</Label>
+          <div className="space-y-4 mt-2">
+            {fields.map((field, index) => (
+              <Card key={field.id} className="p-4 bg-muted/50">
+                <div className="flex gap-4 items-end">
+                  <FormField
+                    control={form.control}
+                    name={`socialLinks.${index}.name`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>Platform</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                           <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select platform" />
+                            </SelectTrigger>
+                           </FormControl>
+                           <SelectContent>
+                            <SelectItem value="Facebook">Facebook</SelectItem>
+                            <SelectItem value="Twitter">Twitter</SelectItem>
+                            <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                           </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`socialLinks.${index}.href`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>URL</FormLabel>
+                        <FormControl><Input {...field} placeholder="https://..." /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => append({ name: 'Facebook', href: '' })}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Social Link
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-4">
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />}
+            Save Footer Settings
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
 
 export default function SiteSettingsPage() {
   const [homepageData, setHomepageData] = useState<HomepageContent | null>(null);
   const [contactData, setContactData] = useState<ContactInfo | null>(null);
+  const [footerData, setFooterData] = useState<FooterContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
-      const [hpData, cData] = await Promise.all([
+      const [hpData, cData, fData] = await Promise.all([
         getHomepageContent(),
         getContactInfo(),
+        getFooterContent(),
       ]);
       setHomepageData(hpData);
       setContactData(cData);
+      setFooterData(fData);
       setIsLoading(false);
     }
     loadData();
@@ -182,15 +292,19 @@ export default function SiteSettingsPage() {
         </CardHeader>
         <CardContent>
             <Tabs defaultValue="homepage">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="homepage"><Home className="mr-2" />Homepage Content</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="homepage"><Home className="mr-2" />Homepage</TabsTrigger>
                     <TabsTrigger value="contact"><Phone className="mr-2" />Contact Info</TabsTrigger>
+                    <TabsTrigger value="footer"><Code className="mr-2" />Footer</TabsTrigger>
                 </TabsList>
                 <TabsContent value="homepage" className="mt-6">
                     <HomepageSettingsForm defaultValues={homepageData} />
                 </TabsContent>
                 <TabsContent value="contact" className="mt-6">
                     <ContactInfoSettingsForm defaultValues={contactData} />
+                </TabsContent>
+                <TabsContent value="footer" className="mt-6">
+                    <FooterSettingsForm defaultValues={footerData} />
                 </TabsContent>
             </Tabs>
         </CardContent>

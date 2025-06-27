@@ -28,6 +28,12 @@ const defaultFooterContent: FooterContent = {
       title: 'Resources', 
       menuId: 'footer-col-2' 
     },
+     { 
+      id: 'footer-menu-3', 
+      type: 'menu', 
+      title: 'Support', 
+      menuId: 'footer-col-3' 
+    },
   ],
   copyright: "VHost Solutions. All rights reserved.",
   socialLinks: [
@@ -54,13 +60,13 @@ export default function Footer({ footerMenus, footerContent }: FooterProps) {
   return (
     <footer className="bg-card border-t border-border mt-auto">
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {Array.isArray(blocksToRender) && blocksToRender.map((block, index) => {
             if (!block) return null;
 
             if (block.type === 'text') {
               return (
-                <div key={block.id || index} className="md:col-span-2">
+                <div key={block.id || index}>
                   <h3 className="text-lg font-headline font-semibold text-primary mb-2">{block.title}</h3>
                   <p className="text-muted-foreground text-sm max-w-sm">
                     {block.description}
@@ -74,10 +80,10 @@ export default function Footer({ footerMenus, footerContent }: FooterProps) {
                 <div key={block.id || index}>
                   <h4 className="text-md font-semibold mb-2">{block.title}</h4>
                   <ul className="space-y-1 text-sm">
-                    {Array.isArray(menuItems) && menuItems.map((link, linkIndex) => (
-                       <li key={link.label || linkIndex}>
-                          <Link href={link.href || '#'} className="text-muted-foreground hover:text-primary transition-colors">
-                              {link.label || 'Unnamed Link'}
+                    {Array.isArray(menuItems) && menuItems.map((link) => (
+                       <li key={link.label}>
+                          <Link href={link.href} className="text-muted-foreground hover:text-primary transition-colors">
+                              {link.label}
                           </Link>
                        </li>
                     ))}
@@ -91,12 +97,12 @@ export default function Footer({ footerMenus, footerContent }: FooterProps) {
         <div className="mt-8 border-t border-border pt-6 flex flex-col sm:flex-row justify-between items-center">
            <p className="text-sm text-muted-foreground mb-4 sm:mb-0">&copy; {currentYear} {copyrightText}</p>
            <div className="flex space-x-4">
-              {Array.isArray(socialLinksToRender) && socialLinksToRender.map((link, index) => {
-                if (!link) return null;
+              {Array.isArray(socialLinksToRender) && socialLinksToRender.map((link) => {
+                if (!link || !link.name) return null;
                 const Icon = socialIconMap[link.name];
                 if (!Icon) return null;
                 return (
-                  <Link key={link.name || index} href={link.href || '#'} aria-label={link.name} className="text-muted-foreground hover:text-primary">
+                  <Link key={link.name} href={link.href || '#'} aria-label={link.name} className="text-muted-foreground hover:text-primary">
                     <Icon className="h-5 w-5" />
                   </Link>
                 );

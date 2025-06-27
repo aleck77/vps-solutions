@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Newspaper, Settings, Wrench } from 'lucide-react';
+import { BookOpen, Newspaper, Settings, Wrench, ListTree } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const { user, loading } = useAuth();
@@ -91,6 +91,20 @@ export default function AdminDashboardPage() {
                     </Button>
                 </div>
             </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-medium">Manage Navigation</CardTitle>
+                    <ListTree className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">Control header and footer menus.</p>
+                </CardContent>
+                 <div className="p-6 pt-0">
+                    <Button asChild>
+                       <Link href="/admin/navigation">Manage Menus</Link>
+                    </Button>
+                </div>
+            </Card>
         </CardContent>
       </Card>
       <Card>
@@ -102,7 +116,7 @@ export default function AdminDashboardPage() {
         </CardHeader>
         <CardContent>
             <h3 className="font-semibold mb-2">Database Seeding</h3>
-            <p className="text-sm text-muted-foreground mb-3">Populate your Firestore database with initial data (posts, categories, pages). This should only be run once on a fresh database.</p>
+            <p className="text-sm text-muted-foreground mb-3">Populate your Firestore database with initial data (posts, categories, pages, menus). This should only be run once on a fresh database.</p>
             <Button onClick={handleSeed} disabled={isSeeding} variant="outline">
               {isSeeding ? 'Seeding...' : 'Seed Database'}
             </Button>

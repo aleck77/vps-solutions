@@ -1,42 +1,35 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Существующие правила для постов
+  
+    // Default to locked down for safety.
+    // Specific collections below will open up permissions.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Public blog posts can be read by anyone if they are marked as 'published'.
     match /posts/{postId} {
-      // Любой может читать опубликованные посты
       allow read: if resource.data.published == true;
-      // Только администраторы могут создавать, обновлять или удалять посты
-      allow write: if request.auth.token.admin == true;
+      // Writes are handled by admin server actions, which bypass these rules.
     }
     
-    // Существующие правила для категорий
+    // Categories, pages, and navigation menus are public content and can be read by anyone.
     match /categories/{categoryId} {
-      // Любой может читать список категорий
       allow read: if true;
-      // Только администраторы могут изменять категории
-      allow write: if request.auth.token.admin == true;
     }
-
-    // Существующие правила для подписчиков
-    match /subscribers/{subscriberId} {
-        // Никто не может читать чужие email-адреса
-        allow read: if false;
-        // Любой может создать новую подписку (добавить свой email)
-        allow create: if true;
-        // Никто не может изменять или удалять подписки
-        allow update, delete: if false;
-    }
-
-    // --- НОВОЕ ПРАВИЛО ДЛЯ СТРАНИЦ ---
-    // Любой может читать содержимое страниц (About, Contact и т.д.)
     match /pages/{pageId} {
       allow read: if true;
-      // Только администраторы могут создавать или изменять страницы
-      allow write: if request.auth.token.admin == true;
+    }
+    match /navigation/{navId} {
+      allow read: if true;
+    }
+
+    // Anyone can subscribe to the newsletter, but no one can read the list of subscribers.
+    match /subscribers/{subscriberId} {
+      allow create: if true;
+      allow read, update, delete: if false;
     }
   }
 }
-

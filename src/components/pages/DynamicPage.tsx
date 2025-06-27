@@ -1,9 +1,11 @@
+
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Smile, icons, type LucideProps } from 'lucide-react';
 import type { PageData, ContentBlock, ValueCardBlock } from '@/types';
 import { getPageBySlug } from '@/lib/firestoreBlog';
+import { marked } from 'marked';
 
 // --- Helper to convert string to PascalCase for Lucide icons ---
 function toPascalCase(str: string) {
@@ -39,7 +41,8 @@ function renderBlock(block: ContentBlock, index: string | number) {
       return <HeadingTag key={index} className="text-3xl font-bold font-headline mb-6 text-primary">{block.text}</HeadingTag>;
     
     case 'paragraph':
-      return <p key={index} className="text-lg text-foreground mb-4">{block.text}</p>;
+      // The parent element has the `prose` class, so this div will have its children (<p>, <ul>, etc.) styled correctly.
+      return <div key={index} dangerouslySetInnerHTML={{ __html: marked.parse(block.text || '') }} />;
       
     case 'image':
       return (

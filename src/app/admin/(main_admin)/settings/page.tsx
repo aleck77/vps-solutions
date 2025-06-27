@@ -30,7 +30,7 @@ import {
 } from '@/lib/schemas';
 
 import type { HomepageContent, ContactInfo, FooterContent, GeneralSettings, SocialLinkName, HomepageContentBlock, HomepageFeature } from '@/types';
-import { uploadPageImageAction } from '@/app/actions/uploadActions';
+import { uploadImageAction } from '@/app/actions/uploadActions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@ function GeneralSettingsUploader({ form }: { form: any }) {
 
     setIsUploading(true);
     startTransition(async () => {
-      const result = await uploadPageImageAction(dataUri, 'site-logo');
+      const result = await uploadImageAction(dataUri, 'site-logo', 'logos/');
       if (result.success && result.imageUrl) {
         form.setValue('logoUrl', result.imageUrl, { shouldValidate: true, shouldDirty: true });
         toast({ title: "Success", description: "Logo uploaded! Save the settings to apply the change." });
@@ -145,7 +145,7 @@ function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings
   const { toast } = useToast();
   const form = useForm<GeneralSettingsValues>({
     resolver: zodResolver(generalSettingsSchema),
-    defaultValues: defaultValues || { siteName: '', logoUrl: '' },
+    defaultValues: defaultValues || { siteName: '', logoUrl: '/images/vhost-logo.svg' },
   });
 
   const [state, formAction] = useActionState(updateGeneralSettingsAction, undefined);

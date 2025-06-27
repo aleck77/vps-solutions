@@ -4,6 +4,7 @@
 import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestoreSDK, FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
+import { getStorage as getAdminStorageSDK } from 'firebase-admin/storage';
 import { seedDatabase } from '@/lib/seed';
 
 // --- Begin Firebase Admin SDK Initialization ---
@@ -11,8 +12,10 @@ let adminApp: App;
 
 if (!getApps().length) {
   try {
-    console.log('[AdminActions] Attempting to initialize Firebase Admin SDK with default credentials...');
-    adminApp = initializeApp();
+    console.log('[AdminActions] Attempting to initialize Firebase Admin SDK with default credentials and storage bucket...');
+    adminApp = initializeApp({
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    });
     console.log('[AdminActions] Firebase Admin SDK initialized successfully using default credentials.');
   } catch (e: any) {
     console.warn(`[AdminActions] Default Admin SDK initialization failed: ${e.message}. This is expected if not in a Firebase-managed environment or GOOGLE_APPLICATION_CREDENTIALS is not set. Operations requiring admin privileges will fail.`);
@@ -28,24 +31,37 @@ if (!getApps().length) {
 }
 // --- End Firebase Admin SDK Initialization ---
 
-export async function getAdminFirestore() {
-  if (!adminApp) {
+async function ensureAdminAppInitialized(): Promise<App> {
+    if (adminApp) {
+        return adminApp;
+    }
+
     if (getApps().length) {
         adminApp = getApps()[0];
-    } else {
-        try {
-            adminApp = initializeApp();
-            console.log('[AdminActions] Re-initialized adminApp in getAdminFirestore.');
-        } catch (e: any) {
-            console.error('[AdminActions] CRITICAL: Failed to initialize adminApp in getAdminFirestore.', e);
-            throw new Error('Firebase Admin SDK is not initialized. Cannot get Admin Firestore.');
-        }
+        if (adminApp) return adminApp;
     }
-  }
-  if (!adminApp) {
-    throw new Error('Firebase Admin SDK is not initialized. Cannot get Admin Firestore.');
-  }
-  return getAdminFirestoreSDK(adminApp);
+    
+    try {
+        console.log('[AdminActions] Re-initializing adminApp...');
+        adminApp = initializeApp({
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        });
+        return adminApp;
+    } catch (e: any) {
+        console.error('[AdminActions] CRITICAL: Failed to initialize adminApp.', e);
+        throw new Error('Firebase Admin SDK is not initialized and could not be re-initialized.');
+    }
+}
+
+
+export async function getAdminFirestore() {
+  const app = await ensureAdminAppInitialized();
+  return getAdminFirestoreSDK(app);
+}
+
+export async function getAdminStorage() {
+  const app = await ensureAdminAppInitialized();
+  return getAdminStorageSDK(app);
 }
 
 export { AdminFieldValue };
@@ -67,17 +83,13 @@ export async function seedDatabaseAction(): Promise<{ success: boolean; message:
 }
 
 export async function setUserAdminClaimAction(uid: string): Promise<{ success: boolean; message: string }> {
-  if (!adminApp) {
-    const errorMessage = 'Firebase Admin SDK is not initialized. Cannot set custom claims. Ensure your server environment is configured correctly (e.g., GOOGLE_APPLICATION_CREDENTIALS).';
-    console.error(`[AdminActions] setUserAdminClaimAction: ${errorMessage}`);
-    return { success: false, message: errorMessage };
-  }
+  const app = await ensureAdminAppInitialized();
   if (!uid) {
     return { success: false, message: 'UID is required to set admin claim.' };
   }
   try {
     console.log(`[AdminActions] Attempting to set admin claim for UID: ${uid}`);
-    await getAdminAuth(adminApp).setCustomUserClaims(uid, { admin: true });
+    await getAdminAuth(app).setCustomUserClaims(uid, { admin: true });
     console.log(`[AdminActions] Successfully set admin claim for UID: ${uid}`);
     return { success: true, message: `Admin claim set for ${uid}. Please log out and log back in for changes to take effect.` };
   } catch (error: any) {

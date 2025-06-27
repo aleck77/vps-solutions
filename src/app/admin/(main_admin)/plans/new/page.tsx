@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, startTransition } from 'react';
+import { useActionState, startTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -37,13 +37,15 @@ export default function NewPlanPage() {
 
   const [state, formAction] = useActionState(createPlanAction, undefined);
 
-  if (state?.success === false && state.message) {
-    toast({
-      title: 'Error Creating Plan',
-      description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),
-      variant: 'destructive',
-    });
-  }
+  useEffect(() => {
+    if (state?.success === false) {
+        toast({
+            title: 'Error Creating Plan',
+            description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),
+            variant: 'destructive',
+        });
+    }
+  }, [state, toast]);
 
   return (
     <div className="container mx-auto py-10">

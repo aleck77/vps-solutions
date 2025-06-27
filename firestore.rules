@@ -4,56 +4,47 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
-    }
-
-    // Default deny all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Allow public read on published posts
+    // Published posts are public. All posts are accessible by admin for editing.
     match /posts/{postId} {
-      allow read: if resource.data.published == true;
-      allow write: if isAdmin();
+      allow read: if resource.data.published == true || request.auth.token.admin == true;
+      allow write: if request.auth.token.admin == true;
     }
-    
-    // Allow public read on categories
+
+    // Categories are public. Only admins can modify.
     match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read;
+      allow write: if request.auth.token.admin == true;
     }
-    
-    // Allow public read on pages
+
+    // Static pages (About, Privacy, etc.) are public. Only admins can modify.
     match /pages/{pageId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read;
+      allow write: if request.auth.token.admin == true;
     }
 
-    // Allow newsletter subscriptions
-    match /subscribers/{subscriberId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+    // Navigation menus are public. Only admins can modify.
+    match /navigation/{menuId} {
+      allow read;
+      allow write: if request.auth.token.admin == true;
     }
     
-    // Allow public read on navigation menus
-    match /navigation/{menuId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Allow public read on VPS plans
+    // VPS plans are public. Only admins can modify.
     match /vps_plans/{planId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read;
+      allow write: if request.auth.token.admin == true;
     }
 
-    // Allow public read on site content (homepage, contact info)
+    // Site-wide content (homepage, footer, contact info) is public. Only admins can modify.
     match /site_content/{contentId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read;
+      allow write: if request.auth.token.admin == true;
     }
+
+    // Anyone can subscribe (create), but only admins can view/manage the list.
+    match /subscribers/{subscriberId} {
+      allow create;
+      allow read, update, delete: if request.auth.token.admin == true;
+    }
+
   }
 }

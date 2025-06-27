@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 // Removed Inter and Poppins imports as they are now commented out in globals.css
 // and tailwind.config.ts uses system fallbacks.

@@ -1,6 +1,7 @@
+
 import Link from 'next/link';
 import { Facebook, Twitter, Linkedin } from 'lucide-react';
-import type { MenuItem, FooterContent } from '@/types';
+import type { MenuItem, FooterContent, SocialLink } from '@/types';
 
 interface FooterProps {
   footerCol1Links: MenuItem[];
@@ -18,10 +19,10 @@ const defaultFooterContent: FooterContent = {
   ]
 };
 
-const socialIconMap = {
-  Facebook,
-  Twitter,
-  LinkedIn: Linkedin,
+const socialIconMap: Record<SocialLink['name'], React.ElementType> = {
+  'Facebook': Facebook,
+  'Twitter': Twitter,
+  'LinkedIn': Linkedin,
 };
 
 export default function Footer({ footerCol1Links, footerCol2Links, footerContent }: FooterProps) {
@@ -71,6 +72,7 @@ export default function Footer({ footerCol1Links, footerCol2Links, footerContent
            <div className="flex space-x-4">
               {content.socialLinks.map(link => {
                 const Icon = socialIconMap[link.name];
+                if (!Icon) return null;
                 return (
                   <Link key={link.name} href={link.href} aria-label={link.name} className="text-muted-foreground hover:text-primary">
                     <Icon className="h-5 w-5" />

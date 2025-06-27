@@ -37,21 +37,28 @@ export async function uploadPageImageAction(imageDataUri: string, pageTitle: str
     };
   }
 
-  const pageTitleSlug = slugify(pageTitle) || 'untitled-page-image';
-  const timestamp = Date.now();
-  const filename = `${pageTitleSlug}-${timestamp}.png`;
-  
-  const payload = {
-      imageDataUri,
-      postTitle: pageTitle,
-      filename,
-  };
-
   try {
+    const pageTitleSlug = slugify(pageTitle) || 'untitled-page-image';
+    const timestamp = Date.now();
+    const filename = `${pageTitleSlug}-${timestamp}.png`;
+
+    // Convert Data URI to a Buffer, which is necessary for creating a Blob on the server.
+    const base64Data = imageDataUri.split(',')[1];
+    if (!base64Data) {
+        throw new Error('Invalid data URI format: could not extract base64 data.');
+    }
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+    
+    const formData = new FormData();
+    // The first argument 'file' is the field name. Your n8n webhook must be set up
+    // to look for binary data on a field named 'file'.
+    formData.append('file', new Blob([imageBuffer]), filename);
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: formData,
+      // Do NOT manually set the 'Content-Type' header. 
+      // The 'fetch' API automatically sets it to 'multipart/form-data' with the correct boundary when using FormData.
     });
 
     const responseText = await response.text();

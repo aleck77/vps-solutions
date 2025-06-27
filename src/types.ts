@@ -96,6 +96,7 @@ export interface PageData {
 
 // --- Navigation Types ---
 export interface MenuItem {
+  id?: string; // Optional temporary ID for dnd-kit
   label: string;
   href: string;
   // In the future, we can add `children: MenuItem[]` for sub-menus

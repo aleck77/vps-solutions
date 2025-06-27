@@ -1,13 +1,11 @@
 
-'use client';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CheckCircle, Cpu, HardDrive, Zap } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { getVpsPlans } from '@/lib/firestoreBlog';
-import type { VPSPlan } from '@/types';
+import { getVpsPlans, getHomepageContent } from '@/lib/firestoreBlog';
+import type { VPSPlan, HomepageContent } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function PricingCardSkeleton() {
@@ -32,24 +30,33 @@ function PricingCardSkeleton() {
   );
 }
 
-export default function HomePage() {
-  const [plans, setPlans] = useState<VPSPlan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const defaultContent: HomepageContent = {
+    heroTitle: "Power Your Ambitions with VHost Solutions",
+    heroSubtitle: "Experience blazing fast, reliable, and scalable VPS hosting tailored for your success. Get started today and unleash your project's full potential.",
+    featuresTitle: "Why Choose VHost Solutions?",
+    features: [
+      { icon: "Zap", title: "Blazing Fast Performance", description: "Our NVMe SSD-powered servers ensure lightning-fast load times and optimal performance for your applications." },
+      { icon: "Cpu", title: "Scalable Resources", description: "Easily upgrade your CPU, RAM, and storage as your needs grow. Scale effortlessly with VHost Solutions." },
+      { icon: "HardDrive", title: "99.9% Uptime Guarantee", description: "We guarantee high availability for your websites and applications, ensuring they are always accessible." }
+    ],
+    ctaTitle: "Ready to Elevate Your Hosting?",
+    ctaSubtitle: "Join thousands of satisfied customers and experience the VHost Solutions difference."
+};
 
-  useEffect(() => {
-    async function fetchPlans() {
-      setIsLoading(true);
-      try {
-        const fetchedPlans = await getVpsPlans();
-        // Assuming plans are pre-sorted by price or desired order in Firestore
-        setPlans(fetchedPlans);
-      } catch (error) {
-        console.error("Failed to fetch VPS plans:", error);
-      }
-      setIsLoading(false);
-    }
-    fetchPlans();
-  }, []);
+const iconMap: { [key: string]: React.ElementType } = {
+  Zap,
+  Cpu,
+  HardDrive,
+};
+
+
+export default async function HomePage() {
+  const plans = await getVpsPlans();
+  const homepageContent = await getHomepageContent();
+  const content = homepageContent || defaultContent;
+  
+  const isLoading = !plans || !content;
+
 
   return (
     <div className="space-y-16">
@@ -57,10 +64,10 @@ export default function HomePage() {
       <section className="text-center py-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg shadow-lg">
         <div className="container mx-auto px-4">
           <h1 className="text-4xl md:text-5xl font-bold font-headline mb-6 text-primary">
-            Power Your Ambitions with VHost Solutions
+            {content.heroTitle}
           </h1>
           <p className="text-lg md:text-xl text-foreground mb-8 max-w-2xl mx-auto">
-            Experience blazing fast, reliable, and scalable VPS hosting tailored for your success. Get started today and unleash your project's full potential.
+            {content.heroSubtitle}
           </p>
           <div className="space-x-4">
             <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
@@ -76,41 +83,24 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold font-headline text-center mb-10">Why Choose VHost Solutions?</h2>
+          <h2 className="text-3xl font-bold font-headline text-center mb-10">{content.featuresTitle}</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="shadow-md hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="items-center text-center">
-                <div className="p-3 bg-primary/10 rounded-full mb-3">
-                  <Zap className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="font-headline">Blazing Fast Performance</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-muted-foreground">Our NVMe SSD-powered servers ensure lightning-fast load times and optimal performance for your applications.</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-md hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="items-center text-center">
-                <div className="p-3 bg-primary/10 rounded-full mb-3">
-                  <Cpu className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="font-headline">Scalable Resources</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-muted-foreground">Easily upgrade your CPU, RAM, and storage as your needs grow. Scale effortlessly with VHost Solutions.</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-md hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="items-center text-center">
-                <div className="p-3 bg-primary/10 rounded-full mb-3">
-                  <HardDrive className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="font-headline">99.9% Uptime Guarantee</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-muted-foreground">We guarantee high availability for your websites and applications, ensuring they are always accessible.</p>
-              </CardContent>
-            </Card>
+            {content.features.map((feature, index) => {
+              const Icon = iconMap[feature.icon] || Zap;
+              return (
+                <Card key={index} className="shadow-md hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="items-center text-center">
+                    <div className="p-3 bg-primary/10 rounded-full mb-3">
+                      <Icon className="h-8 w-8 text-primary" />
+                    </div>
+                    <CardTitle className="font-headline">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-muted-foreground">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -134,7 +124,7 @@ export default function HomePage() {
                     <CardDescription>{plan.cpu}, {plan.ram}, {plan.storage}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
-                    <p className="text-3xl font-bold mb-2">${plan.priceMonthly}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                    <p className="text-3xl font-bold mb-2">${plan.priceMonthly.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
                     <ul className="space-y-2 text-sm">
                       {plan.features.slice(0, 3).map((feature, index) => (
                         <li key={index} className="flex items-center">
@@ -164,9 +154,9 @@ export default function HomePage() {
       {/* Call to Action Section */}
       <section className="py-16 text-center">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold font-headline mb-6">Ready to Elevate Your Hosting?</h2>
+          <h2 className="text-3xl font-bold font-headline mb-6">{content.ctaTitle}</h2>
           <p className="text-lg text-foreground mb-8 max-w-xl mx-auto">
-            Join thousands of satisfied customers and experience the VHost Solutions difference.
+            {content.ctaSubtitle}
           </p>
           <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <Link href="/order">Get Started Now</Link>

@@ -2,7 +2,7 @@
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan } from '@/types';
+import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
@@ -216,6 +216,32 @@ const navigationToSeed: { [id: string]: Omit<NavigationMenu, 'id'> } = {
   }
 };
 
+const siteContentToSeed: {
+  homepage: Omit<HomepageContent, 'id'>,
+  contact_info: Omit<ContactInfo, 'id'>
+} = {
+  homepage: {
+    heroTitle: "Power Your Ambitions with VHost Solutions",
+    heroSubtitle: "Experience blazing fast, reliable, and scalable VPS hosting tailored for your success. Get started today and unleash your project's full potential.",
+    featuresTitle: "Why Choose VHost Solutions?",
+    features: [
+      { icon: "Zap", title: "Blazing Fast Performance", description: "Our NVMe SSD-powered servers ensure lightning-fast load times and optimal performance for your applications." },
+      { icon: "Cpu", title: "Scalable Resources", description: "Easily upgrade your CPU, RAM, and storage as your needs grow. Scale effortlessly with VHost Solutions." },
+      { icon: "HardDrive", title: "99.9% Uptime Guarantee", description: "We guarantee high availability for your websites and applications, ensuring they are always accessible." }
+    ],
+    ctaTitle: "Ready to Elevate Your Hosting?",
+    ctaSubtitle: "Join thousands of satisfied customers and experience the VHost Solutions difference."
+  },
+  contact_info: {
+    address: "123 Tech Avenue, Silicon Valley, CA 94000",
+    salesEmail: "sales@vhost.solutions",
+    supportEmail: "support@vhost.solutions",
+    phone: "+1 (555) 123-4567",
+    salesHours: "Monday - Friday, 9 AM - 6 PM (PST)",
+    supportHours: "24/7 via email and ticketing system"
+  }
+};
+
 
 export async function seedDatabase(): Promise<{ status: string; details: string[] }> {
   const adminDb = await getAdminFirestore();
@@ -224,8 +250,27 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
   const pagesCollection = adminDb.collection('pages');
   const navigationCollection = adminDb.collection('navigation');
   const plansCollection = adminDb.collection('vps_plans');
+  const siteContentCollection = adminDb.collection('site_content');
   
   const summaryDetails: string[] = [];
+
+  // Seed Site Content
+  const homepageDoc = await siteContentCollection.doc('homepage').get();
+  if (!homepageDoc.exists) {
+    await siteContentCollection.doc('homepage').set(siteContentToSeed.homepage);
+    summaryDetails.push('Site Content: Seeded homepage content.');
+  } else {
+    summaryDetails.push('Site Content: Skipped homepage (already exists).');
+  }
+
+  const contactInfoDoc = await siteContentCollection.doc('contact_info').get();
+  if (!contactInfoDoc.exists) {
+    await siteContentCollection.doc('contact_info').set(siteContentToSeed.contact_info);
+    summaryDetails.push('Site Content: Seeded contact info.');
+  } else {
+     summaryDetails.push('Site Content: Skipped contact info (already exists).');
+  }
+
 
   // Seed VPS Plans
   const plansQuery = plansCollection.limit(1);

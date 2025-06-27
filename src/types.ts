@@ -106,3 +106,31 @@ export interface NavigationMenu {
   id?: string; // e.g., 'header-nav', 'footer-links'
   items: MenuItem[];
 }
+
+// --- Site Settings Types ---
+
+export interface HomepageFeature {
+  icon: string; // lucide icon name
+  title: string;
+  description: string;
+}
+
+export interface HomepageContent {
+  id?: 'homepage';
+  heroTitle: string;
+  heroSubtitle: string;
+  featuresTitle: string;
+  features: HomepageFeature[];
+  ctaTitle: string;
+  ctaSubtitle: string;
+}
+
+export interface ContactInfo {
+  id?: 'contact_info';
+  address: string;
+  salesEmail: string;
+  supportEmail: string;
+  phone: string;
+  salesHours: string;
+  supportHours: string;
+}

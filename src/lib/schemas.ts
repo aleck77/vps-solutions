@@ -69,3 +69,29 @@ export const vpsPlanSchema = z.object({
 });
 
 export type VpsPlanFormValues = z.infer<typeof vpsPlanSchema>;
+
+// --- Site Settings Schemas ---
+
+export const homepageContentSchema = z.object({
+  heroTitle: z.string().min(5, { message: 'Hero title is required.' }),
+  heroSubtitle: z.string().min(10, { message: 'Hero subtitle is required.' }),
+  featuresTitle: z.string().min(5, { message: 'Features title is required.' }),
+  features: z.array(z.object({
+    icon: z.string().min(1, { message: 'Icon name is required.' }),
+    title: z.string().min(3, { message: 'Feature title is required.' }),
+    description: z.string().min(10, { message: 'Feature description is required.' }),
+  })).length(3, { message: 'There must be exactly 3 features.' }),
+  ctaTitle: z.string().min(5, { message: 'CTA title is required.' }),
+  ctaSubtitle: z.string().min(10, { message: 'CTA subtitle is required.' }),
+});
+export type HomepageContentValues = z.infer<typeof homepageContentSchema>;
+
+export const contactInfoSchema = z.object({
+  address: z.string().min(10, { message: 'Address is required.' }),
+  salesEmail: z.string().email(),
+  supportEmail: z.string().email(),
+  phone: z.string().min(5, { message: 'Phone number is required.' }),
+  salesHours: z.string().min(5, { message: 'Sales hours are required.' }),
+  supportHours: z.string().min(5, { message: 'Support hours are required.' }),
+});
+export type ContactInfoValues = z.infer<typeof contactInfoSchema>;

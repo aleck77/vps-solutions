@@ -10,8 +10,6 @@ import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
-// marked is no longer needed here, as conversion happens on the client
-// import { marked } from 'marked';
 
 interface CreatePostResult {
   success: boolean;

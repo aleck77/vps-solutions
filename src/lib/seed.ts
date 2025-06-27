@@ -76,7 +76,7 @@ const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 
   },
 ];
 
-const pagesToSeed: { [slug: string]: Omit<PageData, 'id'> } = {
+const pagesToSeed: { [slug: string]: Omit<PageData, 'id' | 'updatedAt' | 'createdAt'> } = {
   'about': {
     title: "About VHost Solutions",
     metaDescription: "Empowering innovation with reliable and high-performance hosting.",
@@ -133,7 +133,7 @@ const navigationToSeed: { [id: string]: Omit<NavigationMenu, 'id'> } = {
 };
 
 
-export async function seedDatabase() {
+export async function seedDatabase(): Promise<{ status: string; details: string[] }> {
   const adminDb = await getAdminFirestore();
   const postsCollection = adminDb.collection('posts');
   const categoriesCollection = adminDb.collection('categories');
@@ -141,12 +141,13 @@ export async function seedDatabase() {
   const navigationCollection = adminDb.collection('navigation');
   
   const nowJSDate = new Date();
+  const summaryDetails: string[] = [];
 
   // Seed Posts
   const postsQuery = postsCollection.limit(1);
   const postsSnapshot = await postsQuery.get();
   if (!postsSnapshot.empty) {
-    console.log('[seedDatabase] Posts collection is not empty. Skipping posts seeding.');
+    summaryDetails.push('Posts: Skipped (already exist).');
   } else {
     const postsBatch = adminDb.batch();
     mockPostsData.forEach((postData) => {
@@ -155,40 +156,40 @@ export async function seedDatabase() {
       
       const imageUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(postData.dataAiHint || 'technology')}`;
 
-      const postToSeed = {
+      const postToSeed: Omit<BlogPost, 'id'> = {
         ...postData,
         imageUrl: imageUrl,
         category: slugify(postData.category),
         tags: processedTags,
-        date: new Date(postData.date),
+        date: new Date(postData.date).toISOString(),
         published: true,
-        createdAt: nowJSDate,
-        updatedAt: nowJSDate,
+        createdAt: nowJSDate.toISOString(),
+        updatedAt: nowJSDate.toISOString(),
       };
       postsBatch.set(postRef, postToSeed);
     });
     await postsBatch.commit();
-    console.log(`[seedDatabase] ${mockPostsData.length} posts have been seeded with Unsplash images.`);
+    summaryDetails.push(`Posts: Seeded ${mockPostsData.length} items.`);
   }
 
   // Seed Categories
   const categoriesQuery = categoriesCollection.limit(1);
   const categoriesSnapshot = await categoriesQuery.get();
   if (!categoriesSnapshot.empty) {
-    console.log('[seedDatabase] Categories collection is not empty. Skipping categories seeding.');
+    summaryDetails.push('Categories: Skipped (already exist).');
   } else {
     const categoriesBatch = adminDb.batch();
     const uniqueCategoryNames = new Set(blogCategories);
     uniqueCategoryNames.forEach((categoryName) => {
       const categoryRef = categoriesCollection.doc(); 
-      const categoryToSeed = {
+      const categoryToSeed: Omit<Category, 'id'> = {
         name: categoryName,
         slug: slugify(categoryName),
       };
       categoriesBatch.set(categoryRef, categoryToSeed);
     });
     await categoriesBatch.commit();
-    console.log(`[seedDatabase] ${uniqueCategoryNames.size} categories have been seeded.`);
+    summaryDetails.push(`Categories: Seeded ${uniqueCategoryNames.size} items.`);
   }
 
   // Seed Pages
@@ -204,16 +205,13 @@ export async function seedDatabase() {
         createdAt: AdminFieldValue.serverTimestamp(),
       });
       pagesSeededCount++;
-      console.log(`[seedDatabase] Queued page "${slug}" for seeding.`);
-    } else {
-       console.log(`[seedDatabase] Page "${slug}" already exists. Skipping.`);
     }
   }
   if (pagesSeededCount > 0) {
     await pagesBatch.commit();
-    console.log(`[seedDatabase] ${pagesSeededCount} new page(s) have been seeded.`);
+    summaryDetails.push(`Pages: Seeded ${pagesSeededCount} new item(s).`);
   } else {
-    console.log('[seedDatabase] All pages already exist. No new pages were seeded.');
+    summaryDetails.push('Pages: Skipped (all exist).');
   }
 
   // Seed Navigation
@@ -225,15 +223,14 @@ export async function seedDatabase() {
       if (!doc.exists) {
           navBatch.set(navRef, navigationToSeed[navId]);
           navsSeededCount++;
-          console.log(`[seedDatabase] Queued navigation menu "${navId}" for seeding.`);
-      } else {
-          console.log(`[seedDatabase] Navigation menu "${navId}" already exists. Skipping.`);
       }
   }
   if (navsSeededCount > 0) {
       await navBatch.commit();
-      console.log(`[seedDatabase] ${navsSeededCount} new navigation menu(s) have been seeded.`);
+      summaryDetails.push(`Navigation: Seeded ${navsSeededCount} new menu(s).`);
   } else {
-      console.log('[seedDatabase] All navigation menus already exist. No new menus were seeded.');
+      summaryDetails.push('Navigation: Skipped (all exist).');
   }
+  
+  return { status: 'Seeding process completed.', details: summaryDetails };
 }

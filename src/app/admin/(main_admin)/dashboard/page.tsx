@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/lib/authContext';
@@ -20,12 +21,18 @@ export default function AdminDashboardPage() {
     const result = await seedDatabaseAction();
     if (result.success) {
       toast({
-        title: 'Success!',
-        description: result.message,
+        title: result.message,
+        description: (
+          <ul className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+            {result.details?.map((detail, index) => (
+              <li key={index} className="text-sm text-white">{detail}</li>
+            ))}
+          </ul>
+        ),
       });
     } else {
       toast({
-        title: 'Error',
+        title: 'Error Seeding Database',
         description: result.message,
         variant: 'destructive',
       });

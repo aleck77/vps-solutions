@@ -63,6 +63,9 @@ export async function uploadPageImageAction(imageDataUri: string, pageTitle: str
     }
   } catch (error: any) {
     console.error('[uploadPageImageAction] Error:', error);
-    return { success: false, message: error.message || 'An unknown error occurred during upload.' };
+    return { 
+      success: false, 
+      message: error.message || 'An unknown error occurred during upload.' 
+    };
   }
 }

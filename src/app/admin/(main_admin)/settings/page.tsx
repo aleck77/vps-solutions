@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useActionState, startTransition } from 'react';
+import { useEffect, useState, useActionState, startTransition, useMemo } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
@@ -45,101 +45,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FormDescription } from '@/components/ui/form';
 
 
-// --- General Settings Uploader ---
-function GeneralSettingsUploader({ form }: { form: any }) {
-  const { toast } = useToast();
-  const currentLogoUrl = useWatch({ control: form.control, name: 'logoUrl' });
-  const [preview, setPreview] = useState<string | null>(currentLogoUrl || null);
-  const [dataUri, setDataUri] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  useEffect(() => {
-    if (currentLogoUrl !== preview && !dataUri) {
-      setPreview(currentLogoUrl);
-    }
-  }, [currentLogoUrl, preview, dataUri]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 1 * 1024 * 1024) { // 1MB limit for logos
-      toast({ title: "File too large", description: "Please select an image smaller than 1MB.", variant: "destructive" });
-      return;
-    }
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'].includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please select a JPG, PNG, WEBP, or SVG image.", variant: "destructive" });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setPreview(result);
-      setDataUri(result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleUpload = async () => {
-    if (!dataUri) {
-      toast({ title: "No new logo selected", variant: "default" });
-      return;
-    }
-
-    setIsUploading(true);
-    startTransition(async () => {
-      const result = await uploadPageImageAction(dataUri, 'site-logo');
-      if (result.success && result.imageUrl) {
-        form.setValue('logoUrl', result.imageUrl, { shouldValidate: true, shouldDirty: true });
-        toast({ title: "Success", description: "Logo uploaded! Save the settings to apply the change." });
-        setDataUri(null);
-      } else {
-        toast({ title: "Upload Failed", description: result.message, variant: "destructive" });
-      }
-      setIsUploading(false);
-    });
-  };
-
-  return (
-    <div className="space-y-4 rounded-lg border p-4">
-        <h3 className="text-base font-semibold">Logo Management</h3>
-        <FormField
-            control={form.control}
-            name="logoUrl"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Logo URL</FormLabel>
-                <FormControl>
-                    <Input {...field} placeholder="https://... or upload a file" disabled={isUploading} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-        />
-        <div className="space-y-2">
-            <FormLabel>Upload New Logo</FormLabel>
-            <div className="flex items-center gap-2">
-                <Input type="file" accept="image/*" onChange={handleFileChange} className="flex-grow" disabled={isUploading}/>
-                <Button type="button" onClick={handleUpload} disabled={isUploading || !dataUri}>
-                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-                </Button>
-            </div>
-            <FormDescription>Max 1MB. Replaces the URL above upon successful upload. Remember to save settings after uploading.</FormDescription>
-        </div>
-        {preview && (
-            <div className="mt-2">
-                <FormLabel>Current Logo Preview</FormLabel>
-                <div className="mt-1 flex h-20 w-auto items-center justify-start rounded-md border p-2 bg-muted">
-                    <Image src={preview} alt="Logo preview" width={100} height={40} style={{ objectFit: 'contain', width: 'auto', height: '100%' }} />
-                </div>
-            </div>
-        )}
-    </div>
-  );
-}
-
-
 // --- General Settings Form ---
 function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings | null }) {
   const { toast } = useToast();
@@ -149,6 +54,7 @@ function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings
   });
 
   const [state, formAction] = useActionState(updateGeneralSettingsAction, undefined);
+  const logoUrl = useWatch({ control: form.control, name: 'logoUrl' });
 
   useEffect(() => {
     if (state?.success) toast({ title: "Success!", description: state.message });
@@ -164,7 +70,33 @@ function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings
       >
         <FormField control={form.control} name="siteName" render={({ field }) => (<FormItem><FormLabel>Site Name</FormLabel><FormControl><Input {...field} placeholder="VHost Solutions" /></FormControl><FormMessage /></FormItem>)} />
         
-        <GeneralSettingsUploader form={form} />
+        <div className="space-y-4 rounded-lg border p-4">
+          <h3 className="text-base font-semibold">Logo Management</h3>
+          <FormField
+              control={form.control}
+              name="logoUrl"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>Logo URL Path</FormLabel>
+                  <FormControl>
+                      <Input {...field} placeholder="/images/vhost-logo.svg" />
+                  </FormControl>
+                  <FormDescription>
+                    Path to the logo file inside the /public directory. To change the logo, replace the file on the server (via Docker volume) and update this path if necessary.
+                  </FormDescription>
+                  <FormMessage />
+                  </FormItem>
+              )}
+          />
+           {logoUrl && (
+            <div className="mt-2">
+                <FormLabel>Current Logo Preview</FormLabel>
+                <div className="mt-1 flex h-20 w-auto items-center justify-start rounded-md border p-2 bg-muted">
+                    <Image src={logoUrl} alt="Logo preview" width={100} height={40} style={{ objectFit: 'contain', width: 'auto', height: '100%' }} />
+                </div>
+            </div>
+        )}
+        </div>
        
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={form.formState.isSubmitting}>

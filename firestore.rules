@@ -1,35 +1,46 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Default to locked down for safety.
-    // Specific collections below will open up permissions.
-    match /{document=**} {
-      allow read, write: if false;
+    
+    // ===== Subscribers =====
+    // Любой пользователь может создать запись (подписаться).
+    // Никто (через клиентский SDK) не может читать, изменять или удалять список подписчиков.
+    match /subscribers/{subscriberId} {
+      allow read, update, delete: if false;
+      allow create: if true;
     }
 
-    // Public blog posts can be read by anyone if they are marked as 'published'.
+    // ===== Blog Posts =====
+    // Любой пользователь может читать опубликованные посты.
+    // Только администраторы могут создавать, обновлять или удалять посты.
     match /posts/{postId} {
       allow read: if resource.data.published == true;
-      // Writes are handled by admin server actions, which bypass these rules.
-    }
-    
-    // Categories, pages, and navigation menus are public content and can be read by anyone.
-    match /categories/{categoryId} {
-      allow read: if true;
-    }
-    match /pages/{pageId} {
-      allow read: if true;
-    }
-    match /navigation/{navId} {
-      allow read: if true;
+      allow write: if request.auth.token.admin == true;
     }
 
-    // Anyone can subscribe to the newsletter, but no one can read the list of subscribers.
-    match /subscribers/{subscriberId} {
-      allow create: if true;
-      allow read, update, delete: if false;
+    // ===== Categories =====
+    // Любой пользователь может читать список категорий.
+    // Только администраторы могут изменять категории.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth.token.admin == true;
+    }
+    
+    // ===== Pages =====
+    // Любой пользователь может читать страницы.
+    // Только администраторы могут создавать или изменять страницы.
+    match /pages/{pageId} {
+        allow read: if true;
+        allow write: if request.auth.token.admin == true;
+    }
+
+    // ===== Navigation =====
+    // Любой пользователь может читать меню навигации.
+    // Только администраторы могут изменять меню.
+    match /navigation/{navId} {
+        allow read: if true;
+        allow write: if request.auth.token.admin == true;
     }
   }
 }

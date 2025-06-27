@@ -136,6 +136,8 @@ export type FooterContentValues = z.infer<typeof footerContentSchema>;
 
 export const generalSettingsSchema = z.object({
   siteName: z.string().min(3, { message: 'Site name must be at least 3 characters.' }),
-  logoUrl: z.string().url({ message: 'A valid logo URL is required.' }),
+  logoUrl: z.string()
+    .min(1, { message: 'Logo path is required.' })
+    .startsWith('/', { message: 'Path must start with a /' }),
 });
 export type GeneralSettingsValues = z.infer<typeof generalSettingsSchema>;

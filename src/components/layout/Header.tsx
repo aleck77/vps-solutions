@@ -47,8 +47,13 @@ function MobileNavLink({ href, label, icon }: { href: string; label: string; ico
   );
 }
 
+interface HeaderProps {
+  navItems: MenuItem[];
+  siteName: string;
+  logoUrl: string;
+}
 
-export default function Header({ navItems }: { navItems: MenuItem[] }) {
+export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
   const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -79,14 +84,14 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-2">
           <Image 
-            src="/images/vhost-logo.svg"
-            alt="VHost Solutions Logo" 
+            src={logoUrl}
+            alt={`${siteName} Logo`}
             width={40} 
             height={40} 
             priority 
           />
           <span className="text-2xl font-headline font-bold text-primary">
-            VHost Solutions
+            {siteName}
           </span>
         </Link>
 
@@ -130,16 +135,16 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
                 <SheetTitle asChild>
                   <Link href="/" className="text-xl font-headline font-bold text-primary flex items-center space-x-2">
                      <Image 
-                        src="/images/vhost-logo.svg"
-                        alt="VHost Solutions Logo"
+                        src={logoUrl}
+                        alt={`${siteName} Logo`}
                         width={32}
                         height={32}
                       />
-                      <span>VHost Solutions</span>
+                      <span>{siteName}</span>
                   </Link>
                 </SheetTitle>
                 <SheetDescription id={mobileMenuDescriptionId} className="sr-only">
-                  Mobile navigation menu for VHost Solutions.
+                  Mobile navigation menu for {siteName}.
                 </SheetDescription>
               </SheetHeader>
               <div className="p-6">

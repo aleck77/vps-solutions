@@ -72,19 +72,46 @@ export type VpsPlanFormValues = z.infer<typeof vpsPlanSchema>;
 
 // --- Site Settings Schemas ---
 
-export const homepageContentSchema = z.object({
+const heroBlockSchema = z.object({
+  id: z.string(),
+  type: z.literal('hero'),
   heroTitle: z.string().min(5, { message: 'Hero title is required.' }),
   heroSubtitle: z.string().min(10, { message: 'Hero subtitle is required.' }),
+});
+
+const homepageFeatureSchema = z.object({
+  id: z.string(),
+  icon: z.string().min(1, { message: 'Icon name is required.' }),
+  title: z.string().min(3, { message: 'Feature title is required.' }),
+  description: z.string().min(10, { message: 'Feature description is required.' }),
+});
+
+const featuresBlockSchema = z.object({
+  id: z.string(),
+  type: z.literal('features'),
   featuresTitle: z.string().min(5, { message: 'Features title is required.' }),
-  features: z.array(z.object({
-    icon: z.string().min(1, { message: 'Icon name is required.' }),
-    title: z.string().min(3, { message: 'Feature title is required.' }),
-    description: z.string().min(10, { message: 'Feature description is required.' }),
-  })).length(3, { message: 'There must be exactly 3 features.' }),
+  features: z.array(homepageFeatureSchema).min(1, { message: 'At least one feature card is required.' }),
+});
+
+const ctaBlockSchema = z.object({
+  id: z.string(),
+  type: z.literal('cta'),
   ctaTitle: z.string().min(5, { message: 'CTA title is required.' }),
   ctaSubtitle: z.string().min(10, { message: 'CTA subtitle is required.' }),
 });
+
+
+export const homepageContentSchema = z.object({
+  contentBlocks: z.array(
+    z.discriminatedUnion('type', [
+      heroBlockSchema,
+      featuresBlockSchema,
+      ctaBlockSchema,
+    ])
+  ).min(1, { message: 'Homepage must have at least one content block.' }),
+});
 export type HomepageContentValues = z.infer<typeof homepageContentSchema>;
+
 
 export const contactInfoSchema = z.object({
   address: z.string().min(10, { message: 'Address is required.' }),
@@ -105,3 +132,10 @@ export const footerContentSchema = z.object({
   })).min(1, { message: 'At least one social link is required.' }),
 });
 export type FooterContentValues = z.infer<typeof footerContentSchema>;
+
+
+export const generalSettingsSchema = z.object({
+  siteName: z.string().min(3, { message: 'Site name must be at least 3 characters.' }),
+  logoUrl: z.string().url({ message: 'A valid logo URL is required.' }),
+});
+export type GeneralSettingsValues = z.infer<typeof generalSettingsSchema>;

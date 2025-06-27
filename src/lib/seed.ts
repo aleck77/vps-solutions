@@ -1,4 +1,3 @@
-
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
@@ -120,12 +119,16 @@ const navigationToSeed: { [id: string]: Omit<NavigationMenu, 'id'> } = {
       { href: '/contact', label: 'Contact' },
     ]
   },
-  'footer-links': {
+  'footer-col-1': {
     items: [
       { href: '/about', label: 'About Us' },
       { href: '/blog', label: 'Blog' },
-      { href: '/order', label: 'Order VPS' },
       { href: '/contact', label: 'Contact' },
+    ]
+  },
+  'footer-col-2': {
+    items: [
+      { href: '/order', label: 'VPS Plans' },
       { href: '/privacy-policy', label: 'Privacy Policy' },
       { href: '/terms-of-service', label: 'Terms of Service' },
     ]

@@ -73,28 +73,28 @@ export type VpsPlanFormValues = z.infer<typeof vpsPlanSchema>;
 // --- Site Settings Schemas ---
 
 const heroBlockSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   type: z.literal('hero'),
   heroTitle: z.string().min(5, { message: 'Hero title is required.' }),
   heroSubtitle: z.string().min(10, { message: 'Hero subtitle is required.' }),
 });
 
 const homepageFeatureSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   icon: z.string().min(1, { message: 'Icon name is required.' }),
   title: z.string().min(3, { message: 'Feature title is required.' }),
   description: z.string().min(10, { message: 'Feature description is required.' }),
 });
 
 const featuresBlockSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   type: z.literal('features'),
   featuresTitle: z.string().min(5, { message: 'Features title is required.' }),
   features: z.array(homepageFeatureSchema).min(1, { message: 'At least one feature card is required.' }),
 });
 
 const ctaBlockSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   type: z.literal('cta'),
   ctaTitle: z.string().min(5, { message: 'CTA title is required.' }),
   ctaSubtitle: z.string().min(10, { message: 'CTA subtitle is required.' }),

@@ -123,8 +123,27 @@ export const contactInfoSchema = z.object({
 });
 export type ContactInfoValues = z.infer<typeof contactInfoSchema>;
 
-export const footerContentSchema = z.object({
+const footerTextBlockSchema = z.object({
+  id: z.string().optional(),
+  type: z.literal('text'),
+  title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().min(10, { message: 'Description is required.' }),
+});
+
+const footerMenuBlockSchema = z.object({
+  id: z.string().optional(),
+  type: z.literal('menu'),
+  title: z.string().min(1, { message: 'Title is required.' }),
+  menuId: z.string().min(1, { message: 'A menu must be selected.' }),
+});
+
+export const footerContentSchema = z.object({
+  contentBlocks: z.array(
+    z.discriminatedUnion('type', [
+      footerTextBlockSchema,
+      footerMenuBlockSchema,
+    ])
+  ).min(1, { message: 'Footer must have at least one content block.' }),
   copyright: z.string().min(5, { message: 'Copyright text is required.' }),
   socialLinks: z.array(z.object({
     name: z.enum(['Facebook', 'Twitter', 'LinkedIn']),

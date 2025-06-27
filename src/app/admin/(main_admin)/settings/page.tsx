@@ -29,7 +29,7 @@ import {
   type GeneralSettingsValues
 } from '@/lib/schemas';
 
-import type { HomepageContent, ContactInfo, FooterContent, GeneralSettings, SocialLinkName, HomepageContentBlock, HomepageFeature } from '@/types';
+import type { HomepageContent, ContactInfo, FooterContent, GeneralSettings, SocialLinkName, HomepageContentBlock, HomepageFeature, FooterContentBlock } from '@/types';
 import { uploadPageImageAction } from '@/app/actions/uploadActions';
 
 import { Button } from '@/components/ui/button';
@@ -311,21 +311,97 @@ function ContactInfoSettingsForm({ defaultValues }: { defaultValues: ContactInfo
     );
 }
 
+// --- Footer Block Editors ---
+function FooterTextBlockEditor({ index, control }: { index: number, control: any }) {
+  return (
+    <div className="space-y-4">
+      <FormField control={control} name={`contentBlocks.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+      <FormField control={control} name={`contentBlocks.${index}.description`} render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+    </div>
+  );
+}
+
+function FooterMenuBlockEditor({ index, control }: { index: number, control: any }) {
+  const availableMenus = [
+    { id: 'footer-col-1', name: 'Footer Column 1' },
+    { id: 'footer-col-2', name: 'Footer Column 2' },
+    { id: 'footer-col-3', name: 'Footer Column 3' },
+  ];
+  return (
+    <div className="space-y-4">
+      <FormField control={control} name={`contentBlocks.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+      <FormField
+        control={control}
+        name={`contentBlocks.${index}.menuId`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Menu to Display</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger><SelectValue placeholder="Select a menu" /></SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {availableMenus.map(menu => (
+                  <SelectItem key={menu.id} value={menu.id}>{menu.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormDescription>Manage the content of these menus in the Navigation section.</FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+}
+
+function SortableFooterBlock({ id, index, control, remove }: { id: any, index: number, control: any, remove: (index: number) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  const blockType = useWatch({ control, name: `contentBlocks.${index}.type` });
+
+  const blockEditors: { [key: string]: React.ReactNode } = {
+    text: <FooterTextBlockEditor index={index} control={control} />,
+    menu: <FooterMenuBlockEditor index={index} control={control} />,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className="p-4 bg-muted/50 space-y-4 relative">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-2">
+            <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground p-1">
+              <GripVertical className="h-5 w-5" />
+            </button>
+            <h4 className="font-semibold capitalize">{blockType} Block</h4>
+          </div>
+          <Button type="button" variant="destructive" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="pl-8">{blockEditors[blockType]}</div>
+      </Card>
+    </div>
+  );
+}
+
+
 function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | null }) {
   const { toast } = useToast();
   const form = useForm<FooterContentValues>({
     resolver: zodResolver(footerContentSchema),
-    defaultValues: defaultValues || {
-      description: '',
+    defaultValues: defaultValues ? {
+      ...defaultValues,
+      contentBlocks: (defaultValues.contentBlocks || []).map(block => ({...block, id: block.id || crypto.randomUUID()}))
+    } : {
+      contentBlocks: [],
       copyright: '',
       socialLinks: [{ name: 'Facebook', href: '#' }],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'socialLinks',
-  });
+  const { fields, append, remove, move } = useFieldArray({ control: form.control, name: 'contentBlocks' });
+  const { fields: socialFields, append: appendSocial, remove: removeSocial } = useFieldArray({ control: form.control, name: 'socialLinks' });
 
   const [state, formAction] = useActionState(updateFooterContentAction, undefined);
 
@@ -336,6 +412,22 @@ function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | 
 
   const socialLinkOptions: SocialLinkName[] = ['Facebook', 'Twitter', 'LinkedIn'];
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((field) => field.id === active.id);
+      const newIndex = fields.findIndex((field) => field.id === over.id);
+      move(oldIndex, newIndex);
+    }
+  };
+
+  const addNewBlock = (type: 'text' | 'menu') => {
+    const newBlock: FooterContentBlock = type === 'text' 
+      ? { id: crypto.randomUUID(), type: 'text', title: 'New Text Block', description: 'Some default text.' }
+      : { id: crypto.randomUUID(), type: 'menu', title: 'New Menu', menuId: 'footer-col-1' };
+    append(newBlock);
+  };
+
   return (
     <Form {...form}>
       <form
@@ -343,13 +435,30 @@ function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | 
         onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))}
         className="space-y-8"
       >
-        <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Footer Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+        <div>
+          <Label className="text-lg font-semibold">Footer Content Blocks</Label>
+          <FormDescription>Define the layout and content of your footer columns. Drag to reorder.</FormDescription>
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-4 mt-4">
+                {fields.map((field, index) => (
+                  <SortableFooterBlock key={field.id} id={field.id} index={index} control={form.control} remove={remove} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+          <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
+            <Button type="button" variant="outline" onClick={() => addNewBlock('text')}><PlusCircle className="mr-2" /> Add Text Block</Button>
+            <Button type="button" variant="outline" onClick={() => addNewBlock('menu')}><PlusCircle className="mr-2" /> Add Menu Block</Button>
+          </div>
+        </div>
+
         <FormField control={form.control} name="copyright" render={({ field }) => (<FormItem><FormLabel>Copyright Text</FormLabel><FormControl><Input {...field} placeholder="e.g., VHost Solutions. All rights reserved." /></FormControl><FormMessage /></FormItem>)} />
         
         <div>
           <Label>Social Media Links</Label>
           <div className="space-y-4 mt-2">
-            {fields.map((field, index) => (
+            {socialFields.map((field, index) => (
               <Card key={field.id} className="p-4 bg-muted/50">
                 <div className="flex gap-4 items-end">
                   <FormField
@@ -385,7 +494,7 @@ function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | 
                       </FormItem>
                     )}
                   />
-                  <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+                  <Button type="button" variant="destructive" size="icon" onClick={() => removeSocial(index)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -396,7 +505,7 @@ function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | 
               variant="outline"
               size="sm"
               className="mt-2"
-              onClick={() => append({ name: 'Facebook', href: '' })}
+              onClick={() => appendSocial({ name: 'Facebook', href: '' })}
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Add Social Link
             </Button>

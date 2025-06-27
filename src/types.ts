@@ -159,9 +159,26 @@ export interface SocialLink {
   href: string;
 }
 
+export interface FooterTextBlock {
+  id?: string; // For DND keying
+  type: 'text';
+  title: string;
+  description: string;
+}
+
+export interface FooterMenuBlock {
+  id?: string; // For DND keying
+  type: 'menu';
+  title: string;
+  menuId: string; // e.g., 'footer-col-1'
+}
+
+export type FooterContentBlock = FooterTextBlock | FooterMenuBlock;
+
+
 export interface FooterContent {
   id?: 'footer';
-  description: string;
+  contentBlocks: FooterContentBlock[];
   copyright: string;
   socialLinks: SocialLink[];
 }

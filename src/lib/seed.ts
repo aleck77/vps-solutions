@@ -2,7 +2,7 @@
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo, FooterContent, GeneralSettings, HomepageContentBlock } from '@/types';
+import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo, FooterContent, GeneralSettings, HomepageContentBlock, FooterContentBlock } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
@@ -213,6 +213,13 @@ const navigationToSeed: { [id: string]: Omit<NavigationMenu, 'id'> } = {
       { href: '/privacy-policy', label: 'Privacy Policy' },
       { href: '/terms-of-service', label: 'Terms of Service' },
     ]
+  },
+  'footer-col-3': {
+    items: [
+      { href: '#', label: 'Knowledge Base' },
+      { href: '#', label: 'System Status' },
+      { href: '#', label: 'API Documentation' },
+    ]
   }
 };
 
@@ -238,6 +245,26 @@ const defaultHomepageContentBlocks: HomepageContentBlock[] = [
     }
 ];
 
+const defaultFooterContentBlocks: FooterContentBlock[] = [
+    { 
+      id: 'footer-text-1', 
+      type: 'text', 
+      title: 'VHost Solutions', 
+      description: "Providing reliable and scalable VPS hosting for your business needs, backed by 24/7 support and a passion for technology." 
+    },
+    { 
+      id: 'footer-menu-1', 
+      type: 'menu', 
+      title: 'Company', 
+      menuId: 'footer-col-1' 
+    },
+    { 
+      id: 'footer-menu-2', 
+      type: 'menu', 
+      title: 'Resources', 
+      menuId: 'footer-col-2' 
+    },
+];
 
 const siteContentToSeed: {
   homepage: Omit<HomepageContent, 'id'>;
@@ -257,7 +284,7 @@ const siteContentToSeed: {
     supportHours: "24/7 via email and ticketing system"
   },
   footer: {
-    description: "Providing reliable and scalable VPS hosting for your business needs, backed by 24/7 support and a passion for technology.",
+    contentBlocks: defaultFooterContentBlocks,
     copyright: "VHost Solutions. All rights reserved.",
     socialLinks: [
       { name: 'Facebook', href: '#' },
@@ -303,9 +330,10 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
   }
 
   const footerDoc = await siteContentCollection.doc('footer').get();
-  if (!footerDoc.exists) {
+  const footerData = footerDoc.data() as FooterContent | undefined;
+  if (!footerData || !footerData.contentBlocks) { // Check for new structure
     await siteContentCollection.doc('footer').set(siteContentToSeed.footer);
-    summaryDetails.push('Site Content: Seeded footer content.');
+    summaryDetails.push('Site Content: Seeded/Migrated footer content.');
   } else {
      summaryDetails.push('Site Content: Skipped footer (already exists).');
   }

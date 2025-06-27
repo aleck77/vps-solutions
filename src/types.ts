@@ -42,7 +42,7 @@ export interface Subscriber {
 }
 
 export interface VPSPlan {
-  id: string;
+  id?: string; // Firestore document ID, now optional
   name: string;
   cpu: string;
   ram: string;

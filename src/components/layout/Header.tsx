@@ -22,7 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { MenuItem } from '@/types';
 import { getAuthInstance } from '@/lib/firebase';
 
-const mobileMenuDescriptionId = "mobile-menu-description";
 
 // A client component to render a single navigation link.
 function NavLink({ href, label }: { href: string; label: string }) {
@@ -53,9 +52,9 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
   const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const mobileMenuDescriptionId = React.useId();
 
   const handleLogout = async () => {
-    // Moved here to ensure it's only called on client-side
     const auth = getAuthInstance(); 
     try {
       await signOut(auth);

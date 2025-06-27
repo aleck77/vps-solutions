@@ -14,6 +14,7 @@ import { updatePostAction } from '@/app/actions/postActions';
 import { getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { BlogPost } from '@/types';
 import { blogCategories } from '@/types';
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -658,12 +659,7 @@ export default function EditPostPage() {
                   <FormItem>
                     <FormLabel>Content (Markdown)</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Write your blog post content here in Markdown or generate with AI..." 
-                        className="min-h-[250px]" 
-                        {...field} 
-                        disabled={isPendingSubmit || isGeneratingContent} 
-                      />
+                      <MarkdownEditor {...field} />
                     </FormControl>
                     <FormDescription>The main content of the blog post. Write in Markdown. It will be converted to HTML on save.</FormDescription>
                     <FormMessage />

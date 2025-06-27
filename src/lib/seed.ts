@@ -2,12 +2,10 @@
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, PageData, NavigationMenu } from '@/types';
+import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
-// A more precise type for our mock data objects.
-// Omit properties that are generated at runtime or are managed by the server.
 type MockSeedPost = Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>;
 
 const mockPostsData: MockSeedPost[] = [
@@ -91,6 +89,73 @@ const mockPostsData: MockSeedPost[] = [
   },
 ];
 
+const mockVpsPlans: Omit<VPSPlan, 'id'>[] = [
+  {
+    name: 'Micro VPS',
+    cpu: '1 vCPU',
+    ram: '512 MiB',
+    storage: '20GB SSD',
+    bandwidth: '500GB Bandwidth',
+    priceMonthly: 4.00,
+    features: ['Basic Support', 'DDoS Protection'],
+  },
+  {
+    name: 'Small VPS',
+    cpu: '1 vCPU',
+    ram: '1 GiB',
+    storage: '30GB SSD',
+    bandwidth: '1TB Bandwidth',
+    priceMonthly: 6.00,
+    features: ['Basic Support', 'DDoS Protection', 'Weekly Backups'],
+  },
+  {
+    name: 'Medium VPS',
+    cpu: '1 vCPU',
+    ram: '2 GiB',
+    storage: '50GB SSD',
+    bandwidth: '2TB Bandwidth',
+    priceMonthly: 12.00,
+    features: ['Standard Support', 'DDoS Protection', 'Daily Backups'],
+  },
+  {
+    name: 'Large VPS',
+    cpu: '2 vCPUs',
+    ram: '2 GiB',
+    storage: '80GB SSD',
+    bandwidth: '3TB Bandwidth',
+    priceMonthly: 18.00,
+    features: ['Standard Support', 'DDoS Protection', 'Daily Backups', 'Free SSL'],
+  },
+  {
+    name: 'XL VPS',
+    cpu: '2 vCPUs',
+    ram: '4 GiB',
+    storage: '120GB SSD',
+    bandwidth: '4TB Bandwidth',
+    priceMonthly: 24.00,
+    features: ['Priority Support', 'DDoS Protection', 'Daily Backups', 'Free SSL', '1 Dedicated IP'],
+  },
+  {
+    name: 'XXL VPS',
+    cpu: '4 vCPUs',
+    ram: '8 GiB',
+    storage: '200GB SSD',
+    bandwidth: '8TB Bandwidth',
+    priceMonthly: 48.00,
+    features: ['Priority Support', 'Advanced DDoS Protection', 'Daily Backups', 'Free SSL', '2 Dedicated IPs'],
+  },
+  {
+    name: 'Ultimate VPS',
+    cpu: '8 vCPUs',
+    ram: '16 GiB',
+    storage: '320GB SSD',
+    bandwidth: '15TB Bandwidth',
+    priceMonthly: 96.00,
+    features: ['Premium Support', 'Advanced DDoS Protection', 'Daily Backups with Replication', 'Free SSL', 'Multiple Dedicated IPs'],
+  },
+];
+
+
 const pagesToSeed: { [slug: string]: Omit<PageData, 'id' | 'updatedAt' | 'createdAt'> } = {
   'about': {
     title: "About VHost Solutions",
@@ -158,8 +223,24 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
   const categoriesCollection = adminDb.collection('categories');
   const pagesCollection = adminDb.collection('pages');
   const navigationCollection = adminDb.collection('navigation');
+  const plansCollection = adminDb.collection('vps_plans');
   
   const summaryDetails: string[] = [];
+
+  // Seed VPS Plans
+  const plansQuery = plansCollection.limit(1);
+  const plansSnapshot = await plansQuery.get();
+  if (!plansSnapshot.empty) {
+    summaryDetails.push('VPS Plans: Skipped (already exist).');
+  } else {
+    const plansBatch = adminDb.batch();
+    mockVpsPlans.forEach((planData) => {
+      const planRef = plansCollection.doc();
+      plansBatch.set(planRef, planData);
+    });
+    await plansBatch.commit();
+    summaryDetails.push(`VPS Plans: Seeded ${mockVpsPlans.length} items.`);
+  }
 
   // Seed Posts
   const postsQuery = postsCollection.limit(1);

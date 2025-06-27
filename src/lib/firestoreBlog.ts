@@ -4,7 +4,7 @@
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore'; 
 import { getDb } from '@/lib/firebase'; // Client SDK Firestore instance for reads
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore instance for writes
-import type { BlogPost, Category, NewBlogPost, PageData, NavigationMenu } from '@/types';
+import type { BlogPost, Category, NewBlogPost, PageData, NavigationMenu, VPSPlan } from '@/types';
 import { slugify } from '@/lib/utils';
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
 
@@ -315,5 +315,19 @@ export async function getNavigationMenu(name: string): Promise<NavigationMenu | 
   } catch (error) {
     console.error(`[getNavigationMenu] Error fetching navigation menu "${name}":`, error);
     return null;
+  }
+}
+
+// --- VPS Plan Functions ---
+export async function getVpsPlans(): Promise<VPSPlan[]> {
+  const db = getDb();
+  try {
+    const plansCollection = collection(db, 'vps_plans');
+    const q = query(plansCollection, orderBy('priceMonthly', 'asc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => toSerializable<VPSPlan>(doc));
+  } catch (error) {
+    console.error("Error fetching VPS plans:", error);
+    return [];
   }
 }

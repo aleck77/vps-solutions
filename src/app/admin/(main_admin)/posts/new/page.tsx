@@ -11,6 +11,7 @@ import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { createPostAction } from '@/app/actions/postActions';
 import { blogCategories } from '@/types';
 import Image from 'next/image'; 
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -609,7 +610,7 @@ export default function NewPostPage() {
                   <FormItem>
                     <FormLabel>Content (Markdown)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Write your blog post content here in Markdown..." className="min-h-[250px]" {...field} disabled={isPendingSubmit || isGeneratingContent} />
+                      <MarkdownEditor {...field} />
                     </FormControl>
                      <FormDescription>
                       The main content of the blog post. Write in Markdown. It will be converted to HTML.

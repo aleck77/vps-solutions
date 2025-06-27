@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 // Removed Inter and Poppins imports as they are now commented out in globals.css
 // and tailwind.config.ts uses system fallbacks.
 import './globals.css';
+import 'easymde/dist/easymde.min.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';

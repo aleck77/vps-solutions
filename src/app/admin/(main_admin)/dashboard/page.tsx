@@ -9,7 +9,29 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Newspaper, Settings, Wrench, ListTree } from 'lucide-react';
+import { BookOpen, Newspaper, Settings, Wrench, ListTree, Server } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+
+function ManagementCard({ title, description, href, icon, linkText }: { title: string, description: string, href: string, icon: React.ReactNode, linkText: string }) {
+  return (
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+      <div className="p-6 pt-0">
+        <Button asChild>
+          <Link href={href}>{linkText}</Link>
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 
 export default function AdminDashboardPage() {
   const { user, loading } = useAuth();
@@ -62,64 +84,62 @@ export default function AdminDashboardPage() {
           <CardTitle>Admin Dashboard</CardTitle>
           <CardDescription>Welcome, {user.email}. This is the main admin dashboard.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-lg font-medium">Manage Blog Posts</CardTitle>
-                    <Newspaper className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">Create, edit, and delete blog articles.</p>
-                </CardContent>
-                <div className="p-6 pt-0">
-                    <Button asChild>
-                        <Link href="/admin/posts">Go to Posts</Link>
-                    </Button>
-                </div>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-lg font-medium">Manage Site Pages</CardTitle>
-                    <BookOpen className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">Edit static pages like "About Us".</p>
-                </CardContent>
-                 <div className="p-6 pt-0">
-                    <Button asChild>
-                       <Link href="/admin/pages">Manage Pages</Link>
-                    </Button>
-                </div>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-lg font-medium">Manage Navigation</CardTitle>
-                    <ListTree className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">Control header and footer menus.</p>
-                </CardContent>
-                 <div className="p-6 pt-0">
-                    <Button asChild>
-                       <Link href="/admin/navigation">Manage Menus</Link>
-                    </Button>
-                </div>
-            </Card>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Site Tools</CardTitle>
-            <CardDescription>
-              Use these tools for site-wide operations. Be careful, these actions can be destructive.
-            </CardDescription>
-        </CardHeader>
         <CardContent>
-            <h3 className="font-semibold mb-2">Database Seeding</h3>
-            <p className="text-sm text-muted-foreground mb-3">Populate your Firestore database with initial data (posts, categories, pages, menus). This should only be run once on a fresh database.</p>
-            <Button onClick={handleSeed} disabled={isSeeding} variant="outline">
-              {isSeeding ? 'Seeding...' : 'Seed Database'}
-            </Button>
+           <Tabs defaultValue="management" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="management">Content Management</TabsTrigger>
+              <TabsTrigger value="tools">Site Tools</TabsTrigger>
+            </TabsList>
+            <TabsContent value="management" className="mt-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <ManagementCard 
+                        title="Manage Blog Posts"
+                        description="Create, edit, and delete blog articles."
+                        href="/admin/posts"
+                        icon={<Newspaper className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Go to Posts"
+                    />
+                     <ManagementCard 
+                        title="Manage Site Pages"
+                        description="Edit static pages like About Us."
+                        href="/admin/pages"
+                        icon={<BookOpen className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Manage Pages"
+                    />
+                     <ManagementCard 
+                        title="Manage Navigation"
+                        description="Control header and footer menus."
+                        href="/admin/navigation"
+                        icon={<ListTree className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Manage Menus"
+                    />
+                    <ManagementCard 
+                        title="Manage VPS Plans"
+                        description="Edit pricing and features of VPS plans."
+                        href="/admin/plans"
+                        icon={<Server className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Manage Plans"
+                    />
+                </div>
+            </TabsContent>
+            <TabsContent value="tools" className="mt-6">
+               <Card className="border-dashed">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Site Tools</CardTitle>
+                    <CardDescription>
+                    Use these tools for site-wide operations. Be careful, these actions can be destructive.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <h3 className="font-semibold mb-2">Database Seeding</h3>
+                    <p className="text-sm text-muted-foreground mb-3">Populate your Firestore database with initial data (posts, categories, pages, menus, plans). This should only be run once on a fresh database.</p>
+                    <Button onClick={handleSeed} disabled={isSeeding} variant="outline">
+                    {isSeeding ? 'Seeding...' : 'Seed Database'}
+                    </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

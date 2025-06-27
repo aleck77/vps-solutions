@@ -4,7 +4,6 @@
 import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminFirestoreSDK, FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
-import { getStorage as getAdminStorageSDK } from 'firebase-admin/storage';
 import { seedDatabase } from '@/lib/seed';
 
 // --- Begin Firebase Admin SDK Initialization ---
@@ -12,10 +11,9 @@ let adminApp: App;
 
 if (!getApps().length) {
   try {
-    console.log('[AdminActions] Attempting to initialize Firebase Admin SDK with default credentials and storage bucket...');
-    adminApp = initializeApp({
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    });
+    console.log('[AdminActions] Attempting to initialize Firebase Admin SDK with default credentials...');
+    // Removed storageBucket property as it's not needed without Storage actions
+    adminApp = initializeApp();
     console.log('[AdminActions] Firebase Admin SDK initialized successfully using default credentials.');
   } catch (e: any) {
     console.warn(`[AdminActions] Default Admin SDK initialization failed: ${e.message}. This is expected if not in a Firebase-managed environment or GOOGLE_APPLICATION_CREDENTIALS is not set. Operations requiring admin privileges will fail.`);
@@ -43,9 +41,7 @@ async function ensureAdminAppInitialized(): Promise<App> {
     
     try {
         console.log('[AdminActions] Re-initializing adminApp...');
-        adminApp = initializeApp({
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        });
+        adminApp = initializeApp();
         return adminApp;
     } catch (e: any) {
         console.error('[AdminActions] CRITICAL: Failed to initialize adminApp.', e);
@@ -57,11 +53,6 @@ async function ensureAdminAppInitialized(): Promise<App> {
 export async function getAdminFirestore() {
   const app = await ensureAdminAppInitialized();
   return getAdminFirestoreSDK(app);
-}
-
-export async function getAdminStorage() {
-  const app = await ensureAdminAppInitialized();
-  return getAdminStorageSDK(app);
 }
 
 export { AdminFieldValue };

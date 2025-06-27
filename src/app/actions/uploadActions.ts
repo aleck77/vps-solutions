@@ -1,14 +1,13 @@
-
 'use server';
 
 import { z } from 'zod';
-import { getAdminStorage } from '@/app/actions/adminActions';
 import { slugify } from '@/lib/utils';
+import { Buffer } from 'buffer';
 
 const uploadSchema = z.object({
   imageDataUri: z.string().startsWith('data:image/', { message: 'Invalid image data URI' }),
   targetFilename: z.string().min(1, { message: 'Filename is required.' }),
-  pathPrefix: z.string().optional(),
+  pathPrefix: z.string().optional(), // No longer used by WordPress, but kept for signature compatibility
 });
 
 interface UploadResult {
@@ -20,7 +19,7 @@ interface UploadResult {
 export async function uploadImageAction(
   imageDataUri: string,
   targetFilename: string,
-  pathPrefix: string = 'uploads/'
+  pathPrefix?: string // Kept for compatibility, but ignored
 ): Promise<UploadResult> {
   const validatedFields = uploadSchema.safeParse({ imageDataUri, targetFilename, pathPrefix });
 
@@ -30,44 +29,73 @@ export async function uploadImageAction(
       message: validatedFields.error.errors.map(e => e.message).join(', '),
     };
   }
+  
+  const { WORDPRESS_API_URL, WORDPRESS_USERNAME, WORDPRESS_APP_PASSWORD } = process.env;
+
+  if (!WORDPRESS_API_URL || !WORDPRESS_USERNAME || !WORDPRESS_APP_PASSWORD) {
+    const errorMessage = "Image upload service is not configured. Please set WORDPRESS_API_URL, WORDPRESS_USERNAME, and WORDPRESS_APP_PASSWORD in your .env file.";
+    console.error(`[uploadImageAction] ${errorMessage}`);
+    return {
+      success: false,
+      message: errorMessage,
+    };
+  }
 
   try {
-    const storage = await getAdminStorage();
-    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-    if (!bucketName) {
-        throw new Error("Firebase Storage bucket name is not configured in environment variables.");
+    const { imageDataUri, targetFilename } = validatedFields.data;
+
+    // 1. Extract data and mime type from Data URI
+    const matches = imageDataUri.match(/^data:(.+);base64,(.*)$/);
+    if (!matches || matches.length !== 3) {
+      throw new Error("Invalid data URI format.");
     }
-    const bucket = storage.bucket(bucketName);
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    // Decode the data URI to get the buffer and mime type
-    const imageParts = imageDataUri.split(',');
-    const mimeType = imageParts[0].split(':')[1].split(';')[0];
-    const imageBuffer = Buffer.from(imageParts[1], 'base64');
-    
-    // Create a unique, sanitized filename
-    const sanitizedFilename = slugify(targetFilename).replace(/\.(png|jpg|jpeg|webp|svg)$/i, '');
-    const extension = mimeType.split('/')[1] || 'png';
-    const uniqueFilename = `${sanitizedFilename}-${Date.now()}.${extension}`;
-    const filePath = `${pathPrefix}${uniqueFilename}`;
-    const file = bucket.file(filePath);
+    // 2. Prepare for upload
+    const fileExtension = mimeType.split('/')[1] || 'jpg';
+    const finalFilename = `${slugify(targetFilename)}.${fileExtension}`;
+    const wpApiEndpoint = `${WORDPRESS_API_URL.replace(/\/$/, '')}/wp-json/wp/v2/media`;
 
-    // Upload the file to Firebase Storage
-    await file.save(imageBuffer, {
-      metadata: { contentType: mimeType },
+    // 3. Prepare headers
+    const credentials = Buffer.from(`${WORDPRESS_USERNAME}:${WORDPRESS_APP_PASSWORD}`).toString('base64');
+    const headers = {
+      'Authorization': `Basic ${credentials}`,
+      'Content-Type': mimeType,
+      'Content-Disposition': `attachment; filename="${finalFilename}"`,
+    };
+
+    // 4. Make the request to WordPress
+    const response = await fetch(wpApiEndpoint, {
+      method: 'POST',
+      headers: headers,
+      body: imageBuffer,
+      // cache: 'no-store' // Use this if you face caching issues with fetch
     });
-    
-    // The public URL for files in Firebase Storage with uniform bucket-level access
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
-    
-    console.log(`[uploadImageAction] Image uploaded successfully. Public URL: ${publicUrl}`);
 
+    const responseBody = await response.json();
+
+    if (!response.ok) {
+      console.error('WordPress API Error Response:', responseBody);
+      throw new Error(responseBody.message || `WordPress API responded with status ${response.status}`);
+    }
+
+    if (!responseBody.source_url) {
+      console.error('WordPress Success Response without URL:', responseBody);
+      throw new Error("WordPress API returned a success response but did not provide an image URL.");
+    }
+    
+    console.log(`[uploadImageAction] Image uploaded successfully to WordPress. Public URL: ${responseBody.source_url}`);
+    
     return {
       success: true,
       message: 'Image uploaded successfully!',
-      imageUrl: publicUrl,
+      imageUrl: responseBody.source_url,
     };
+
   } catch (error: any) {
-    console.error('[uploadImageAction] Firebase Storage Error:', error);
-    return { success: false, message: error.message || 'An unknown error occurred during upload.' };
+    console.error('[uploadImageAction] WordPress Upload Action Error:', error);
+    return { success: false, message: error.message || 'An unknown error occurred during upload to WordPress.' };
   }
 }

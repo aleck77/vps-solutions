@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -45,6 +44,13 @@ service cloud.firestore {
         allow read: if true;
         allow write: if request.auth.token.admin == true;
     }
+
+    // --- НОВОЕ ПРАВИЛО ДЛЯ ТАРИФОВ VPS ---
+    match /vps_plans/{planId} {
+      // Любой может читать список тарифов
+      allow read: if true;
+      // Только администраторы могут изменять тарифы
+      allow write: if request.auth.token.admin == true;
+    }
   }
 }
-

@@ -1,11 +1,7 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { icons, type LucideProps, Smile } from 'lucide-react';
+import { Smile, icons, type LucideProps } from 'lucide-react';
 import type { PageData, ContentBlock, ValueCardBlock } from '@/types';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 
@@ -104,63 +100,15 @@ function groupValueCards(blocks: ContentBlock[]) {
   return groupedContent;
 }
 
-// --- Page Skeleton for Loading State ---
-function DynamicPageSkeleton() {
-  return (
-    <div className="space-y-12 max-w-4xl mx-auto">
-      <section className="text-center py-12 bg-primary/5 rounded-lg">
-        <Skeleton className="h-10 w-3/4 mx-auto mb-4" />
-        <Skeleton className="h-5 w-1/2 mx-auto" />
-      </section>
-      <Card className="shadow-lg p-6">
-        <CardContent className="space-y-4">
-          <Skeleton className="h-8 w-1/3 mb-6" />
-          <Skeleton className="h-5 w-full" />
-          <Skeleton className="h-5 w-5/6" />
-          <Skeleton className="h-64 w-full rounded-lg my-6" />
-          <Skeleton className="h-5 w-full" />
-          <Skeleton className="h-5 w-4/6" />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 interface DynamicPageProps {
     slug: string;
 }
 
-export default function DynamicPage({ slug }: DynamicPageProps) {
-  const [pageData, setPageData] = useState<PageData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchPageData() {
-      try {
-        setLoading(true);
-        const data = await getPageBySlug(slug);
-        if (data) {
-          setPageData(data);
-          document.title = `${data.title} | VHost Solutions`;
-        } else {
-          notFound();
-        }
-      } catch (error) {
-        console.error(`Failed to fetch page data for '${slug}' page:`, error);
-        notFound();
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchPageData();
-  }, [slug]);
-
-  if (loading) {
-    return <DynamicPageSkeleton />;
-  }
+export default async function DynamicPage({ slug }: DynamicPageProps) {
+  const pageData = await getPageBySlug(slug);
 
   if (!pageData) {
-    return notFound();
+    notFound();
   }
   
   const groupedContent = groupValueCards(pageData.contentBlocks || []);

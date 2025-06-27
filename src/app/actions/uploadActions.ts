@@ -56,7 +56,9 @@ export async function uploadImageAction(
     // 2. Prepare for upload
     const fileExtension = mimeType.split('/')[1] || 'jpg';
     const finalFilename = `${slugify(targetFilename)}.${fileExtension}`;
-    const wpApiEndpoint = `${WORDPRESS_API_URL.replace(/\/$/, '')}/wp-json/wp/v2/media`;
+    
+    // FIX: Use WORDPRESS_API_URL directly as the endpoint, without appending anything.
+    const wpApiEndpoint = WORDPRESS_API_URL;
 
     // 3. Prepare headers
     const credentials = Buffer.from(`${WORDPRESS_USERNAME}:${WORDPRESS_APP_PASSWORD}`).toString('base64');
@@ -66,27 +68,27 @@ export async function uploadImageAction(
       'Content-Disposition': `attachment; filename="${finalFilename}"`,
     };
 
-    // 4. Make the request to WordPress
+    // 4. Make the request to the webhook/API
     const response = await fetch(wpApiEndpoint, {
       method: 'POST',
       headers: headers,
       body: imageBuffer,
-      // cache: 'no-store' // Use this if you face caching issues with fetch
+      cache: 'no-store'
     });
 
     const responseBody = await response.json();
 
     if (!response.ok) {
-      console.error('WordPress API Error Response:', responseBody);
-      throw new Error(responseBody.message || `WordPress API responded with status ${response.status}`);
+      console.error('Webhook/API Error Response:', responseBody);
+      throw new Error(responseBody.message || `Webhook responded with status ${response.status}`);
     }
 
     if (!responseBody.source_url) {
-      console.error('WordPress Success Response without URL:', responseBody);
-      throw new Error("WordPress API returned a success response but did not provide an image URL.");
+      console.error('Webhook/API Success Response without URL:', responseBody);
+      throw new Error("The API returned a success response but did not provide an image URL.");
     }
     
-    console.log(`[uploadImageAction] Image uploaded successfully to WordPress. Public URL: ${responseBody.source_url}`);
+    console.log(`[uploadImageAction] Image uploaded successfully via webhook. Public URL: ${responseBody.source_url}`);
     
     return {
       success: true,
@@ -95,7 +97,7 @@ export async function uploadImageAction(
     };
 
   } catch (error: any) {
-    console.error('[uploadImageAction] WordPress Upload Action Error:', error);
-    return { success: false, message: error.message || 'An unknown error occurred during upload to WordPress.' };
+    console.error('[uploadImageAction] Webhook Upload Action Error:', error);
+    return { success: false, message: error.message || 'An unknown error occurred during upload to the webhook.' };
   }
 }

@@ -17,7 +17,8 @@ export async function updateNavigationAction(
   if (!menuId) {
     return { success: false, message: 'Menu ID is missing.' };
   }
-  if (!['header-nav', 'footer-links'].includes(menuId)) {
+  // FIX: Added 'footer-col-1' and 'footer-col-2' to the list of valid menu IDs
+  if (!['header-nav', 'footer-col-1', 'footer-col-2'].includes(menuId)) {
     return { success: false, message: 'Invalid Menu ID provided.' };
   }
   

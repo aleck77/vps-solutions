@@ -1,13 +1,10 @@
-
 rules_version = '2';
 
+// Default rules deny all access
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow public read access to all files, which is necessary for them to be displayed on the website.
     match /{allPaths=**} {
-      allow read;
-      // Disallow client-side writes completely. All uploads must go through the authenticated server action.
-      allow write: if false;
+      allow read, write: if false;
     }
   }
 }

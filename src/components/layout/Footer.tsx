@@ -74,7 +74,7 @@ export default function Footer({ footerMenus, footerContent }: FooterProps) {
                   <h4 className="text-md font-semibold mb-2">{block.title}</h4>
                   <ul className="space-y-1 text-sm">
                     {menuItems.map(link => (
-                       <li key={link.href}>
+                       <li key={link.label}>
                           <Link href={link.href} className="text-muted-foreground hover:text-primary transition-colors">
                               {link.label}
                           </Link>

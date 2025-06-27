@@ -10,7 +10,8 @@ import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
-import { marked } from 'marked';
+// marked is no longer needed here, as conversion happens on the client
+// import { marked } from 'marked';
 
 interface CreatePostResult {
   success: boolean;
@@ -52,15 +53,7 @@ export async function createPostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
-  let htmlContent: string;
-  try {
-    htmlContent = await marked.parse(content);
-  } catch (parseError) {
-    console.error('Error parsing Markdown to HTML:', parseError);
-    return { success: false, message: 'Failed to process post content (Markdown parsing error).' };
-  }
-
-
+  // We are now storing raw Markdown. The conversion to HTML happens on the client.
   const processedTags = tags
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
@@ -74,7 +67,7 @@ export async function createPostAction(
     author,
     category: categorySlug,
     excerpt,
-    content: htmlContent,
+    content: content, // Store raw Markdown
     imageUrl,
     tags: processedTags,
     published,
@@ -131,14 +124,7 @@ export async function updatePostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
-  let htmlContent: string;
-  try {
-    htmlContent = await marked.parse(content);
-  } catch (parseError: any) {
-    console.error('[updatePostAction] Error parsing Markdown to HTML during update:', parseError);
-    return { success: false, message: `Failed to process post content (Markdown parsing error): ${parseError.message}` };
-  }
-
+  // We are now storing raw Markdown. The conversion to HTML happens on the client.
   const processedTags = tags
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
@@ -151,7 +137,7 @@ export async function updatePostAction(
     author,
     category: categorySlug,
     excerpt,
-    content: htmlContent,
+    content: content, // Store raw Markdown
     imageUrl,
     tags: processedTags,
     published,

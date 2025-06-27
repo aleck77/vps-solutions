@@ -613,7 +613,7 @@ export default function NewPostPage() {
                       <MarkdownEditor {...field} />
                     </FormControl>
                      <FormDescription>
-                      The main content of the blog post. Write in Markdown. It will be converted to HTML.
+                      The main content of the blog post. Write in Markdown. It will be converted to HTML automatically on the blog page.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

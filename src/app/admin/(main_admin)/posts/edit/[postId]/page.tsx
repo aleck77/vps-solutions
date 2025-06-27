@@ -124,7 +124,7 @@ export default function EditPostPage() {
             imageUrl: fetchedPost.imageUrl,
             category: originalCategoryName,
             excerpt: fetchedPost.excerpt,
-            content: fetchedPost.content, // This content is HTML from DB
+            content: fetchedPost.content, // This content is Markdown from DB
             tags: fetchedPost.tags?.join(', ') || '',
             published: fetchedPost.published,
           });
@@ -661,7 +661,7 @@ export default function EditPostPage() {
                     <FormControl>
                       <MarkdownEditor {...field} />
                     </FormControl>
-                    <FormDescription>The main content of the blog post. Write in Markdown. It will be converted to HTML on save.</FormDescription>
+                    <FormDescription>The main content of the blog post. Write in Markdown. It will be converted to HTML when displayed on the blog.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -4,8 +4,8 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getAdminFirestore } from '@/app/actions/adminActions';
-import { homepageContentSchema, contactInfoSchema } from '@/lib/schemas';
-import type { HomepageContentValues, ContactInfoValues } from '@/lib/schemas';
+import { homepageContentSchema, contactInfoSchema, footerContentSchema } from '@/lib/schemas';
+import type { HomepageContentValues, ContactInfoValues, FooterContentValues } from '@/lib/schemas';
 import { FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
 
 interface ActionResult {
@@ -75,5 +75,38 @@ export async function updateContactInfoAction(
   } catch (error: any) {
     console.error('Error updating contact information:', error);
     return { success: false, message: `Failed to update info: ${error.message}` };
+  }
+}
+
+
+export async function updateFooterContentAction(
+  prevState: ActionResult | undefined,
+  formData: FooterContentValues
+): Promise<ActionResult> {
+  const validatedFields = footerContentSchema.safeParse(formData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: 'Validation failed. Please check the form for errors.',
+      errors: validatedFields.error.issues,
+    };
+  }
+  
+  try {
+    const adminDb = await getAdminFirestore();
+    const docRef = adminDb.collection('site_content').doc('footer');
+    await docRef.set({
+      ...validatedFields.data,
+      updatedAt: AdminFieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    revalidatePath('/', 'layout'); // Revalidate the whole layout to update footer everywhere
+
+    return { success: true, message: 'Footer content updated successfully.' };
+
+  } catch (error: any) {
+    console.error('Error updating footer content:', error);
+    return { success: false, message: `Failed to update footer: ${error.message}` };
   }
 }

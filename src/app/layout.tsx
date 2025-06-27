@@ -8,7 +8,7 @@ import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/authContext';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
-import { getNavigationMenu } from '@/lib/firestoreBlog';
+import { getNavigationMenu, getFooterContent } from '@/lib/firestoreBlog';
 
 export const metadata: Metadata = {
   title: 'VHost Solutions - Premier VPS Hosting',
@@ -24,6 +24,7 @@ export default async function RootLayout({
   const headerNav = await getNavigationMenu('header-nav');
   const footerCol1 = await getNavigationMenu('footer-col-1');
   const footerCol2 = await getNavigationMenu('footer-col-2');
+  const footerContent = await getFooterContent();
 
 
   // Fallback to empty arrays if data is not found
@@ -45,7 +46,11 @@ export default async function RootLayout({
           <main className="flex-grow container mx-auto px-4 py-8">
             {children}
           </main>
-          <Footer footerCol1Links={footerCol1Items} footerCol2Links={footerCol2Items} />
+          <Footer 
+            footerCol1Links={footerCol1Items} 
+            footerCol2Links={footerCol2Items} 
+            footerContent={footerContent}
+          />
           <Toaster />
         </AuthProvider>
       </body>

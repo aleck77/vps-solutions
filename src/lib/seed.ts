@@ -1,76 +1,92 @@
+
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, BlogCategoryType, PageData, NavigationMenu } from '@/types';
+import type { BlogPost, Category, PageData, NavigationMenu } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
-// Define mockPosts structure directly here or import if it's substantial
-const mockPostsData: Omit<BlogPost, 'id' | 'date' | 'createdAt' | 'updatedAt' | 'published' | 'tags' | 'category' | 'imageUrl'> & { date: string, category: BlogCategoryType, tags: string[] }[] = [
+// A more precise type for our mock data objects.
+// Omit properties that are generated at runtime or are managed by the server.
+type MockSeedPost = Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>;
+
+const mockPostsData: MockSeedPost[] = [
   {
     slug: 'getting-started-with-ai',
     title: 'Getting Started with AI in Your Projects',
-    date: '2024-07-15',
+    date: '2024-07-15T00:00:00.000Z',
     author: 'AI Enthusiast',
-    category: 'AI',
+    category: 'ai',
     excerpt: 'A beginner-friendly guide to integrating AI into your applications and workflows.',
     content: '<p>Full content about getting started with AI...</p><p>More details here.</p>',
-    tags: ['AI', 'Machine Learning', 'Beginners Guide'],
+    imageUrl: 'https://source.unsplash.com/600x400/?artificial,intelligence',
+    tags: ['ai', 'machine-learning', 'beginners-guide'],
+    published: true,
     dataAiHint: 'artificial intelligence',
   },
   {
     slug: 'no-code-revolution',
     title: 'The No-Code Revolution: Building Apps Without Code',
-    date: '2024-07-10',
+    date: '2024-07-10T00:00:00.000Z',
     author: 'No-Coder Jane',
-    category: 'No-code',
+    category: 'no-code',
     excerpt: 'Explore how no-code platforms are empowering creators to build powerful applications.',
     content: '<p>Detailed exploration of no-code platforms and their impact...</p>',
-    tags: ['No-code', 'App Development', 'Productivity Tools'],
+    imageUrl: 'https://source.unsplash.com/600x400/?visual,programming',
+    tags: ['no-code', 'app-development', 'productivity-tools'],
+    published: true,
     dataAiHint: 'visual programming',
   },
-  {
+   {
     slug: 'mastering-modern-vibe-coding',
     title: 'Mastering Modern Vibe Coding Techniques',
-    date: '2024-07-05',
+    date: '2024-07-05T00:00:00.000Z',
     author: 'Code Master Flex',
-    category: 'Vibe coding',
+    category: 'vibe-coding',
     excerpt: 'Dive into the latest trends and best practices in vibe coding for 2024.',
     content: '<p>Comprehensive guide to modern vibe coding...</p>',
-    tags: ['JavaScript', 'React Framework', 'Next.js Guide', 'CSS Styling'],
+    imageUrl: 'https://source.unsplash.com/600x400/?web,development',
+    tags: ['javascript', 'react-framework', 'next-js-guide', 'css-styling'],
+    published: true,
     dataAiHint: 'web development',
   },
   {
     slug: 'automation-for-small-business',
     title: 'Streamlining Your Small Business with Automation',
-    date: '2024-06-28',
+    date: '2024-06-28T00:00:00.000Z',
     author: 'Automation Ally',
-    category: 'Automation',
+    category: 'automation',
     excerpt: 'Discover tools and strategies to automate repetitive tasks and boost efficiency.',
     content: '<p>Practical automation tips for small businesses...</p>',
-    tags: ['Automation Software', 'Small Business Tips', 'Productivity Hacks'],
+    imageUrl: 'https://source.unsplash.com/600x400/?business,automation',
+    tags: ['automation-software', 'small-business-tips', 'productivity-hacks'],
+    published: true,
     dataAiHint: 'business automation',
   },
   {
     slug: 'essential-developer-tools',
     title: 'Top 10 Essential Tools for Developers in 2024',
-    date: '2024-06-20',
+    date: '2024-06-20T00:00:00.000Z',
     author: 'Tool Time Tim',
-    category: 'Tools',
+    category: 'tools',
     excerpt: 'A curated list of indispensable tools that every developer should know.',
     content: '<p>List and review of top developer tools...</p>',
-    tags: ['Developer Tools', 'Software Development IDE', 'Version Control Systems'],
+    imageUrl: 'https://source.unsplash.com/600x400/?coding,tools',
+    tags: ['developer-tools', 'software-development-ide', 'version-control-systems'],
+    published: true,
     dataAiHint: 'coding tools',
   },
   {
     slug: 'choosing-cloud-hosting',
     title: 'Choosing the Right Cloud Hosting for Your Needs',
-    date: '2024-06-15',
+    date: '2024-06-15T00:00:00.000Z',
     author: 'Cloudy McCloudface',
-    category: 'Cloud Hosting',
+    category: 'cloud-hosting',
     excerpt: 'A guide to navigating the options and selecting the best cloud hosting provider.',
     content: '<p>In-depth analysis of cloud hosting options...</p>',
-    tags: ['Cloud Hosting Services', 'VPS Hosting', 'Infrastructure as a Service', 'Platform as a Service'],
+    imageUrl: 'https://source.unsplash.com/600x400/?server,hosting',
+    tags: ['cloud-hosting-services', 'vps-hosting', 'infrastructure-as-a-service', 'platform-as-a-service'],
+    published: true,
     dataAiHint: 'server hosting',
   },
 ];
@@ -82,7 +98,7 @@ const pagesToSeed: { [slug: string]: Omit<PageData, 'id' | 'updatedAt' | 'create
     contentBlocks: [
       { type: "paragraph", text: "At VHost Solutions, our mission is to provide cutting-edge VPS hosting services that are powerful, reliable, and accessible. We strive to empower developers, entrepreneurs, and businesses of all sizes to achieve their online goals by offering top-tier infrastructure, exceptional customer support, and a commitment to continuous innovation." },
       { type: "paragraph", text: "We believe that great hosting is the foundation of online success, and we are dedicated to building that foundation for our clients with integrity and expertise." },
-      { type: "image", url: "https://source.unsplash.com/600x400/?team,office", alt: "VHost Solutions Team", dataAiHint: "team office" },
+      { type: "image", url: "https://source.unsplash.com/800x450/?team,office", alt: "VHost Solutions Team", dataAiHint: "team office" },
       { type: "heading", level: 2, text: "Our Values" },
       { type: "value_card", icon: "Zap", title: "Innovation", text: "We embrace new technologies to provide cutting-edge solutions." },
       { type: "value_card", icon: "Users", title: "Customer Focus", text: "Our customers are at the heart of everything we do." },
@@ -143,7 +159,6 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
   const pagesCollection = adminDb.collection('pages');
   const navigationCollection = adminDb.collection('navigation');
   
-  const nowJSDate = new Date();
   const summaryDetails: string[] = [];
 
   // Seed Posts
@@ -155,19 +170,10 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
     const postsBatch = adminDb.batch();
     mockPostsData.forEach((postData) => {
       const postRef = postsCollection.doc(); 
-      const processedTags = postData.tags.map(tag => slugify(tag.trim())).filter(tag => tag.length > 0);
-      
-      const imageUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(postData.dataAiHint || 'technology')}`;
-
-      const postToSeed: Omit<BlogPost, 'id'> = {
+      const postToSeed = {
         ...postData,
-        imageUrl: imageUrl,
-        category: slugify(postData.category),
-        tags: processedTags,
-        date: new Date(postData.date).toISOString(),
-        published: true,
-        createdAt: nowJSDate.toISOString(),
-        updatedAt: nowJSDate.toISOString(),
+        createdAt: AdminFieldValue.serverTimestamp(),
+        updatedAt: AdminFieldValue.serverTimestamp(),
       };
       postsBatch.set(postRef, postToSeed);
     });

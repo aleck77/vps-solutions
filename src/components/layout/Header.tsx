@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -49,7 +50,7 @@ function MobileNavLink({ href, label, icon }: { href: string; label: string; ico
 
 
 export default function Header({ navItems }: { navItems: MenuItem[] }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -95,7 +96,7 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
           {navItems.map((link) => (
             <NavLink key={link.label} href={link.href} label={link.label} />
           ))}
-          {!loading && user && (
+          {!loading && isAdmin && (
             <NavLink href="/admin/dashboard" label="Dashboard" />
           )}
           {!loading && user ? (
@@ -148,7 +149,7 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
                     <MobileNavLink key={link.label} href={link.href} label={link.label} icon={iconMap[link.label] || <Server className="h-5 w-5" />} />
                   ))}
                   <div className="pt-2 border-t">
-                    {!loading && user ? (
+                    {!loading && isAdmin ? (
                        <>
                         <MobileNavLink href="/admin/dashboard" label="Dashboard" icon={<LayoutDashboard className="h-5 w-5"/>} />
                         <SheetClose asChild>
@@ -161,7 +162,17 @@ export default function Header({ navItems }: { navItems: MenuItem[] }) {
                           </button>
                         </SheetClose>
                        </>
-                    ) : !loading ? (
+                    ) : !loading && user ? ( // Logged in but not admin
+                       <SheetClose asChild>
+                         <button
+                           onClick={handleLogout}
+                           className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium w-full text-left"
+                         >
+                           <LogOut className="h-5 w-5" />
+                           <span>Logout</span>
+                         </button>
+                       </SheetClose>
+                    ) : !loading ? ( // Not logged in
                       <MobileNavLink href="/admin/login" label="Admin Login" icon={<LogIn className="h-5 w-5" />} />
                     ) : null}
                   </div>

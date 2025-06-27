@@ -75,7 +75,7 @@ export default function EditPlanPage() {
   }, [planId, form, router, toast]);
 
   useEffect(() => {
-    if (state?.success === false && state.message) {
+    if (state?.success === false) {
       toast({
         title: 'Error Updating Plan',
         description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),

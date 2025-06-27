@@ -327,7 +327,7 @@ export default function PostsAdminPage() {
 
       {postToDelete && (
         <AlertDialog open={!!postToDelete} onOpenChange={() => setPostToDelete(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent aria-describedby="alert-dialog-single-delete-description">
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription id="alert-dialog-single-delete-description">
@@ -347,7 +347,7 @@ export default function PostsAdminPage() {
 
       {showBulkDeleteDialog && selectedPostIds.size > 0 && (
          <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-          <AlertDialogContent>
+          <AlertDialogContent aria-describedby="alert-dialog-bulk-delete-description">
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Bulk Delete</AlertDialogTitle>
               <AlertDialogDescription id="alert-dialog-bulk-delete-description">

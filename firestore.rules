@@ -1,56 +1,59 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Существующие правила для постов
+
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow public read on published posts
     match /posts/{postId} {
-      // Любой может читать опубликованные посты
       allow read: if resource.data.published == true;
-      // Только администраторы могут создавать, обновлять или удалять посты
-      allow write: if request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
     
-    // Существующие правила для категорий
+    // Allow public read on categories
     match /categories/{categoryId} {
-      // Любой может читать список категорий
       allow read: if true;
-      // Только администраторы могут изменять категории
-      allow write: if request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
-
-    // Существующие правила для подписчиков
-    match /subscribers/{subscriberId} {
-        // Никто не может читать чужие email-адреса
-        allow read: if false;
-        // Любой может создать новую подписку (добавить свой email)
-        allow create: if true;
-        // Никто не может изменять или удалять подписки
-        allow update, delete: if false;
-    }
-
-    // --- НОВОЕ ПРАВИЛО ДЛЯ СТРАНИЦ ---
-    // Любой может читать содержимое страниц (About, Contact и т.д.)
+    
+    // Allow public read on pages
     match /pages/{pageId} {
       allow read: if true;
-      // Только администраторы могут создавать или изменять страницы
-      allow write: if request.auth.token.admin == true;
-    }
-    
-    // ===== Navigation =====
-    // Любой пользователь может читать меню навигации.
-    // Только администраторы могут изменять меню.
-    match /navigation/{navId} {
-        allow read: if true;
-        allow write: if request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
 
-    // --- НОВОЕ ПРАВИЛО ДЛЯ ТАРИФОВ VPS ---
-    match /vps_plans/{planId} {
-      // Любой может читать список тарифов
+    // Allow newsletter subscriptions
+    match /subscribers/{subscriberId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Allow public read on navigation menus
+    match /navigation/{menuId} {
       allow read: if true;
-      // Только администраторы могут изменять тарифы
-      allow write: if request.auth.token.admin == true;
+      allow write: if isAdmin();
+    }
+
+    // Allow public read on VPS plans
+    match /vps_plans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Allow public read on site content (homepage, contact info)
+    match /site_content/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

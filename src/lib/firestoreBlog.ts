@@ -4,7 +4,7 @@
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore'; 
 import { getDb } from '@/lib/firebase'; // Client SDK Firestore instance for reads
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore instance for writes
-import type { BlogPost, Category, NewBlogPost, PageData, NavigationMenu, VPSPlan } from '@/types';
+import type { BlogPost, Category, NewBlogPost, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo } from '@/types';
 import { slugify } from '@/lib/utils';
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
 
@@ -346,4 +346,36 @@ export async function getVpsPlanById(planId: string): Promise<VPSPlan | null> {
     console.error(`Error fetching VPS plan by ID ${planId}:`, error);
     return null;
   }
+}
+
+// --- Site Content Functions ---
+
+export async function getHomepageContent(): Promise<HomepageContent | null> {
+    const db = getDb();
+    try {
+        const docRef = doc(db, 'site_content', 'homepage');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return toSerializable<HomepageContent>(docSnap);
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching homepage content:", error);
+        return null;
+    }
+}
+
+export async function getContactInfo(): Promise<ContactInfo | null> {
+    const db = getDb();
+    try {
+        const docRef = doc(db, 'site_content', 'contact_info');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return toSerializable<ContactInfo>(docSnap);
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching contact info:", error);
+        return null;
+    }
 }

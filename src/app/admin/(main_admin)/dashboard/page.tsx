@@ -120,6 +120,13 @@ export default function AdminDashboardPage() {
                         icon={<Server className="h-5 w-5 text-muted-foreground" />}
                         linkText="Manage Plans"
                     />
+                     <ManagementCard 
+                        title="Site Settings"
+                        description="Edit homepage content and contact info."
+                        href="/admin/settings"
+                        icon={<Wrench className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Edit Settings"
+                    />
                 </div>
             </TabsContent>
             <TabsContent value="tools" className="mt-6">

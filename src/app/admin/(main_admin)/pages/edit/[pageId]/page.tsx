@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { pageFormSchema, type PageFormValues } from '@/lib/schemas';
 import { updatePageAction } from '@/app/actions/pageActions';
-import { uploadImageAction } from '@/app/actions/uploadActions';
+import { uploadPageImageAction } from '@/app/actions/uploadActions';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 import type { PageData } from '@/types';
 import MarkdownEditor from '@/components/admin/MarkdownEditor';
@@ -79,7 +79,7 @@ function ImageBlockUploader({ control, index, form }: { control: any, index: num
 
     setIsUploading(true);
     startTransition(async () => {
-      const result = await uploadImageAction(dataUri, pageTitle, 'page-images/');
+      const result = await uploadPageImageAction(dataUri, pageTitle);
       if (result.success && result.imageUrl) {
         form.setValue(`contentBlocks.${index}.url`, result.imageUrl, { shouldValidate: true });
         toast({ title: "Success", description: result.message });

@@ -30,7 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent, type GeneratePostContentInput } from '@/ai/flows/generate-post-content-flow';
 import { generatePostImage } from '@/ai/flows/generate-post-image-flow';
-import { uploadImageAction } from '@/app/actions/uploadActions';
+import { uploadPageImageAction } from '@/app/actions/uploadActions';
 
 
 export default function EditPostPage() {
@@ -264,7 +264,7 @@ export default function EditPostPage() {
 
     startTransition(async () => {
       try {
-        const result = await uploadImageAction(aiGeneratedPreviewUri, postTitle, 'post-images/');
+        const result = await uploadPageImageAction(aiGeneratedPreviewUri, postTitle);
         if (result.success && result.imageUrl) {
           form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
           setAiGeneratedPreviewUri(null);

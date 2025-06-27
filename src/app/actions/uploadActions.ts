@@ -66,3 +66,56 @@ export async function uploadPageImageAction(imageDataUri: string, pageTitle: str
     return { success: false, message: error.message || 'An unknown error occurred during upload.' };
   }
 }
+
+const logoUploadSchema = z.object({
+  imageDataUri: z.string().startsWith('data:image/', { message: 'Invalid image data URI' }),
+});
+
+export async function uploadLogoAction(imageDataUri: string): Promise<UploadResult> {
+  const validatedFields = logoUploadSchema.safeParse({ imageDataUri });
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: validatedFields.error.errors.map(e => e.message).join(', '),
+    };
+  }
+  
+  const timestamp = Date.now();
+  const filename = `vhost-logo-${timestamp}.png`; // A generic filename for the logo
+  
+  const webhookUrl = 'https://n8n.artelegis.com.ua/webhook/wp';
+  const payload = {
+      imageDataUri,
+      postTitle: 'VHost Site Logo', // A generic title for n8n
+      filename,
+  };
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const responseText = await response.text();
+    if (!response.ok) {
+        throw new Error(`Upload failed: Server responded with status ${response.status}. Response: ${responseText.substring(0, 500)}`);
+    }
+
+    const result = JSON.parse(responseText);
+
+    if (result.success && result.imageUrl) {
+      return {
+        success: true,
+        message: 'Logo uploaded successfully!',
+        imageUrl: result.imageUrl,
+      };
+    } else {
+      throw new Error(result.error || result.message || 'Upload failed: The server reported an error.');
+    }
+  } catch (error: any) {
+    console.error('[uploadLogoAction] Error:', error);
+    return { success: false, message: error.message || 'An unknown error occurred during upload.' };
+  }
+}

@@ -73,14 +73,15 @@ function CtaSection({ block }: { block: Extract<HomepageContentBlock, { type: 'c
   );
 }
 
-function renderBlock(block: HomepageContentBlock) {
+function renderBlock(block: HomepageContentBlock, index: number) {
+  // Use index as the key because block.id is stripped before saving to DB
   switch (block.type) {
     case 'hero':
-      return <HeroSection key={block.id} block={block} />;
+      return <HeroSection key={index} block={block} />;
     case 'features':
-      return <FeaturesSection key={block.id} block={block} />;
+      return <FeaturesSection key={index} block={block} />;
     case 'cta':
-      return <CtaSection key={block.id} block={block} />;
+      return <CtaSection key={index} block={block} />;
     default:
       return null;
   }
@@ -133,7 +134,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-16">
       {/* Dynamic Content Blocks */}
-      {(content.contentBlocks || []).map(renderBlock)}
+      {(content.contentBlocks || []).map((block, index) => renderBlock(block, index))}
 
       {/* Pricing Teaser Section (remains separate as it's from a different collection) */}
       <section className="py-12 bg-muted rounded-lg">

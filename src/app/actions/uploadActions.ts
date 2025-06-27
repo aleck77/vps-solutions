@@ -7,7 +7,7 @@ import { Buffer } from 'buffer';
 const uploadSchema = z.object({
   imageDataUri: z.string().startsWith('data:image/', { message: 'Invalid image data URI' }),
   targetFilename: z.string().min(1, { message: 'Filename is required.' }),
-  pathPrefix: z.string().optional(), // No longer used by WordPress, but kept for signature compatibility
+  pathPrefix: z.string().optional(), // Kept for compatibility, but ignored
 });
 
 interface UploadResult {

@@ -2,11 +2,13 @@
 'use server';
 
 import { z } from 'zod';
+import { getAdminStorage } from '@/app/actions/adminActions';
 import { slugify } from '@/lib/utils';
 
 const uploadSchema = z.object({
   imageDataUri: z.string().startsWith('data:image/', { message: 'Invalid image data URI' }),
-  pageTitle: z.string().min(1, { message: 'Page title is required for filename generation.' }),
+  targetFilename: z.string().min(1, { message: 'Filename is required.' }),
+  pathPrefix: z.string().optional(),
 });
 
 interface UploadResult {
@@ -15,11 +17,12 @@ interface UploadResult {
   imageUrl?: string;
 }
 
-export async function uploadPageImageAction(imageDataUri: string, pageTitle: string): Promise<UploadResult> {
-  const validatedFields = uploadSchema.safeParse({
-    imageDataUri,
-    pageTitle,
-  });
+export async function uploadImageAction(
+  imageDataUri: string,
+  targetFilename: string,
+  pathPrefix: string = 'uploads/'
+): Promise<UploadResult> {
+  const validatedFields = uploadSchema.safeParse({ imageDataUri, targetFilename, pathPrefix });
 
   if (!validatedFields.success) {
     return {
@@ -28,42 +31,43 @@ export async function uploadPageImageAction(imageDataUri: string, pageTitle: str
     };
   }
 
-  const pageTitleSlug = slugify(pageTitle) || 'untitled-page-image';
-  const timestamp = Date.now();
-  const filename = `${pageTitleSlug}-${timestamp}.png`;
-  
-  const webhookUrl = 'https://n8n.artelegis.com.ua/webhook/wp';
-  const payload = {
-      imageDataUri,
-      postTitle: pageTitle, // n8n workflow might be expecting 'postTitle'
-      filename,
-  };
-
   try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    const storage = await getAdminStorage();
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    if (!bucketName) {
+        throw new Error("Firebase Storage bucket name is not configured in environment variables.");
+    }
+    const bucket = storage.bucket(bucketName);
+
+    // Decode the data URI to get the buffer and mime type
+    const imageParts = imageDataUri.split(',');
+    const mimeType = imageParts[0].split(':')[1].split(';')[0];
+    const imageBuffer = Buffer.from(imageParts[1], 'base64');
+    
+    // Create a unique, sanitized filename
+    const sanitizedFilename = slugify(targetFilename).replace(/\.(png|jpg|jpeg|webp|svg)$/i, '');
+    const extension = mimeType.split('/')[1] || 'png';
+    const uniqueFilename = `${sanitizedFilename}-${Date.now()}.${extension}`;
+    const filePath = `${pathPrefix}${uniqueFilename}`;
+    const file = bucket.file(filePath);
+
+    // Upload the file to Firebase Storage
+    await file.save(imageBuffer, {
+      metadata: { contentType: mimeType },
     });
+    
+    // The public URL for files in Firebase Storage with uniform bucket-level access
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+    
+    console.log(`[uploadImageAction] Image uploaded successfully. Public URL: ${publicUrl}`);
 
-    const responseText = await response.text();
-    if (!response.ok) {
-        throw new Error(`Upload failed: Server responded with status ${response.status}. Response: ${responseText.substring(0, 500)}`);
-    }
-
-    const result = JSON.parse(responseText);
-
-    if (result.success && result.imageUrl) {
-      return {
-        success: true,
-        message: 'Image uploaded successfully!',
-        imageUrl: result.imageUrl,
-      };
-    } else {
-      throw new Error(result.error || result.message || 'Upload failed: The server reported an error.');
-    }
+    return {
+      success: true,
+      message: 'Image uploaded successfully!',
+      imageUrl: publicUrl,
+    };
   } catch (error: any) {
-    console.error('[uploadPageImageAction] Error:', error);
+    console.error('[uploadImageAction] Firebase Storage Error:', error);
     return { success: false, message: error.message || 'An unknown error occurred during upload.' };
   }
 }

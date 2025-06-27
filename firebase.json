@@ -1,3 +1,4 @@
+
 {
   "emulators": {
     "singleProjectMode": true,
@@ -16,10 +17,16 @@
     "ui": {
       "enabled": true,
       "port": 9499
+    },
+    "storage": {
+      "port": 9199
     }
   },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

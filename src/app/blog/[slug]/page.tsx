@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/firestoreBlog';
 import type { BlogPost } from '@/types';
@@ -11,6 +11,7 @@ import { CalendarDays, UserCircle, Tag } from 'lucide-react';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { marked } from 'marked';
 
 // Skeleton component for loading state
 function PostSkeleton() {
@@ -72,6 +73,19 @@ export default function PostPage() {
     fetchPost();
   }, [slug]);
 
+  const parsedContent = useMemo(() => {
+    if (!post?.content) return '';
+    try {
+      // Note: `marked` can be vulnerable to XSS if not configured properly.
+      // For this prototype, we trust the content from our Markdown editor.
+      // In a production app, consider using a sanitizer like DOMPurify.
+      return marked.parse(post.content);
+    } catch (e) {
+      console.error("Markdown parsing error:", e);
+      return '<p>Error: Could not parse content.</p>';
+    }
+  }, [post?.content]);
+
   if (loading) {
     return <PostSkeleton />;
   }
@@ -114,7 +128,7 @@ export default function PostPage() {
                     />
                 </div>
                 )}
-                <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div dangerouslySetInnerHTML={{ __html: parsedContent }} />
             </article>
             <div className="mt-8">
                 <EditPostLinkClient postId={post.id} />

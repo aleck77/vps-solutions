@@ -5,35 +5,50 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Cpu, HardDrive, Zap } from 'lucide-react';
-import { mockVpsPlans } from '@/data/vpsPlans';
-import { useEffect } from 'react';
-import { seedDatabase } from '@/lib/seed';
-import { testFirestoreConnection } from '@/lib/firestoreUtils'; // Added import
+import { useEffect, useState } from 'react';
+import { getVpsPlans } from '@/lib/firestoreBlog';
+import type { VPSPlan } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function PricingCardSkeleton() {
+  return (
+    <Card className="flex flex-col shadow-md">
+      <CardHeader>
+        <Skeleton className="h-6 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-1/2" />
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <Skeleton className="h-8 w-1/3 mb-4" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+      </CardContent>
+      <div className="p-6 pt-0">
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </Card>
+  );
+}
 
 export default function HomePage() {
-  useEffect(() => {
-    const checkConnectionAndSeed = async () => {
-      console.log("Testing Firestore connection...");
-      const connectionResult = await testFirestoreConnection();
-      if (connectionResult.success) {
-        console.log(connectionResult.message);
-        // If connection is successful, you can proceed with seeding.
-        // The call to seedDatabase() is intentionally left commented out.
-        // Please uncomment it MANUALLY when you are ready to seed.
-        // console.log("Attempting to seed database from HomePage...");
-        // try {
-        //   await seedDatabase(); 
-        //   console.log("Database seeding initiated or checked.");
-        // } catch (error) {
-        //   console.error("Error during seeding:", error);
-        // }
-      } else {
-        console.error("Firestore connection failed:", connectionResult.message);
-        // Handle connection failure (e.g., show an error to the user or prevent seeding)
-      }
-    };
+  const [plans, setPlans] = useState<VPSPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-    checkConnectionAndSeed(); // Call the test function on component mount
+  useEffect(() => {
+    async function fetchPlans() {
+      setIsLoading(true);
+      try {
+        const fetchedPlans = await getVpsPlans();
+        // Assuming plans are pre-sorted by price or desired order in Firestore
+        setPlans(fetchedPlans);
+      } catch (error) {
+        console.error("Failed to fetch VPS plans:", error);
+      }
+      setIsLoading(false);
+    }
+    fetchPlans();
   }, []);
 
   return (
@@ -105,30 +120,38 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold font-headline text-center mb-10">Flexible VPS Plans</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            {mockVpsPlans.slice(0, 3).map((plan) => (
-              <Card key={plan.id} className="flex flex-col shadow-md hover:shadow-xl transition-shadow duration-300">
-                <CardHeader>
-                  <CardTitle className="font-headline text-primary">{plan.name}</CardTitle>
-                  <CardDescription>{plan.cpu}, {plan.ram}, {plan.storage}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-3xl font-bold mb-2">${plan.priceMonthly}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                  <ul className="space-y-2 text-sm">
-                    {plan.features.slice(0, 3).map((feature, index) => (
-                      <li key={index} className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-accent mr-2" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <div className="p-6 pt-0">
-                  <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Link href={`/order?plan=${plan.id}`}>Choose Plan</Link>
-                  </Button>
-                </div>
-              </Card>
-            ))}
+            {isLoading ? (
+              <>
+                <PricingCardSkeleton />
+                <PricingCardSkeleton />
+                <PricingCardSkeleton />
+              </>
+            ) : (
+              plans.slice(0, 3).map((plan) => (
+                <Card key={plan.id} className="flex flex-col shadow-md hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader>
+                    <CardTitle className="font-headline text-primary">{plan.name}</CardTitle>
+                    <CardDescription>{plan.cpu}, {plan.ram}, {plan.storage}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <p className="text-3xl font-bold mb-2">${plan.priceMonthly}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                    <ul className="space-y-2 text-sm">
+                      {plan.features.slice(0, 3).map((feature, index) => (
+                        <li key={index} className="flex items-center">
+                          <CheckCircle className="h-4 w-4 text-accent mr-2" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <div className="p-6 pt-0">
+                    <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                      <Link href={`/order?plan=${plan.id}`}>Choose Plan</Link>
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
           <div className="text-center mt-10">
             <Button size="lg" variant="outline" asChild>

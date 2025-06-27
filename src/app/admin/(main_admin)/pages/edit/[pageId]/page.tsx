@@ -13,6 +13,7 @@ import { updatePageAction } from '@/app/actions/pageActions';
 import { uploadPageImageAction } from '@/app/actions/uploadActions';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 import type { PageData } from '@/types';
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -216,7 +217,19 @@ function ContentBlockEditor({ control, index, remove, form, fieldId }: { control
         )}
         
         {blockType === 'paragraph' && (
-          <FormField control={control} name={`contentBlocks.${index}.text`} render={({ field }) => ( <FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...field} placeholder="Paragraph content..." className="min-h-[120px]"/></FormControl><FormMessage /></FormItem> )} />
+           <FormField
+            control={control}
+            name={`contentBlocks.${index}.text`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Content</FormLabel>
+                <FormControl>
+                   <MarkdownEditor {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
 
         {blockType === 'image' && (

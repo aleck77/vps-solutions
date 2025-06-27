@@ -19,11 +19,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, CreditCard, Server } from 'lucide-react';
-import { mockVpsPlans } from '@/data/vpsPlans';
+import { getVpsPlans } from '@/lib/firestoreBlog';
 import type { VPSPlan } from '@/types';
 import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+
 const orderFormSchema = z.object({
   planId: z.string().min(1, { message: 'Please select a VPS plan.' }),
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -48,12 +49,8 @@ async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan 
     name: data.name,
     order_number: orderId,
     source_amount: `${selectedPlanDetails.cpu}, ${selectedPlanDetails.ram} → $${selectedPlanDetails.priceMonthly.toFixed(2)}`,
-    // You might want to include companyName and paymentMethod if your n8n workflow can use them
-    // companyName: data.companyName,
-    // paymentMethod: data.paymentMethod,
   };
 
-  // Simulate API call to n8n backend
   try {
     const response = await fetch("https://n8n.artelegis.com.ua/webhook/brevo", {
       method: "POST",
@@ -62,7 +59,6 @@ async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan 
     });
 
     if (!response.ok) {
-      // Log more details for non-ok responses
       const errorBody = await response.text();
       console.error("Webhook response error:", response.status, errorBody);
       throw new Error(`Webhook failed with status: ${response.status}. ${errorBody}`);
@@ -73,8 +69,7 @@ async function processOrder(data: OrderFormValues, selectedPlanDetails: VPSPlan 
     throw new Error('Failed to communicate with the order processing service.');
   }
 
-  await new Promise(resolve => setTimeout(resolve, 1500)); // Keep simulation for UI feedback
-  // Simulate success
+  await new Promise(resolve => setTimeout(resolve, 1500));
   return { success: true, orderId: orderId };
 }
 
@@ -126,16 +121,17 @@ function OrderPageSkeleton() {
 export default function OrderPageComponent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const initialPlanId = searchParams.get('plan') || (mockVpsPlans.length > 0 ? mockVpsPlans[0].id : '');
+  const [plans, setPlans] = useState<VPSPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const initialPlanId = searchParams.get('plan');
   
-  const [selectedPlan, setSelectedPlan] = useState<VPSPlan | undefined>(
-    mockVpsPlans.find(p => p.id === initialPlanId)
-  );
+  const [selectedPlan, setSelectedPlan] = useState<VPSPlan | undefined>();
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
-      planId: initialPlanId,
+      planId: '',
       name: '',
       email: '',
       companyName: '',
@@ -144,31 +140,47 @@ export default function OrderPageComponent() {
   });
 
   useEffect(() => {
-    const planFromUrl = searchParams.get('plan');
-    if (planFromUrl) {
-      const foundPlan = mockVpsPlans.find(p => p.id === planFromUrl);
-      form.setValue('planId', planFromUrl);
-      setSelectedPlan(foundPlan);
-    } else if (mockVpsPlans.length > 0 && !form.getValues('planId')) {
-      // Set a default if no plan in URL and no planId already set
-      form.setValue('planId', mockVpsPlans[0].id);
-      setSelectedPlan(mockVpsPlans[0]);
+    async function fetchPlans() {
+      setIsLoading(true);
+      try {
+        const fetchedPlans = await getVpsPlans();
+        setPlans(fetchedPlans);
+
+        const planIdFromUrl = searchParams.get('plan');
+        let planToSelect = fetchedPlans[0];
+
+        if (planIdFromUrl) {
+          const foundPlan = fetchedPlans.find(p => p.id === planIdFromUrl);
+          if(foundPlan) planToSelect = foundPlan;
+        }
+
+        if (planToSelect) {
+            form.setValue('planId', planToSelect.id!);
+            setSelectedPlan(planToSelect);
+        }
+
+      } catch (error) {
+        toast({ title: "Error", description: "Could not load VPS plans.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [searchParams, form]);
+    fetchPlans();
+  }, [searchParams, form, toast]);
   
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'planId' && value.planId) {
-        setSelectedPlan(mockVpsPlans.find(p => p.id === value.planId));
+        setSelectedPlan(plans.find(p => p.id === value.planId));
       }
     });
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, plans]);
 
 
   async function onSubmit(data: OrderFormValues) {
     try {
-      const currentSelectedPlan = mockVpsPlans.find(p => p.id === data.planId);
+      const currentSelectedPlan = plans.find(p => p.id === data.planId);
       if (!currentSelectedPlan) {
         toast({
           title: 'Error',
@@ -200,6 +212,10 @@ export default function OrderPageComponent() {
         variant: 'destructive',
       });
     }
+  }
+
+  if (isLoading) {
+    return <OrderPageSkeleton />;
   }
 
   return (
@@ -236,8 +252,8 @@ export default function OrderPageComponent() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {mockVpsPlans.map((plan) => (
-                            <SelectItem key={plan.id} value={plan.id}>
+                          {plans.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id!}>
                               {plan.name} ({plan.cpu}, {plan.ram}) - ${plan.priceMonthly.toFixed(2)}/mo
                             </SelectItem>
                           ))}
@@ -303,8 +319,6 @@ export default function OrderPageComponent() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {/* <SelectItem value="credit_card">Credit Card</SelectItem> */}
-                          {/* <SelectItem value="paypal">PayPal</SelectItem> */}
                           <SelectItem value="crypto">Cryptocurrency</SelectItem>
                         </SelectContent>
                       </Select>
@@ -352,7 +366,7 @@ export default function OrderPageComponent() {
             </CardFooter>
           </Card>
         )}
-         {!selectedPlan && mockVpsPlans.length > 0 && (
+         {!selectedPlan && plans.length > 0 && (
           <Card className="md:sticky top-24 shadow-lg">
             <CardHeader>
               <CardTitle className="font-headline text-xl text-primary">Select a Plan</CardTitle>
@@ -367,4 +381,3 @@ export default function OrderPageComponent() {
     </div>
   );
 }
-

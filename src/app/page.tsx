@@ -3,10 +3,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Cpu, HardDrive, Zap } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { getVpsPlans, getHomepageContent } from '@/lib/firestoreBlog';
 import type { VPSPlan, HomepageContent } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import DynamicLucideIcon from '@/components/common/DynamicLucideIcon';
 
 function PricingCardSkeleton() {
   return (
@@ -42,13 +43,6 @@ const defaultContent: HomepageContent = {
     ctaTitle: "Ready to Elevate Your Hosting?",
     ctaSubtitle: "Join thousands of satisfied customers and experience the VHost Solutions difference."
 };
-
-const iconMap: { [key: string]: React.ElementType } = {
-  Zap,
-  Cpu,
-  HardDrive,
-};
-
 
 export default async function HomePage() {
   const plans = await getVpsPlans();
@@ -86,12 +80,11 @@ export default async function HomePage() {
           <h2 className="text-3xl font-bold font-headline text-center mb-10">{content.featuresTitle}</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {content.features.map((feature, index) => {
-              const Icon = iconMap[feature.icon] || Zap;
               return (
                 <Card key={index} className="shadow-md hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="items-center text-center">
                     <div className="p-3 bg-primary/10 rounded-full mb-3">
-                      <Icon className="h-8 w-8 text-primary" />
+                      <DynamicLucideIcon name={feature.icon} className="h-8 w-8 text-primary" />
                     </div>
                     <CardTitle className="font-headline">{feature.title}</CardTitle>
                   </CardHeader>

@@ -285,11 +285,13 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
 
   // Seed Site Content
   const homepageDoc = await siteContentCollection.doc('homepage').get();
-  if (!homepageDoc.exists) {
+  const homepageData = homepageDoc.data() as HomepageContent | undefined;
+  // Check if doc doesn't exist OR if it exists but is in the old format (lacks contentBlocks)
+  if (!homepageData || !homepageData.contentBlocks || !Array.isArray(homepageData.contentBlocks)) {
     await siteContentCollection.doc('homepage').set(siteContentToSeed.homepage);
-    summaryDetails.push('Site Content: Seeded homepage content.');
+    summaryDetails.push('Site Content: Seeded/Migrated homepage content to new format.');
   } else {
-    summaryDetails.push('Site Content: Skipped homepage (already exists).');
+    summaryDetails.push('Site Content: Skipped homepage (already exists in new format).');
   }
 
   const contactInfoDoc = await siteContentCollection.doc('contact_info').get();

@@ -4,7 +4,7 @@
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore'; 
 import { getDb } from '@/lib/firebase'; // Client SDK Firestore instance for reads
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore instance for writes
-import type { BlogPost, Category, NewBlogPost, PageData } from '@/types';
+import type { BlogPost, Category, NewBlogPost, PageData, NavigationMenu } from '@/types';
 import { slugify } from '@/lib/utils';
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
 
@@ -299,4 +299,21 @@ export async function getAllPagesForAdmin(): Promise<PageData[]> {
         console.error("Error fetching all pages for admin:", error);
         return [];
     }
+}
+
+// --- Navigation Functions ---
+export async function getNavigationMenu(name: string): Promise<NavigationMenu | null> {
+  const db = getDb();
+  try {
+    const navRef = doc(db, 'navigation', name);
+    const docSnap = await getDoc(navRef);
+    if (docSnap.exists()) {
+      return toSerializable<NavigationMenu>(docSnap);
+    }
+    console.warn(`[getNavigationMenu] No navigation menu found with name: ${name}`);
+    return null;
+  } catch (error) {
+    console.error(`[getNavigationMenu] Error fetching navigation menu "${name}":`, error);
+    return null;
+  }
 }

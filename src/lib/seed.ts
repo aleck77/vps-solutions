@@ -2,7 +2,7 @@
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, BlogCategoryType, PageData } from '@/types';
+import type { BlogPost, Category, BlogCategoryType, PageData, NavigationMenu } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
@@ -110,12 +110,35 @@ const pagesToSeed: { [slug: string]: Omit<PageData, 'id'> } = {
   }
 };
 
+const navigationToSeed: { [id: string]: Omit<NavigationMenu, 'id'> } = {
+  'header-nav': {
+    items: [
+      { href: '/', label: 'Home' },
+      { href: '/blog', label: 'Blog' },
+      { href: '/order', label: 'Order VPS' },
+      { href: '/about', label: 'About Us' },
+      { href: '/contact', label: 'Contact' },
+    ]
+  },
+  'footer-links': {
+    items: [
+      { href: '/about', label: 'About Us' },
+      { href: '/blog', label: 'Blog' },
+      { href: '/order', label: 'Order VPS' },
+      { href: '/contact', label: 'Contact' },
+      { href: '/privacy-policy', label: 'Privacy Policy' },
+      { href: '/terms-of-service', label: 'Terms of Service' },
+    ]
+  }
+};
+
 
 export async function seedDatabase() {
   const adminDb = await getAdminFirestore();
   const postsCollection = adminDb.collection('posts');
   const categoriesCollection = adminDb.collection('categories');
   const pagesCollection = adminDb.collection('pages');
+  const navigationCollection = adminDb.collection('navigation');
   
   const nowJSDate = new Date();
 
@@ -191,5 +214,26 @@ export async function seedDatabase() {
     console.log(`[seedDatabase] ${pagesSeededCount} new page(s) have been seeded.`);
   } else {
     console.log('[seedDatabase] All pages already exist. No new pages were seeded.');
+  }
+
+  // Seed Navigation
+  const navBatch = adminDb.batch();
+  let navsSeededCount = 0;
+  for (const navId in navigationToSeed) {
+      const navRef = navigationCollection.doc(navId);
+      const doc = await navRef.get();
+      if (!doc.exists) {
+          navBatch.set(navRef, navigationToSeed[navId]);
+          navsSeededCount++;
+          console.log(`[seedDatabase] Queued navigation menu "${navId}" for seeding.`);
+      } else {
+          console.log(`[seedDatabase] Navigation menu "${navId}" already exists. Skipping.`);
+      }
+  }
+  if (navsSeededCount > 0) {
+      await navBatch.commit();
+      console.log(`[seedDatabase] ${navsSeededCount} new navigation menu(s) have been seeded.`);
+  } else {
+      console.log('[seedDatabase] All navigation menus already exist. No new menus were seeded.');
   }
 }

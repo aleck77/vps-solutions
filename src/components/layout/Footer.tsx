@@ -1,7 +1,9 @@
+
 import Link from 'next/link';
 import { Facebook, Twitter, Linkedin } from 'lucide-react';
+import type { MenuItem } from '@/types';
 
-export default function Footer() {
+export default function Footer({ footerLinks }: { footerLinks: MenuItem[] }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -17,12 +19,13 @@ export default function Footer() {
           <div>
             <h4 className="text-md font-semibold mb-2">Quick Links</h4>
             <ul className="space-y-1 text-sm">
-              <li><Link href="/about" className="text-muted-foreground hover:text-primary">About Us</Link></li>
-              <li><Link href="/blog" className="text-muted-foreground hover:text-primary">Blog</Link></li>
-              <li><Link href="/order" className="text-muted-foreground hover:text-primary">Order VPS</Link></li>
-              <li><Link href="/contact" className="text-muted-foreground hover:text-primary">Contact</Link></li>
-              <li><Link href="/privacy-policy" className="text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
-              <li><Link href="/terms-of-service" className="text-muted-foreground hover:text-primary">Terms of Service</Link></li>
+              {footerLinks.map(link => (
+                 <li key={link.href}>
+                    <Link href={link.href} className="text-muted-foreground hover:text-primary">
+                        {link.label}
+                    </Link>
+                 </li>
+              ))}
             </ul>
           </div>
           <div>

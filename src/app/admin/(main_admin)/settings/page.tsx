@@ -9,6 +9,7 @@ import { getHomepageContent, getContactInfo, getFooterContent, getGeneralSetting
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import Image from 'next/image';
 
 import { 
   updateHomepageContentAction, 
@@ -16,6 +17,7 @@ import {
   updateFooterContentAction,
   updateGeneralSettingsAction
 } from '@/app/actions/settingsActions';
+import { uploadLogoAction } from '@/app/actions/uploadActions';
 
 import { 
   homepageContentSchema, 
@@ -37,9 +39,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Save, Loader2, Home, Phone, Code, PlusCircle, Trash2, GripVertical, Settings } from 'lucide-react';
+import { Save, Loader2, Home, Phone, Code, PlusCircle, Trash2, GripVertical, Settings, UploadCloud } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FormDescription } from '@/components/ui/form';
 
 // --- General Settings Form ---
 function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings | null }) {
@@ -51,10 +54,64 @@ function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings
 
   const [state, formAction] = useActionState(updateGeneralSettingsAction, undefined);
 
+  // New state for logo upload
+  const [isUploading, setIsUploading] = useState(false);
+  const [logoDataUri, setLogoDataUri] = useState<string | null>(null);
+  const currentLogoUrl = useWatch({ control: form.control, name: 'logoUrl' });
+  const [preview, setPreview] = useState<string | null>(currentLogoUrl || null);
+
+
   useEffect(() => {
     if (state?.success) toast({ title: "Success!", description: state.message });
     else if (state?.success === false) toast({ title: "Error", description: state.message, variant: "destructive" });
   }, [state, toast]);
+  
+  useEffect(() => {
+    if (currentLogoUrl && currentLogoUrl !== preview) {
+      setPreview(currentLogoUrl);
+    }
+  }, [currentLogoUrl, preview]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1 * 1024 * 1024) { // 1MB limit for logo
+      toast({ title: "File too large", description: "Please select an image smaller than 1MB.", variant: "destructive" });
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'].includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please select a JPG, PNG, WEBP, or SVG image.", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setPreview(result);
+      setLogoDataUri(result);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const handleUpload = async () => {
+    if (!logoDataUri) {
+      toast({ title: "No new logo selected", description: "Please select a file to upload first." });
+      return;
+    }
+    setIsUploading(true);
+    startTransition(async () => {
+      const result = await uploadLogoAction(logoDataUri);
+      if (result.success && result.imageUrl) {
+        form.setValue('logoUrl', result.imageUrl, { shouldValidate: true });
+        toast({ title: "Success", description: result.message });
+        setLogoDataUri(null);
+      } else {
+        toast({ title: "Upload Failed", description: result.message, variant: "destructive" });
+      }
+      setIsUploading(false);
+    });
+  };
 
   return (
     <Form {...form}>
@@ -64,9 +121,41 @@ function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings
         className="space-y-4"
       >
         <FormField control={form.control} name="siteName" render={({ field }) => (<FormItem><FormLabel>Site Name</FormLabel><FormControl><Input {...field} placeholder="VHost Solutions" /></FormControl><FormMessage /></FormItem>)} />
-        <FormField control={form.control} name="logoUrl" render={({ field }) => (<FormItem><FormLabel>Logo URL</FormLabel><FormControl><Input {...field} placeholder="/images/vhost-logo.svg" /></FormControl><FormMessage /></FormItem>)} />
+        <FormField
+          control={form.control}
+          name="logoUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Logo URL</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="/images/vhost-logo.svg" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="space-y-2">
+          <Label>Upload New Logo</Label>
+          <div className="flex items-center gap-2">
+            <Input type="file" accept="image/png, image/jpeg, image/webp, image/svg+xml" onChange={handleFileChange} className="flex-grow" disabled={isUploading}/>
+            <Button type="button" onClick={handleUpload} disabled={isUploading || !logoDataUri}>
+              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+            </Button>
+          </div>
+          <FormDescription>Max 1MB. Replaces the URL above upon successful upload.</FormDescription>
+        </div>
+
+        {preview && (
+          <div className="mt-2">
+            <Label>Preview</Label>
+            <div className="mt-1 flex items-center justify-center p-4 rounded-md border bg-muted h-24">
+              <Image src={preview} alt="Logo preview" height={60} width={200} style={{ objectFit: 'contain', height: '100%', width: 'auto' }} />
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button type="submit" disabled={form.formState.isSubmitting || isUploading}>
             {form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />}
             Save General Settings
           </Button>
@@ -166,7 +255,7 @@ function HomepageSettingsForm({ defaultValues }: { defaultValues: HomepageConten
     defaultValues: defaultValues ? {
       contentBlocks: (defaultValues.contentBlocks || []).map(block => {
         const blockWithId = { ...block, id: block.id || crypto.randomUUID() };
-        if (blockWithId.type === 'features') {
+        if (blockWithId.type === 'features' && blockWithId.features) {
           blockWithId.features = (blockWithId.features || []).map(f => ({ ...f, id: f.id || crypto.randomUUID() }));
         }
         return blockWithId;
@@ -392,17 +481,23 @@ export default function SiteSettingsPage() {
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
-      const [hpData, cData, fData, gData] = await Promise.all([
-        getHomepageContent(),
-        getContactInfo(),
-        getFooterContent(),
-        getGeneralSettings(),
-      ]);
-      setHomepageData(hpData);
-      setContactData(cData);
-      setFooterData(fData);
-      setGeneralData(gData);
-      setIsLoading(false);
+      try {
+        const [hpData, cData, fData, gData] = await Promise.all([
+          getHomepageContent(),
+          getContactInfo(),
+          getFooterContent(),
+          getGeneralSettings(),
+        ]);
+        setHomepageData(hpData);
+        setContactData(cData);
+        setFooterData(fData);
+        setGeneralData(gData);
+      } catch (error) {
+        console.error("Failed to load site settings:", error);
+        // Optionally set an error state here
+      } finally {
+        setIsLoading(false);
+      }
     }
     loadData();
   }, []);

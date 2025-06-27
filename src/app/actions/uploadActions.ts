@@ -7,7 +7,6 @@ import { Buffer } from 'buffer';
 const uploadSchema = z.object({
   imageDataUri: z.string().startsWith('data:image/', { message: 'Invalid image data URI' }),
   targetFilename: z.string().min(1, { message: 'Filename is required.' }),
-  pathPrefix: z.string().optional(), // Kept for compatibility, but ignored
 });
 
 interface UploadResult {
@@ -18,10 +17,9 @@ interface UploadResult {
 
 export async function uploadImageAction(
   imageDataUri: string,
-  targetFilename: string,
-  pathPrefix?: string // Kept for compatibility, but ignored
+  targetFilename: string
 ): Promise<UploadResult> {
-  const validatedFields = uploadSchema.safeParse({ imageDataUri, targetFilename, pathPrefix });
+  const validatedFields = uploadSchema.safeParse({ imageDataUri, targetFilename });
 
   if (!validatedFields.success) {
     return {
@@ -57,7 +55,7 @@ export async function uploadImageAction(
     const fileExtension = mimeType.split('/')[1] || 'jpg';
     const finalFilename = `${slugify(targetFilename)}.${fileExtension}`;
     
-    // FIX: Use WORDPRESS_API_URL directly as the endpoint, without appending anything.
+    // Use WORDPRESS_API_URL directly as the endpoint.
     const wpApiEndpoint = WORDPRESS_API_URL;
 
     // 3. Prepare headers

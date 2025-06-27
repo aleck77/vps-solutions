@@ -1,40 +1,43 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ===== Subscribers =====
-    // Любой пользователь может создать запись (подписаться).
-    // Никто (через клиентский SDK) не может читать, изменять или удалять список подписчиков.
-    match /subscribers/{subscriberId} {
-      allow read, update, delete: if false;
-      allow create: if true;
-    }
-
-    // ===== Blog Posts =====
-    // Любой пользователь может читать опубликованные посты.
-    // Только администраторы могут создавать, обновлять или удалять посты.
+    // Существующие правила для постов
     match /posts/{postId} {
+      // Любой может читать опубликованные посты
       allow read: if resource.data.published == true;
-      allow write: if request.auth.token.admin == true;
-    }
-
-    // ===== Categories =====
-    // Любой пользователь может читать список категорий.
-    // Только администраторы могут изменять категории.
-    match /categories/{categoryId} {
-      allow read: if true;
+      // Только администраторы могут создавать, обновлять или удалять посты
       allow write: if request.auth.token.admin == true;
     }
     
-    // ===== Pages =====
-    // Любой пользователь может читать страницы.
-    // Только администраторы могут создавать или изменять страницы.
-    match /pages/{pageId} {
-        allow read: if true;
-        allow write: if request.auth.token.admin == true;
+    // Существующие правила для категорий
+    match /categories/{categoryId} {
+      // Любой может читать список категорий
+      allow read: if true;
+      // Только администраторы могут изменять категории
+      allow write: if request.auth.token.admin == true;
     }
 
+    // Существующие правила для подписчиков
+    match /subscribers/{subscriberId} {
+        // Никто не может читать чужие email-адреса
+        allow read: if false;
+        // Любой может создать новую подписку (добавить свой email)
+        allow create: if true;
+        // Никто не может изменять или удалять подписки
+        allow update, delete: if false;
+    }
+
+    // --- НОВОЕ ПРАВИЛО ДЛЯ СТРАНИЦ ---
+    // Любой может читать содержимое страниц (About, Contact и т.д.)
+    match /pages/{pageId} {
+      allow read: if true;
+      // Только администраторы могут создавать или изменять страницы
+      allow write: if request.auth.token.admin == true;
+    }
+    
     // ===== Navigation =====
     // Любой пользователь может читать меню навигации.
     // Только администраторы могут изменять меню.
@@ -44,3 +47,4 @@ service cloud.firestore {
     }
   }
 }
+

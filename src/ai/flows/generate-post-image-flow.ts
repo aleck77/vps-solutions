@@ -36,12 +36,10 @@ const generatePostImageFlow = ai.defineFlow(
     try {
       console.log(`[generatePostImageFlow] Attempting to generate image with prompt: "${input.prompt}"`);
       const {media, text} = await ai.generate({
-        model: 'googleai/gemini-2.0-flash-exp', // IMPORTANT: Model must support image generation
+        model: 'googleai/gemini-2.0-flash-preview-image-generation', // CORRECTED: Using the correct model for image generation
         prompt: input.prompt,
         config: {
           responseModalities: ['IMAGE', 'TEXT'], // Must request IMAGE modality
-          // Optionally add safetySettings if needed, though defaults are usually fine for general images
-          // safetySettings: [{ category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' }] 
         },
       });
 
@@ -49,7 +47,6 @@ const generatePostImageFlow = ai.defineFlow(
         console.log('[generatePostImageFlow] Image generated successfully. Data URI (first 50 chars):', media.url.substring(0, 50) + '...');
         return { imageDataUri: media.url };
       } else {
-        // Log the text part if available, it might contain useful info or error from the model
         console.warn('[generatePostImageFlow] Image generation returned no media URL. Text response:', text);
         return { error: `Image generation failed: No image data received. Model response: ${text || 'N/A'}` };
       }
@@ -57,7 +54,7 @@ const generatePostImageFlow = ai.defineFlow(
       console.error('[generatePostImageFlow] Error during image generation:', error);
       let errorMessage = error.message || 'Unknown error during image generation.';
       if (error.cause) {
-        errorMessage += ` Cause: ${error.cause}`;
+        errorMessage += ` Cause: ${JSON.stringify(error.cause)}`;
       }
       return { error: `Image generation failed: ${errorMessage}` };
     }

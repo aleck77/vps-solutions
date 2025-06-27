@@ -108,21 +108,39 @@ export interface NavigationMenu {
 }
 
 // --- Site Settings Types ---
-
 export interface HomepageFeature {
+  id?: string; // For DND keying
   icon: string; // lucide icon name
   title: string;
   description: string;
 }
 
-export interface HomepageContent {
-  id?: 'homepage';
+export interface HeroBlock {
+  type: 'hero';
+  id: string; // For DND keying
   heroTitle: string;
   heroSubtitle: string;
+}
+
+export interface FeaturesBlock {
+  type: 'features';
+  id: string; // For DND keying
   featuresTitle: string;
   features: HomepageFeature[];
+}
+
+export interface CtaBlock {
+  type: 'cta';
+  id: string; // For DND keying
   ctaTitle: string;
   ctaSubtitle: string;
+}
+
+export type HomepageContentBlock = HeroBlock | FeaturesBlock | CtaBlock;
+
+export interface HomepageContent {
+  id?: 'homepage';
+  contentBlocks: HomepageContentBlock[];
 }
 
 export interface ContactInfo {
@@ -135,8 +153,9 @@ export interface ContactInfo {
   supportHours: string;
 }
 
+export type SocialLinkName = 'Facebook' | 'Twitter' | 'LinkedIn';
 export interface SocialLink {
-  name: 'Facebook' | 'Twitter' | 'LinkedIn';
+  name: SocialLinkName;
   href: string;
 }
 
@@ -145,4 +164,10 @@ export interface FooterContent {
   description: string;
   copyright: string;
   socialLinks: SocialLink[];
+}
+
+export interface GeneralSettings {
+  id?: 'general';
+  siteName: string;
+  logoUrl: string;
 }

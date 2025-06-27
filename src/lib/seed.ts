@@ -2,7 +2,7 @@
 'use server';
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
-import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo, FooterContent } from '@/types';
+import type { BlogPost, Category, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo, FooterContent, GeneralSettings, HomepageContentBlock } from '@/types';
 import { blogCategories } from '@/types';
 import { slugify } from '@/lib/utils';
 
@@ -216,22 +216,37 @@ const navigationToSeed: { [id: string]: Omit<NavigationMenu, 'id'> } = {
   }
 };
 
+const defaultHomepageContentBlocks: HomepageContentBlock[] = [
+    { 
+      type: 'hero', id: 'hero-1', 
+      heroTitle: "Power Your Ambitions with VHost Solutions", 
+      heroSubtitle: "Experience blazing fast, reliable, and scalable VPS hosting tailored for your success. Get started today and unleash your project's full potential."
+    },
+    { 
+      type: 'features', id: 'features-1', 
+      featuresTitle: "Why Choose VHost Solutions?", 
+      features: [
+        { id: 'f-1', icon: "Zap", title: "Blazing Fast Performance", description: "Our NVMe SSD-powered servers ensure lightning-fast load times and optimal performance for your applications." },
+        { id: 'f-2', icon: "Cpu", title: "Scalable Resources", description: "Easily upgrade your CPU, RAM, and storage as your needs grow. Scale effortlessly with VHost Solutions." },
+        { id: 'f-3', icon: "HardDrive", title: "99.9% Uptime Guarantee", description: "We guarantee high availability for your websites and applications, ensuring they are always accessible." }
+      ]
+    },
+    { 
+      type: 'cta', id: 'cta-1', 
+      ctaTitle: "Ready to Elevate Your Hosting?", 
+      ctaSubtitle: "Join thousands of satisfied customers and experience the VHost Solutions difference." 
+    }
+];
+
+
 const siteContentToSeed: {
   homepage: Omit<HomepageContent, 'id'>;
   contact_info: Omit<ContactInfo, 'id'>;
   footer: Omit<FooterContent, 'id'>;
+  general: Omit<GeneralSettings, 'id'>;
 } = {
   homepage: {
-    heroTitle: "Power Your Ambitions with VHost Solutions",
-    heroSubtitle: "Experience blazing fast, reliable, and scalable VPS hosting tailored for your success. Get started today and unleash your project's full potential.",
-    featuresTitle: "Why Choose VHost Solutions?",
-    features: [
-      { icon: "Zap", title: "Blazing Fast Performance", description: "Our NVMe SSD-powered servers ensure lightning-fast load times and optimal performance for your applications." },
-      { icon: "Cpu", title: "Scalable Resources", description: "Easily upgrade your CPU, RAM, and storage as your needs grow. Scale effortlessly with VHost Solutions." },
-      { icon: "HardDrive", title: "99.9% Uptime Guarantee", description: "We guarantee high availability for your websites and applications, ensuring they are always accessible." }
-    ],
-    ctaTitle: "Ready to Elevate Your Hosting?",
-    ctaSubtitle: "Join thousands of satisfied customers and experience the VHost Solutions difference."
+    contentBlocks: defaultHomepageContentBlocks
   },
   contact_info: {
     address: "123 Tech Avenue, Silicon Valley, CA 94000",
@@ -249,6 +264,10 @@ const siteContentToSeed: {
       { name: 'Twitter', href: '#' },
       { name: 'LinkedIn', href: '#' },
     ]
+  },
+  general: {
+    siteName: "VHost Solutions",
+    logoUrl: "/images/vhost-logo.svg"
   }
 };
 
@@ -287,6 +306,14 @@ export async function seedDatabase(): Promise<{ status: string; details: string[
     summaryDetails.push('Site Content: Seeded footer content.');
   } else {
      summaryDetails.push('Site Content: Skipped footer (already exists).');
+  }
+  
+  const generalDoc = await siteContentCollection.doc('general').get();
+  if (!generalDoc.exists) {
+    await siteContentCollection.doc('general').set(siteContentToSeed.general);
+    summaryDetails.push('Site Content: Seeded general settings.');
+  } else {
+     summaryDetails.push('Site Content: Skipped general settings (already exists).');
   }
 
 

@@ -4,7 +4,7 @@
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore'; 
 import { getDb } from '@/lib/firebase'; // Client SDK Firestore instance for reads
 import { getAdminFirestore } from '@/app/actions/adminActions'; // Admin SDK Firestore instance for writes
-import type { BlogPost, Category, NewBlogPost, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo, FooterContent } from '@/types';
+import type { BlogPost, Category, NewBlogPost, PageData, NavigationMenu, VPSPlan, HomepageContent, ContactInfo, FooterContent, GeneralSettings } from '@/types';
 import { slugify } from '@/lib/utils';
 import {FieldValue as AdminFieldValue} from 'firebase-admin/firestore'; // Admin SDK FieldValue for serverTimestamp
 
@@ -391,6 +391,21 @@ export async function getFooterContent(): Promise<FooterContent | null> {
         return null;
     } catch (error) {
         console.error("Error fetching footer content:", error);
+        return null;
+    }
+}
+
+export async function getGeneralSettings(): Promise<GeneralSettings | null> {
+    const db = getDb();
+    try {
+        const docRef = doc(db, 'site_content', 'general');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return toSerializable<GeneralSettings>(docSnap);
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching general settings:", error);
         return null;
     }
 }

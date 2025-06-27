@@ -2,13 +2,33 @@
 'use client';
 
 import { useEffect, useState, useActionState, startTransition } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
-import { getHomepageContent, getContactInfo, getFooterContent } from '@/lib/firestoreBlog';
-import { updateHomepageContentAction, updateContactInfoAction, updateFooterContentAction } from '@/app/actions/settingsActions';
-import { homepageContentSchema, contactInfoSchema, footerContentSchema, type HomepageContentValues, type ContactInfoValues, type FooterContentValues } from '@/lib/schemas';
-import type { HomepageContent, ContactInfo, FooterContent } from '@/types';
+import { getHomepageContent, getContactInfo, getFooterContent, getGeneralSettings } from '@/lib/firestoreBlog';
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+import { 
+  updateHomepageContentAction, 
+  updateContactInfoAction, 
+  updateFooterContentAction,
+  updateGeneralSettingsAction
+} from '@/app/actions/settingsActions';
+
+import { 
+  homepageContentSchema, 
+  contactInfoSchema, 
+  footerContentSchema,
+  generalSettingsSchema,
+  type HomepageContentValues, 
+  type ContactInfoValues, 
+  type FooterContentValues,
+  type GeneralSettingsValues
+} from '@/lib/schemas';
+
+import type { HomepageContent, ContactInfo, FooterContent, GeneralSettings, SocialLinkName, HomepageContentBlock, HomepageFeature } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,39 +37,170 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Save, Loader2, Home, Phone, Code, PlusCircle, Trash2 } from 'lucide-react';
+import { Save, Loader2, Home, Phone, Code, PlusCircle, Trash2, GripVertical, Settings } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// --- General Settings Form ---
+function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings | null }) {
+  const { toast } = useToast();
+  const form = useForm<GeneralSettingsValues>({
+    resolver: zodResolver(generalSettingsSchema),
+    defaultValues: defaultValues || { siteName: '', logoUrl: '' },
+  });
+
+  const [state, formAction] = useActionState(updateGeneralSettingsAction, undefined);
+
+  useEffect(() => {
+    if (state?.success) toast({ title: "Success!", description: state.message });
+    else if (state?.success === false) toast({ title: "Error", description: state.message, variant: "destructive" });
+  }, [state, toast]);
+
+  return (
+    <Form {...form}>
+      <form
+        action={formAction}
+        onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))}
+        className="space-y-4"
+      >
+        <FormField control={form.control} name="siteName" render={({ field }) => (<FormItem><FormLabel>Site Name</FormLabel><FormControl><Input {...field} placeholder="VHost Solutions" /></FormControl><FormMessage /></FormItem>)} />
+        <FormField control={form.control} name="logoUrl" render={({ field }) => (<FormItem><FormLabel>Logo URL</FormLabel><FormControl><Input {...field} placeholder="/images/vhost-logo.svg" /></FormControl><FormMessage /></FormItem>)} />
+        <div className="flex justify-end pt-4">
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />}
+            Save General Settings
+          </Button>
+        </div>
+      </form>
+    </Form>
+  )
+}
+
+
+// --- Homepage Block Editors ---
+function HeroBlockEditor({ index, control }: { index: number, control: any }) {
+  return (
+    <div className="space-y-4">
+      <FormField control={control} name={`contentBlocks.${index}.heroTitle`} render={({ field }) => ( <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+      <FormField control={control} name={`contentBlocks.${index}.heroSubtitle`} render={({ field }) => ( <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+    </div>
+  );
+}
+
+function FeaturesBlockEditor({ index, control, form }: { index: number, control: any, form: any }) {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `contentBlocks.${index}.features`,
+  });
+
+  return (
+    <div className="space-y-4">
+      <FormField control={control} name={`contentBlocks.${index}.featuresTitle`} render={({ field }) => ( <FormItem><FormLabel>Section Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+      <div className="space-y-3 pl-4 border-l-2">
+        {fields.map((field, cardIndex) => (
+          <Card key={field.id} className="p-3 bg-background">
+            <div className="flex justify-between items-center mb-2">
+               <h5 className="font-medium">Feature Card {cardIndex + 1}</h5>
+               <Button type="button" variant="ghost" size="icon" onClick={() => remove(cardIndex)} className="text-destructive h-7 w-7"><Trash2 className="h-4 w-4" /></Button>
+            </div>
+            <div className="space-y-2">
+              <FormField control={control} name={`contentBlocks.${index}.features.${cardIndex}.icon`} render={({ field }) => ( <FormItem><FormLabel>Icon Name</FormLabel><FormControl><Input {...field} placeholder="e.g., Zap, Cpu" /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={control} name={`contentBlocks.${index}.features.${cardIndex}.title`} render={({ field }) => ( <FormItem><FormLabel>Card Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+              <FormField control={control} name={`contentBlocks.${index}.features.${cardIndex}.description`} render={({ field }) => ( <FormItem><FormLabel>Card Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+            </div>
+          </Card>
+        ))}
+        <Button type="button" size="sm" variant="outline" onClick={() => append({ id: crypto.randomUUID(), icon: 'Sparkles', title: 'New Feature', description: 'Describe this awesome feature.' })}>
+          <PlusCircle className="mr-2" /> Add Feature Card
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CtaBlockEditor({ index, control }: { index: number, control: any }) {
+  return (
+    <div className="space-y-4">
+      <FormField control={control} name={`contentBlocks.${index}.ctaTitle`} render={({ field }) => ( <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+      <FormField control={control} name={`contentBlocks.${index}.ctaSubtitle`} render={({ field }) => ( <FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+    </div>
+  );
+}
+
+function SortableContentBlock({ id, index, control, remove, form }: { id: any, index: number, control: any, remove: (index: number) => void, form: any }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  const blockType = useWatch({ control, name: `contentBlocks.${index}.type` });
+
+  const blockEditors: { [key: string]: React.ReactNode } = {
+    hero: <HeroBlockEditor index={index} control={control} />,
+    features: <FeaturesBlockEditor index={index} control={control} form={form} />,
+    cta: <CtaBlockEditor index={index} control={control} />,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className="p-4 bg-muted/50 space-y-4 relative">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-2">
+            <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground p-1">
+              <GripVertical className="h-5 w-5" />
+            </button>
+            <h4 className="font-semibold capitalize">{blockType} Section</h4>
+          </div>
+          <Button type="button" variant="destructive" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="pl-8">{blockEditors[blockType]}</div>
+      </Card>
+    </div>
+  );
+}
 
 
 function HomepageSettingsForm({ defaultValues }: { defaultValues: HomepageContent | null }) {
   const { toast } = useToast();
   const form = useForm<HomepageContentValues>({
     resolver: zodResolver(homepageContentSchema),
-    defaultValues: defaultValues || {
-      heroTitle: '',
-      heroSubtitle: '',
-      featuresTitle: '',
-      features: [{ icon: '', title: '', description: '' }, { icon: '', title: '', description: '' }, { icon: '', title: '', description: '' }],
-      ctaTitle: '',
-      ctaSubtitle: '',
-    },
+    defaultValues: defaultValues ? {
+      contentBlocks: (defaultValues.contentBlocks || []).map(block => {
+        const blockWithId = { ...block, id: block.id || crypto.randomUUID() };
+        if (blockWithId.type === 'features') {
+          blockWithId.features = (blockWithId.features || []).map(f => ({ ...f, id: f.id || crypto.randomUUID() }));
+        }
+        return blockWithId;
+      })
+    } : { contentBlocks: [] }
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "features",
-  });
-
+  const { fields, append, remove, move } = useFieldArray({ control: form.control, name: "contentBlocks" });
   const [state, formAction] = useActionState(updateHomepageContentAction, undefined);
-
+  
   useEffect(() => {
-    if (state?.success) {
-      toast({ title: "Success!", description: state.message });
-    } else if (state?.success === false) {
-      toast({ title: "Error", description: state.message, variant: "destructive" });
-    }
+    if (state?.success) toast({ title: "Success!", description: state.message });
+    else if (state?.success === false) toast({ title: "Error", description: state.message, variant: "destructive" });
   }, [state, toast]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((field) => field.id === active.id);
+      const newIndex = fields.findIndex((field) => field.id === over.id);
+      move(oldIndex, newIndex);
+    }
+  };
+  
+  const addNewBlock = (type: 'hero' | 'features' | 'cta') => {
+    const newBlock = {
+      id: crypto.randomUUID(),
+      type,
+      ...(type === 'hero' && { heroTitle: 'New Hero Title', heroSubtitle: 'New Hero Subtitle' }),
+      ...(type === 'features' && { featuresTitle: 'New Features Section', features: [{ id: crypto.randomUUID(), icon: 'Star', title: 'New Card', description: 'New description'}] }),
+      ...(type === 'cta' && { ctaTitle: 'New CTA Title', ctaSubtitle: 'New CTA Subtitle' }),
+    } as HomepageContentBlock;
+    append(newBlock);
+  }
 
   return (
     <Form {...form}>
@@ -58,40 +209,21 @@ function HomepageSettingsForm({ defaultValues }: { defaultValues: HomepageConten
         onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))}
         className="space-y-8"
       >
-        <Card>
-          <CardHeader><CardTitle>Hero Section</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <FormField control={form.control} name="heroTitle" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="heroSubtitle" render={({ field }) => (<FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle>Features Section</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <FormField control={form.control} name="featuresTitle" render={({ field }) => (<FormItem><FormLabel>Section Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-4">
               {fields.map((field, index) => (
-                <Card key={field.id} className="p-4 bg-muted/50">
-                  <h4 className="font-semibold mb-2">Feature Card {index + 1}</h4>
-                  <div className="space-y-2">
-                    <FormField control={form.control} name={`features.${index}.icon`} render={({ field }) => (<FormItem><FormLabel>Icon Name</FormLabel><FormControl><Input {...field} placeholder="e.g., Zap, Cpu" /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name={`features.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name={`features.${index}.description`} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  </div>
-                </Card>
+                <SortableContentBlock key={field.id} id={field.id} index={index} control={form.control} remove={remove} form={form} />
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </SortableContext>
+        </DndContext>
         
-        <Card>
-          <CardHeader><CardTitle>Call to Action Section</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <FormField control={form.control} name="ctaTitle" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="ctaSubtitle" render={({ field }) => (<FormItem><FormLabel>Subtitle</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap gap-2 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={() => addNewBlock('hero')}><PlusCircle className="mr-2" /> Add Hero</Button>
+          <Button type="button" variant="outline" onClick={() => addNewBlock('features')}><PlusCircle className="mr-2" /> Add Features</Button>
+          <Button type="button" variant="outline" onClick={() => addNewBlock('cta')}><PlusCircle className="mr-2" /> Add CTA</Button>
+        </div>
 
         <div className="flex justify-end">
           <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -103,6 +235,7 @@ function HomepageSettingsForm({ defaultValues }: { defaultValues: HomepageConten
     </Form>
   );
 }
+
 
 function ContactInfoSettingsForm({ defaultValues }: { defaultValues: ContactInfo | null }) {
     const { toast } = useToast();
@@ -116,11 +249,8 @@ function ContactInfoSettingsForm({ defaultValues }: { defaultValues: ContactInfo
     const [state, formAction] = useActionState(updateContactInfoAction, undefined);
 
     useEffect(() => {
-        if (state?.success) {
-            toast({ title: "Success!", description: state.message });
-        } else if (state?.success === false) {
-            toast({ title: "Error", description: state.message, variant: "destructive" });
-        }
+        if (state?.success) toast({ title: "Success!", description: state.message });
+        else if (state?.success === false) toast({ title: "Error", description: state.message, variant: "destructive" });
     }, [state, toast]);
 
     return (
@@ -167,12 +297,11 @@ function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | 
   const [state, formAction] = useActionState(updateFooterContentAction, undefined);
 
   useEffect(() => {
-    if (state?.success) {
-      toast({ title: 'Success!', description: state.message });
-    } else if (state?.success === false) {
-      toast({ title: 'Error', description: state.message, variant: 'destructive' });
-    }
+    if (state?.success) toast({ title: 'Success!', description: state.message });
+    else if (state?.success === false) toast({ title: 'Error', description: state.message, variant: 'destructive' });
   }, [state, toast]);
+
+  const socialLinkOptions: SocialLinkName[] = ['Facebook', 'Twitter', 'LinkedIn'];
 
   return (
     <Form {...form}>
@@ -203,9 +332,9 @@ function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | 
                             </SelectTrigger>
                            </FormControl>
                            <SelectContent>
-                            <SelectItem value="Facebook">Facebook</SelectItem>
-                            <SelectItem value="Twitter">Twitter</SelectItem>
-                            <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                            {socialLinkOptions.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
                            </SelectContent>
                         </Select>
                         <FormMessage />
@@ -257,19 +386,22 @@ export default function SiteSettingsPage() {
   const [homepageData, setHomepageData] = useState<HomepageContent | null>(null);
   const [contactData, setContactData] = useState<ContactInfo | null>(null);
   const [footerData, setFooterData] = useState<FooterContent | null>(null);
+  const [generalData, setGeneralData] = useState<GeneralSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
-      const [hpData, cData, fData] = await Promise.all([
+      const [hpData, cData, fData, gData] = await Promise.all([
         getHomepageContent(),
         getContactInfo(),
         getFooterContent(),
+        getGeneralSettings(),
       ]);
       setHomepageData(hpData);
       setContactData(cData);
       setFooterData(fData);
+      setGeneralData(gData);
       setIsLoading(false);
     }
     loadData();
@@ -288,15 +420,19 @@ export default function SiteSettingsPage() {
     <Card>
         <CardHeader>
             <CardTitle>Site Settings</CardTitle>
-            <CardDescription>Manage global content for your website, such as the homepage and contact information.</CardDescription>
+            <CardDescription>Manage global content and settings for your website.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Tabs defaultValue="homepage">
-                <TabsList className="grid w-full grid-cols-3">
+            <Tabs defaultValue="general">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="general"><Settings className="mr-2" />General</TabsTrigger>
                     <TabsTrigger value="homepage"><Home className="mr-2" />Homepage</TabsTrigger>
                     <TabsTrigger value="contact"><Phone className="mr-2" />Contact Info</TabsTrigger>
                     <TabsTrigger value="footer"><Code className="mr-2" />Footer</TabsTrigger>
                 </TabsList>
+                <TabsContent value="general" className="mt-6">
+                    <GeneralSettingsForm defaultValues={generalData} />
+                </TabsContent>
                 <TabsContent value="homepage" className="mt-6">
                     <HomepageSettingsForm defaultValues={homepageData} />
                 </TabsContent>

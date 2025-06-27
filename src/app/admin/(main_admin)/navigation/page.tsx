@@ -56,7 +56,7 @@ function SortableMenuItem({ item, index, onUpdate, onRemove }: SortableMenuItemP
 interface MenuEditorProps {
   title: string;
   description: string;
-  menuId: 'header-nav' | 'footer-col-1' | 'footer-col-2';
+  menuId: 'header-nav' | 'footer-col-1' | 'footer-col-2' | 'footer-col-3';
 }
 
 function MenuEditor({ title, description, menuId }: MenuEditorProps) {
@@ -190,7 +190,7 @@ export default function NavigationAdminPage() {
           description="Links that appear in the main site header."
           menuId="header-nav"
         />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <MenuEditor 
               title="Footer Column 1"
               description="Links that appear in the first column of the site footer."
@@ -200,6 +200,11 @@ export default function NavigationAdminPage() {
               title="Footer Column 2"
               description="Links that appear in the second column of the site footer."
               menuId="footer-col-2"
+            />
+            <MenuEditor 
+              title="Footer Column 3"
+              description="Links for the third footer column."
+              menuId="footer-col-3"
             />
         </div>
       </div>

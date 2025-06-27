@@ -30,14 +30,19 @@ export default async function RootLayout({
   const headerNav = await getNavigationMenu('header-nav');
   const footerCol1 = await getNavigationMenu('footer-col-1');
   const footerCol2 = await getNavigationMenu('footer-col-2');
+  const footerCol3 = await getNavigationMenu('footer-col-3');
   const footerContent = await getFooterContent();
   const generalSettings = await getGeneralSettings();
 
 
   // Fallback to empty arrays if data is not found
   const headerNavItems = headerNav?.items || [];
-  const footerCol1Items = footerCol1?.items || [];
-  const footerCol2Items = footerCol2?.items || [];
+  
+  const footerMenus = {
+    'footer-col-1': footerCol1?.items || [],
+    'footer-col-2': footerCol2?.items || [],
+    'footer-col-3': footerCol3?.items || [],
+  };
   
   const siteName = generalSettings?.siteName || "VHost Solutions";
   const logoUrl = generalSettings?.logoUrl || "/images/vhost-logo.svg";
@@ -57,8 +62,7 @@ export default async function RootLayout({
             {children}
           </main>
           <Footer 
-            footerCol1Links={footerCol1Items} 
-            footerCol2Links={footerCol2Items} 
+            footerMenus={footerMenus}
             footerContent={footerContent}
           />
           <Toaster />

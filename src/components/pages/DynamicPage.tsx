@@ -2,36 +2,10 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Smile, icons, type LucideProps } from 'lucide-react';
 import type { PageData, ContentBlock, ValueCardBlock } from '@/types';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 import { marked } from 'marked';
-
-// --- Helper to convert string to PascalCase for Lucide icons ---
-function toPascalCase(str: string) {
-  if (!str) return '';
-  return str
-    .split(/[-_\s]+/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join('');
-}
-
-// --- Dynamic Icon Renderer ---
-interface DynamicLucideIconProps extends LucideProps {
-  name: string;
-}
-
-const DynamicLucideIcon = ({ name, ...props }: DynamicLucideIconProps) => {
-  const iconNameInPascalCase = toPascalCase(name);
-  const IconComponent = icons[iconNameInPascalCase as keyof typeof icons];
-
-  if (!IconComponent) {
-    console.warn(`[DynamicLucideIcon] Icon not found for name: "${name}". Rendering fallback.`);
-    return <Smile {...props} />;
-  }
-
-  return <IconComponent {...props} />;
-};
+import DynamicLucideIcon from '@/components/common/DynamicLucideIcon';
 
 // --- Renderer Components for Content Blocks ---
 function renderBlock(block: ContentBlock, index: string | number) {

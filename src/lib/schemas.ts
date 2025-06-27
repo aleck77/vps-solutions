@@ -57,3 +57,15 @@ export const createPageFormSchema = z.object({
 });
 
 export type CreatePageFormValues = z.infer<typeof createPageFormSchema>;
+
+export const vpsPlanSchema = z.object({
+  name: z.string().min(3, { message: 'Plan name must be at least 3 characters.' }),
+  cpu: z.string().min(1, { message: 'CPU specification is required.' }),
+  ram: z.string().min(1, { message: 'RAM specification is required.' }),
+  storage: z.string().min(1, { message: 'Storage specification is required.' }),
+  bandwidth: z.string().min(1, { message: 'Bandwidth specification is required.' }),
+  priceMonthly: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
+  features: z.string().min(1, { message: 'At least one feature is required.' }), // Comma-separated
+});
+
+export type VpsPlanFormValues = z.infer<typeof vpsPlanSchema>;

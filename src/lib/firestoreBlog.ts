@@ -331,3 +331,19 @@ export async function getVpsPlans(): Promise<VPSPlan[]> {
     return [];
   }
 }
+
+export async function getVpsPlanById(planId: string): Promise<VPSPlan | null> {
+  const db = getDb();
+  try {
+    const planRef = doc(db, 'vps_plans', planId);
+    const docSnap = await getDoc(planRef);
+    if (!docSnap.exists()) {
+      console.log(`No VPS plan found with ID: ${planId}`);
+      return null;
+    }
+    return toSerializable<VPSPlan>(docSnap);
+  } catch (error) {
+    console.error(`Error fetching VPS plan by ID ${planId}:`, error);
+    return null;
+  }
+}

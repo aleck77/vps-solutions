@@ -4,10 +4,19 @@ import { notFound } from 'next/navigation';
 import DynamicPage from '@/components/pages/DynamicPage';
 import { getPageBySlug } from '@/lib/firestoreBlog';
 
+type PageParams = {
+  slug: string;
+};
+
+type Props = {
+  params: PageParams;
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: PageParams;
 }): Promise<Metadata> {
   const page = await getPageBySlug(params.slug);
 
@@ -26,11 +35,7 @@ export async function generateMetadata({
 
 // This component will render any dynamically created page that doesn't have a
 // dedicated file-based route.
-export default async function CatchAllPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function Page({ params }: Props) {
   const { slug } = params;
 
   if (!slug) {

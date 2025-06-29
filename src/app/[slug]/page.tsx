@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPageBySlug } from '@/lib/firestoreBlog';
@@ -97,12 +98,12 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata({
-  params: { slug },
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const page = await getPageBySlug(slug);
+export async function generateMetadata(
+  props: { params: { slug: string } }
+): Promise<Metadata> {
+  // Awaiting props as suggested, to resolve the framework's static analysis issue.
+  const { params } = await Promise.resolve(props);
+  const page = await getPageBySlug(params.slug);
 
   if (!page) {
     return {
@@ -117,8 +118,10 @@ export async function generateMetadata({
 }
 
 
-export default async function Page({ params: { slug } }: { params: { slug: string } }) {
-  const pageData = await getPageBySlug(slug);
+export default async function Page(props: { params: { slug: string } }) {
+  // Awaiting props as suggested, to resolve the framework's static analysis issue.
+  const { params } = await Promise.resolve(props);
+  const pageData = await getPageBySlug(params.slug);
 
   if (!pageData) {
     notFound();

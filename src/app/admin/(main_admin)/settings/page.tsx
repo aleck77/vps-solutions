@@ -29,7 +29,7 @@ import {
   type GeneralSettingsValues
 } from '@/lib/schemas';
 
-import type { HomepageContent, ContactInfo, FooterContent, GeneralSettings, SocialLinkName, HomepageContentBlock, HomepageFeature, FooterContentBlock } from '@/types';
+import type { HomepageContent, ContactInfo, FooterContent, GeneralSettings, SocialLinkName, HomepageFeature, FooterContentBlock } from '@/types';
 import { uploadPageImageAction } from '@/app/actions/uploadActions';
 
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,6 @@ function GeneralSettingsForm({ defaultValues }: { defaultValues: GeneralSettings
   return (
     <Form {...form}>
       <form
-        action={formAction}
         onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))}
         className="space-y-8"
       >
@@ -225,20 +224,19 @@ function HomepageSettingsForm({ defaultValues }: { defaultValues: HomepageConten
   };
   
   const addNewBlock = (type: 'hero' | 'features' | 'cta') => {
-    const newBlock = {
+    const newBlock: any = {
       id: crypto.randomUUID(),
       type,
       ...(type === 'hero' && { heroTitle: 'New Hero Title', heroSubtitle: 'New Hero Subtitle' }),
       ...(type === 'features' && { featuresTitle: 'New Features Section', features: [{ id: crypto.randomUUID(), icon: 'Star', title: 'New Card', description: 'New description'}] }),
       ...(type === 'cta' && { ctaTitle: 'New CTA Title', ctaSubtitle: 'New CTA Subtitle' }),
-    } as HomepageContentBlock;
+    };
     append(newBlock);
   }
 
   return (
     <Form {...form}>
       <form
-        action={formAction}
         onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))}
         className="space-y-8"
       >
@@ -289,7 +287,6 @@ function ContactInfoSettingsForm({ defaultValues }: { defaultValues: ContactInfo
     return (
         <Form {...form}>
             <form 
-                action={formAction}
                 onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))} 
                 className="space-y-4"
             >
@@ -431,7 +428,6 @@ function FooterSettingsForm({ defaultValues }: { defaultValues: FooterContent | 
   return (
     <Form {...form}>
       <form
-        action={formAction}
         onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))}
         className="space-y-8"
       >

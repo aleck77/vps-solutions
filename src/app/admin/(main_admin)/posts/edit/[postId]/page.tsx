@@ -389,7 +389,7 @@ export default function EditPostPage() {
           </div>
 
           <Form {...form}>
-            <form action={formAction} onSubmit={(evt) => {
+            <form onSubmit={(evt) => {
               evt.preventDefault();
               form.handleSubmit(() => {
                 formAction(form.getValues());

@@ -99,12 +99,10 @@ export async function generateStaticParams() {
 }
 
 // Correctly handle the params Promise as per Next.js 15
-export async function generateMetadata(
-  props: { params: { slug: string } }
-): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   // Awaiting props as suggested, to resolve the framework's static analysis issue.
-  const { params } = await Promise.resolve(props);
-  const page = await getPageBySlug(params.slug);
+  const { slug } = await props.params;
+  const page = await getPageBySlug(slug);
 
   if (!page) {
     return {
@@ -120,10 +118,10 @@ export async function generateMetadata(
 
 
 // Correctly handle the params Promise as per Next.js 15
-export default async function Page(props: { params: { slug: string } }) {
+export default async function Page(props: { params: Promise<{ slug: string }> }) {
   // Awaiting props as suggested, to resolve the framework's static analysis issue.
-  const { params } = await Promise.resolve(props);
-  const pageData = await getPageBySlug(params.slug);
+  const { slug } = await props.params;
+  const pageData = await getPageBySlug(slug);
 
   if (!pageData) {
     notFound();

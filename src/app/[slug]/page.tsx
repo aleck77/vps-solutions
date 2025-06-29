@@ -12,6 +12,7 @@ export async function generateMetadata({
 }: {
   params: PageParams;
 }): Promise<Metadata> {
+  // Use params.slug directly in the async call
   const page = await getPageBySlug(params.slug);
 
   if (!page) {
@@ -28,8 +29,8 @@ export async function generateMetadata({
 
 
 export default async function Page({ params }: { params: PageParams }) {
-  const { slug } = params;
-  const pageData = await getPageBySlug(slug);
+  // Use params.slug directly in the async call, removing the intermediate variable.
+  const pageData = await getPageBySlug(params.slug);
 
   if (!pageData) {
     notFound();

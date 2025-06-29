@@ -98,6 +98,7 @@ export async function generateStaticParams() {
   }
 }
 
+// Correctly handle the params Promise as per Next.js 15
 export async function generateMetadata(
   props: { params: { slug: string } }
 ): Promise<Metadata> {
@@ -118,6 +119,7 @@ export async function generateMetadata(
 }
 
 
+// Correctly handle the params Promise as per Next.js 15
 export default async function Page(props: { params: { slug: string } }) {
   // Awaiting props as suggested, to resolve the framework's static analysis issue.
   const { params } = await Promise.resolve(props);

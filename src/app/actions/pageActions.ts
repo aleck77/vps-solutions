@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { getAdminFirestore } from '@/app/actions/adminActions';
 import { pageFormSchema, createPageFormSchema, type PageFormValues, type CreatePageFormValues } from '@/lib/schemas';
 import { FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
-import type { PageData } from '@/types';
+import type { PageData, ContentBlock } from '@/types';
 
 interface ActionResult {
   success: boolean;
@@ -89,7 +89,7 @@ export async function updatePageAction(
   const pageUpdateData: Partial<PageData> = {
     title,
     metaDescription,
-    contentBlocks: contentBlocks?.map(({id, ...rest}) => rest) || [], // Remove temporary DND id
+    contentBlocks: (contentBlocks?.map(({id, ...rest}) => rest) ?? []) as ContentBlock[],
   };
 
   try {

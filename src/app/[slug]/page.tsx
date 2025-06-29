@@ -1,8 +1,7 @@
-
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import DynamicPage from '@/components/pages/DynamicPage';
 import { getPageBySlug } from '@/lib/firestoreBlog';
+import PageRenderer from '@/components/pages/PageRenderer';
 
 type PageParams = {
   slug: string;
@@ -28,18 +27,13 @@ export async function generateMetadata({
 }
 
 
-// This component will render any dynamically created page that doesn't have a
-// dedicated file-based route.
-// This component is now synchronous. The async work is handled by DynamicPage.
-export default function Page({ params }: { params: PageParams }) {
+export default async function Page({ params }: { params: PageParams }) {
   const { slug } = params;
+  const pageData = await getPageBySlug(slug);
 
-  if (!slug) {
+  if (!pageData) {
     notFound();
   }
 
-  // The DynamicPage component now handles fetching data based on the slug,
-  // showing a loading state, and calling notFound() if the page doesn't exist.
-  // Since DynamicPage is an async Server Component, this parent page doesn't need to be.
-  return <DynamicPage slug={slug} />;
+  return <PageRenderer pageData={pageData} />;
 }

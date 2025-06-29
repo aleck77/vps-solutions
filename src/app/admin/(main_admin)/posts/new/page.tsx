@@ -26,7 +26,7 @@ import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon,
 
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent, type GeneratePostContentInput } from '@/ai/flows/generate-post-content-flow';
-import { generatePostImage } from '@/ai/flows/generate-post-image-flow.ts';
+import { generatePostImage } from '@/ai/flows/generate-post-image-flow';
 import { uploadPageImageAction } from '@/app/actions/uploadActions';
 
 

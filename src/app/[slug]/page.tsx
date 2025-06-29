@@ -81,10 +81,6 @@ function groupValueCards(blocks: ContentBlock[]) {
 
 // --- Component and Metadata generation ---
 
-type PageParams = {
-  slug: string;
-};
-
 // Provides Next.js with hints about the possible dynamic routes. This is a best practice and can resolve build issues.
 export async function generateStaticParams() {
   try {
@@ -102,12 +98,11 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({
-  params,
+  params: { slug },
 }: {
-  params: PageParams;
+  params: { slug: string };
 }): Promise<Metadata> {
-  // Use params.slug directly in the async call
-  const page = await getPageBySlug(params.slug);
+  const page = await getPageBySlug(slug);
 
   if (!page) {
     return {
@@ -122,9 +117,8 @@ export async function generateMetadata({
 }
 
 
-export default async function Page({ params }: { params: PageParams }) {
-  // Use params.slug directly in the async call, removing the intermediate variable.
-  const pageData = await getPageBySlug(params.slug);
+export default async function Page({ params: { slug } }: { params: { slug: string } }) {
+  const pageData = await getPageBySlug(slug);
 
   if (!pageData) {
     notFound();

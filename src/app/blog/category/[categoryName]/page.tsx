@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPostsByCategory } from '@/lib/firestoreBlog';
@@ -36,7 +36,7 @@ function CategoryPageSkeleton() {
     );
 }
 
-export default function CategoryPage() {
+function CategoryPageContent() {
     const params = useParams();
     const categoryName = Array.isArray(params.categoryName) ? params.categoryName[0] : params.categoryName;
     
@@ -101,5 +101,13 @@ export default function CategoryPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function CategoryPage() {
+    return (
+        <Suspense fallback={<CategoryPageSkeleton />}>
+            <CategoryPageContent />
+        </Suspense>
     );
 }

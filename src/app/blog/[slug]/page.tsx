@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/firestoreBlog';
 import type { BlogPost } from '@/types';
@@ -39,7 +39,7 @@ function PostSkeleton() {
   );
 }
 
-export default function PostPage() {
+function PostPageContent() {
   const params = useParams();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
@@ -138,5 +138,13 @@ export default function PostPage() {
              <RecommendedPosts currentPostId={post.id!} currentPostContent={post.content} />
         </aside>
     </div>
+  );
+}
+
+export default function PostPage() {
+  return (
+    <Suspense fallback={<PostSkeleton />}>
+      <PostPageContent />
+    </Suspense>
   );
 }

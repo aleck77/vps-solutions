@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPostsByTag } from '@/lib/firestoreBlog';
@@ -35,7 +35,7 @@ function TagPageSkeleton() {
     );
 }
 
-export default function TagPage() {
+function TagPageContent() {
     const params = useParams();
     const tagName = Array.isArray(params.tagName) ? params.tagName[0] : params.tagName;
 
@@ -99,5 +99,13 @@ export default function TagPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function TagPage() {
+    return (
+        <Suspense fallback={<TagPageSkeleton />}>
+            <TagPageContent />
+        </Suspense>
     );
 }

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getAdminFirestore } from '@/app/actions/adminActions';
 import { homepageContentSchema, contactInfoSchema, footerContentSchema, generalSettingsSchema } from '@/lib/schemas';
-import type { HomepageContentValues, ContactInfoValues, FooterContentValues, GeneralSettingsValues, HomepageContentBlock } from '@/lib/schemas';
+import type { HomepageContentValues, ContactInfoValues, FooterContentValues, GeneralSettingsValues } from '@/lib/schemas';
 import { FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
 
 interface ActionResult {

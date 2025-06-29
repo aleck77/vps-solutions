@@ -22,7 +22,7 @@ import { CheckCircle, CreditCard, Server } from 'lucide-react';
 import { getVpsPlans } from '@/lib/firestoreBlog';
 import type { VPSPlan } from '@/types';
 import { useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const orderFormSchema = z.object({
@@ -117,8 +117,7 @@ function OrderPageSkeleton() {
   );
 }
 
-
-export default function OrderPageComponent() {
+function OrderForm() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<VPSPlan[]>([]);
@@ -380,4 +379,13 @@ export default function OrderPageComponent() {
       </div>
     </div>
   );
+}
+
+
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<OrderPageSkeleton />}>
+      <OrderForm />
+    </Suspense>
+  )
 }

@@ -70,7 +70,6 @@ export default function NewPlanPage() {
         <CardContent>
           <Form {...form}>
             <form
-              action={formAction}
               onSubmit={form.handleSubmit((data) => {
                 startTransition(() => {
                   formAction(data);

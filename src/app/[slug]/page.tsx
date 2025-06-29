@@ -8,11 +8,6 @@ type PageParams = {
   slug: string;
 };
 
-type Props = {
-  params: PageParams;
-  searchParams: { [key: string]: string | string[] | undefined };
-};
-
 export async function generateMetadata({
   params,
 }: {
@@ -35,7 +30,8 @@ export async function generateMetadata({
 
 // This component will render any dynamically created page that doesn't have a
 // dedicated file-based route.
-export default async function Page({ params }: Props) {
+// This component is now synchronous. The async work is handled by DynamicPage.
+export default function Page({ params }: { params: PageParams }) {
   const { slug } = params;
 
   if (!slug) {
@@ -44,6 +40,6 @@ export default async function Page({ params }: Props) {
 
   // The DynamicPage component now handles fetching data based on the slug,
   // showing a loading state, and calling notFound() if the page doesn't exist.
-  // Since DynamicPage is now a Server Component, this page must be async.
+  // Since DynamicPage is an async Server Component, this parent page doesn't need to be.
   return <DynamicPage slug={slug} />;
 }

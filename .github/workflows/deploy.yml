@@ -25,11 +25,11 @@ jobs:
 
       - name: Create or update .env and service-account-key.json (via secrets) # Создаем .env и ключ из секретов
         run: |
-          echo "${{ secrets.DOT_ENV_CONTENT }}" > /home/sasha/vps-solutions-app/.env
-          echo "${{ secrets.SERVICE_ACCOUNT_KEY_JSON }}" > /home/sasha/vps-solutions-app/service-account-key.json
-        # Этот шаг гарантирует, что на сервере в директории /home/sasha/vps-solutions-app/
-        # всегда будут актуальные .env и service-account-key.json из секретов GitHub.
-        # Это **рекомендуемый и безопасный** способ управления чувствительными файлами.
+          # Декодируем Base64-строку из секрета и записываем ее в .env файл
+          echo "${{ secrets.DOT_ENV_CONTENT }}" | base64 -d > /home/sasha/vps-solutions-app/.env
+          # Декодируем Base64-строку из секрета и записываем ее в service-account-key.json файл
+          echo "${{ secrets.SERVICE_ACCOUNT_KEY_JSON }}" | base64 -d > /home/sasha/vps-solutions-app/service-account-key.json
+        # Теперь содержимое секретов передается безопасно и без проблем с синтаксисом оболочки.
         # Убедись, что эти файлы **НЕ** находятся в твоем Git репозитории.
 
       - name: Build and Deploy Docker Compose # Собираем и запускаем Docker Compose

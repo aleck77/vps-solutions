@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 import { getAllPublishedPosts, getAllCategories, getAllUniqueTagSlugs } from '@/lib/firestoreBlog';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vhost.solutions';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vps.artelegis.com.ua';
 
   // 1. Статические страницы
   const staticRoutes = [

@@ -71,7 +71,7 @@ export default function NewPostPage() {
     mode: 'onChange', 
   });
   
-  const isPendingSubmit = form.formState.isSubmitting;
+  const { isSubmitting: isPendingSubmit } = form.formState;
 
   const titleValue = form.watch('title');
   const currentImageUrlFromForm = form.watch('imageUrl'); 
@@ -235,7 +235,13 @@ export default function NewPostPage() {
     setUploadError(null);
     toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to placeholder.' });
   };
-
+  
+  const processFormSubmit = (data: PostFormValues) => {
+    startTransition(() => {
+      formAction(data);
+    });
+  };
+  
   const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
 
 

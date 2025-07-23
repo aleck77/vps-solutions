@@ -77,7 +77,7 @@ export default function EditPostPage() {
   
   const [state, formAction] = useActionState(updatePostAction.bind(null, postId), undefined);
 
-  const isPendingSubmit = form.formState.isSubmitting;
+  const { isSubmitting: isPendingSubmit, isDirty } = form.formState;
 
   const titleValue = form.watch('title');
   const currentSlugValue = form.watch('slug');
@@ -118,6 +118,15 @@ export default function EditPostPage() {
         if (fetchedPost) {
           setPost(fetchedPost);
           const originalCategoryName = blogCategories.find(cat => slugify(cat) === fetchedPost.category) || fetchedPost.category;
+          
+          let contentToSet = fetchedPost.content;
+          // Attempt to convert HTML back to Markdown for editing if it's not already Markdown
+          // This is a naive check; a more robust solution would use a library like turndown
+          if (contentToSet.startsWith('<p>') || contentToSet.startsWith('<h2>')) {
+             // For simplicity, we'll keep the HTML as is for editing.
+             // In a real app, you might convert it. Here we just assume content is editable.
+          }
+
           form.reset({
             title: fetchedPost.title,
             slug: fetchedPost.slug,
@@ -291,6 +300,12 @@ export default function EditPostPage() {
   };
   
   const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
+
+  const processFormSubmit = (data: PostFormValues) => {
+    startTransition(() => {
+      formAction(data);
+    });
+  };
 
 
   if (isLoadingPost) {
@@ -666,7 +681,7 @@ export default function EditPostPage() {
                  <Button type="button" variant="outline" onClick={() => router.push('/admin/posts')} disabled={isPendingSubmit}>
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPendingSubmit || isGeneratingImage || isGeneratingContent || isGeneratingTitles || isUploadingImage}>
+                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPendingSubmit || isGeneratingImage || isGeneratingContent || isGeneratingTitles || isUploadingImage || !isDirty}>
                   {isPendingSubmit ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving Changes...</>
                   ) : (

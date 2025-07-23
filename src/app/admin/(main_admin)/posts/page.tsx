@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import { deletePostAction, deleteMultiplePostsAction } from '@/app/actions/postActions';
 import { unslugify } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { Timestamp } from 'firebase/firestore';
+
 
 export default function PostsAdminPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);

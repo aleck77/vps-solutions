@@ -1,7 +1,5 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import slug from 'slug';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -9,14 +7,21 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Generates a URL-friendly slug from a string.
- * Uses the 'slug' library for robust and configurable slug generation.
+ * This is a self-contained function to avoid external dependency issues during build.
  * @param text The string to slugify.
  * @returns The slugified string.
  */
 export function slugify(text: string): string {
   if (!text) return '';
-  // The 'slug' library handles lowercasing, replacing spaces, and removing special characters.
-  return slug(text);
+  return text
+    .toString()
+    .normalize('NFD') // split an accented letter into the base letter and the accent
+    .replace(/[\u0300-\u036f]/g, '') // remove all previously split accents
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // replace spaces with -
+    .replace(/[^\w-]+/g, '') // remove all non-word chars except hyphens
+    .replace(/--+/g, '-'); // replace multiple hyphens with a single one
 }
 
 export function unslugify(slug: string): string {

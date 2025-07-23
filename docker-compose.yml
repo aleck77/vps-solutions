@@ -21,7 +21,7 @@ services:
       - n8n_default # Connect to your existing Traefik network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.vps-app.rule=Host(`vps.artelegis.com.ua`)"
+      - "traefik.http.routers.vps-app.rule=Host(`${NEXT_PUBLIC_SITE_URL}`)"
       - "traefik.http.routers.vps-app.entrypoints=websecure"
       - "traefik.http.routers.vps-app.tls.certresolver=mytlschallenge"
       - "traefik.http.services.vps-app.loadbalancer.server.port=3000" # Next.js app's internal port

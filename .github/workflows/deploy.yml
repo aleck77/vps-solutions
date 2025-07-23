@@ -1,0 +1,58 @@
+name: Deploy Next.js App to VPS
+
+on:
+  push:
+    branches:
+      - main # Запускать workflow при пуше в ветку main
+
+jobs:
+  build_and_deploy:
+    runs-on: [self-hosted, linux, deploy-vps] # Указываем теги, присвоенные твоему раннеру
+    environment: production # Опционально: связываем с окружением production для секретов
+
+    steps:
+      - name: Checkout repository # Клонируем репозиторий на раннер во временную директорию
+        uses: actions/checkout@v4
+
+      - name: Rsync project files to target directory # Синхронизируем файлы на сервер
+        run: |
+          # Копируем все из текущей рабочей директории GitHub Actions (где код склонирован)
+          # в твою папку на сервере, исключая .git.
+          # '--delete' удалит файлы на сервере, если их нет в репозитории.
+          rsync -avz --delete --exclude '.git/' ./ /home/sasha/vps-solutions-app/
+        # ОЧЕНЬ ВАЖНО: убедись, что пользователь 'sasha' (от имени которого запущен раннер)
+        # имеет права на запись в /home/sasha/vps-solutions-app/
+
+      - name: Create or update .env and service-account-key.json (via secrets) # Создаем .env и ключ из секретов
+        run: |
+          echo "${{ secrets.DOT_ENV_CONTENT }}" > /home/sasha/vps-solutions-app/.env
+          echo "${{ secrets.SERVICE_ACCOUNT_KEY_JSON }}" > /home/sasha/vps-solutions-app/service-account-key.json
+        # Этот шаг гарантирует, что на сервере в директории /home/sasha/vps-solutions-app/
+        # всегда будут актуальные .env и service-account-key.json из секретов GitHub.
+        # Это **рекомендуемый и безопасный** способ управления чувствительными файлами.
+        # Убедись, что эти файлы **НЕ** находятся в твоем Git репозитории.
+
+      - name: Build and Deploy Docker Compose # Собираем и запускаем Docker Compose
+        run: |
+          echo "Building Docker images for vps-app..."
+          # Используем команду 'docker compose' (v2)
+          docker compose build vps-app
+
+          echo "Bringing down old vps-app container..."
+          # Используем команду 'docker compose' (v2)
+          docker compose down vps-app || true # Останавливаем, если уже запущен (|| true предотвращает ошибку, если не запущен)
+
+          echo "Starting new vps-app container..."
+          # Используем команду 'docker compose' (v2)
+          docker compose up -d vps-app # Запускаем в фоновом режиме
+
+        working-directory: /home/sasha/vps-solutions-app # Указываем абсолютный путь к корню твоего проекта на сервере
+
+      - name: Clean up old Docker images (optional, use with caution!)
+        run: |
+          # Это удалит неиспользуемые Docker-объекты (образы, контейнеры, сети, кэш).
+          # Используй осторожно, особенно если на сервере есть другие Docker-приложения.
+          # Лучше запускать это вручную или с определенной периодичностью, а не при каждом деплое.
+          # docker system prune -af # '-a' для удаления всех неиспользуемых, '-f' для принудительного
+          # docker builder prune -af # Удаляет кеш сборки Docker
+          echo "Skipping Docker prune for safety unless explicitly enabled. Consider running 'docker system prune -a' manually periodically."

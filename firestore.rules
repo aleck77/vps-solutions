@@ -1,0 +1,50 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Published posts are public. All posts are accessible by admin for editing.
+    match /posts/{postId} {
+      allow read: if resource.data.published == true || request.auth.token.admin == true;
+      allow write: if request.auth.token.admin == true;
+    }
+
+    // Categories are public. Only admins can modify.
+    match /categories/{categoryId} {
+      allow read;
+      allow write: if request.auth.token.admin == true;
+    }
+
+    // Static pages (About, Privacy, etc.) are public. Only admins can modify.
+    match /pages/{pageId} {
+      allow read;
+      allow write: if request.auth.token.admin == true;
+    }
+
+    // Navigation menus are public. Only admins can modify.
+    match /navigation/{menuId} {
+      allow read;
+      allow write: if request.auth.token.admin == true;
+    }
+    
+    // VPS plans are public. Only admins can modify.
+    match /vps_plans/{planId} {
+      allow read;
+      allow write: if request.auth.token.admin == true;
+    }
+
+    // Site-wide content (homepage, footer, contact info) is public. Only admins can modify.
+    match /site_content/{contentId} {
+      allow read;
+      allow write: if request.auth.token.admin == true;
+    }
+
+    // Anyone can subscribe (create), but only admins can view/manage the list.
+    match /subscribers/{subscriberId} {
+      allow create;
+      allow read, update, delete: if request.auth.token.admin == true;
+    }
+
+  }
+}

@@ -1,0 +1,33 @@
+services:
+  vps-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vps-solutions-app
+    restart: always
+    env_file:
+      - .env # Load environment variables from .env file
+    ports: [] # This is for direct access if needed, Traefik handles public access. Explicitly an empty list.
+      # - "3001:3000" # Example: Map container port 3000 to host port 3001
+    volumes:
+      # Mount your service account key JSON file into the container
+      # IMPORTANT: Ensure 'service-account-key.json' is in the same directory as this docker-compose.yml
+      # or provide the correct path to the key file on your host.
+      - ./service-account-key.json:/app/service-account-key.json:ro
+      # Mount the static logo file into the public directory of the container.
+      # This allows changing the logo by replacing the file on the host server.
+      - ./public/images/vhost-logo.svg:/app/public/images/vhost-logo.svg:ro
+    networks:
+      - n8n_default # Connect to your existing Traefik network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vps-app.rule=Host(`vps.artelegis.com.ua`)"
+      - "traefik.http.routers.vps-app.entrypoints=websecure"
+      - "traefik.http.routers.vps-app.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.vps-app.loadbalancer.server.port=3000" # Next.js app's internal port
+      # Add any middlewares if needed, e.g., for rate limiting or specific headers
+      # - "traefik.http.routers.vps-app.middlewares=my-middleware@docker"
+
+networks:
+  n8n_default:
+    external: true

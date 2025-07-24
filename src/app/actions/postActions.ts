@@ -3,7 +3,6 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore'; // Client SDK Timestamp
 import { getAdminFirestore } from '@/app/actions/adminActions'; 
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
@@ -74,8 +73,9 @@ export async function createPostAction(
     updatedAt: now, 
   };
 
+  let postId: string | null;
   try {
-    const postId = await addBlogPost(newPostData); 
+    postId = await addBlogPost(newPostData); 
 
     if (postId) {
       revalidatePath('/blog');
@@ -95,7 +95,7 @@ export async function createPostAction(
     return { success: false, message };
   }
 
-  redirect('/admin/posts');
+  return { success: true, message: `Post "${title}" created successfully.`, postId };
 }
 
 
@@ -176,7 +176,7 @@ export async function updatePostAction(
     return { success: false, message: `Unexpected error during post update: ${error.message || 'Unknown error'}` };
   }
 
-  redirect('/admin/posts');
+  return { success: true, message: `Post "${title}" updated successfully.` };
 }
 
 

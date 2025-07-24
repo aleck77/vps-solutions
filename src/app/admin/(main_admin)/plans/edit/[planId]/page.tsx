@@ -75,14 +75,17 @@ export default function EditPlanPage() {
   }, [planId, form, router, toast]);
 
   useEffect(() => {
-    if (state?.success === false) {
+    if (state?.success === true) {
+      toast({ title: 'Success', description: state.message });
+      router.push('/admin/plans');
+    } else if (state?.success === false) {
       toast({
         title: 'Error Updating Plan',
         description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),
         variant: 'destructive',
       });
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   if (isLoading) {
     return (

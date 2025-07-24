@@ -90,14 +90,17 @@ export default function NewPostPage() {
   
 
   useEffect(() => {
-    if (state?.success === false && state.message) {
+    if (state?.success === true) {
+      toast({ title: 'Success!', description: state.message });
+      router.push('/admin/posts');
+    } else if (state?.success === false && state.message) {
       toast({
         title: 'Error Creating Post',
         description: state.message + (state.errors ? ` ${state.errors.map((e: any) => e.message).join(', ')}` : ''),
         variant: 'destructive',
       });
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   const handleGenerateTitles = () => {
     if (!topicForTitle.trim()) {
@@ -236,12 +239,6 @@ export default function NewPostPage() {
     toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to placeholder.' });
   };
   
-  const processFormSubmit = (data: PostFormValues) => {
-    startTransition(() => {
-      formAction(data);
-    });
-  };
-  
   const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
 
 
@@ -315,12 +312,7 @@ export default function NewPostPage() {
           </div>
         
           <Form {...form}>
-            <form onSubmit={(evt) => {
-                evt.preventDefault();
-                form.handleSubmit(() => {
-                    formAction(form.getValues());
-                })(evt);
-            }} className="space-y-8">
+            <form onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))} className="space-y-8">
               <FormField
                 control={form.control}
                 name="title"

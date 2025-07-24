@@ -328,14 +328,17 @@ export default function EditPage() {
   }, [pageId, form, router, toast]);
 
   useEffect(() => {
-    if (state?.success === false && state.message) {
+    if (state?.success === true) {
+      toast({ title: 'Success', description: state.message });
+      router.push('/admin/pages');
+    } else if (state?.success === false && state.message) {
       toast({
         title: 'Error Updating Page',
         description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),
         variant: 'destructive',
       });
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   const addNewBlock = (type: 'heading' | 'paragraph' | 'image' | 'value_card') => {
     let newBlock: any;

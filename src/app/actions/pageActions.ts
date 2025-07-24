@@ -3,7 +3,6 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { getAdminFirestore } from '@/app/actions/adminActions';
 import { pageFormSchema, createPageFormSchema, type PageFormValues, type CreatePageFormValues } from '@/lib/schemas';
 import { FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
@@ -61,7 +60,7 @@ export async function createPageAction(
     return { success: false, message: `Failed to create page: ${error.message}` };
   }
 
-  redirect('/admin/pages');
+  return { success: true, message: `Page "${title}" created successfully.` };
 }
 
 
@@ -111,5 +110,5 @@ export async function updatePageAction(
     return { success: false, message: `Failed to update page: ${error.message}` };
   }
 
-  redirect('/admin/pages');
+  return { success: true, message: `Page "${title}" updated successfully.` };
 }

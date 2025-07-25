@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { MenuItem } from '@/types';
 import { getAuthInstance } from '@/lib/firebase';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 
 // A client component to render a single navigation link.
@@ -112,13 +113,15 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
                 <Link href="/admin/login">Admin Login</Link>
             </Button>
           ) : null }
+          <ThemeToggle />
           <Button asChild variant="default">
             <Link href="/order">Get Started</Link>
           </Button>
         </nav>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
+          <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">

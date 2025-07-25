@@ -4,20 +4,18 @@ import 'easymde/dist/easymde.min.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/authContext';
 import { ThemeProvider } from '@/components/ui/ThemeProvider';
+import { ReactNode } from 'react';
 
-export const metadata: Metadata = {
-  title: 'VHost Solutions - Premier VPS Hosting',
-  description: 'Reliable and high-performance VPS hosting solutions.',
-};
-
+// This is the root layout, it should not contain locale-specific logic.
+// The locale layout will handle i18n.
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-       <head>
+      <head>
         <link rel="icon" href="/images/vhost-logo.svg" type="image/svg+xml" />
       </head>
       <body>

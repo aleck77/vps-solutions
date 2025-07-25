@@ -129,7 +129,8 @@ function PricingCardSkeleton() {
 }
 
 // --- Main Page Component ---
-export default async function HomePage({params: {locale}}: Props) {
+export default async function HomePage({params}: Props) {
+  const { locale } = params;
   unstable_setRequestLocale(locale);
   const plans = await getVpsPlans();
   const homepageData = await getHomepageContent();

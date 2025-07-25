@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { MenuItem } from '@/types';
 import { getAuthInstance } from '@/lib/firebase';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useTheme } from 'next-themes';
 
 
 // A client component to render a single navigation link.
@@ -52,12 +53,14 @@ interface HeaderProps {
   navItems: MenuItem[];
   siteName: string;
   logoUrl: string;
+  logoUrlDark: string;
 }
 
-export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
+export default function Header({ navItems, siteName, logoUrl, logoUrlDark }: HeaderProps) {
   const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { resolvedTheme } = useTheme();
   const mobileMenuDescriptionId = React.useId();
 
   const handleLogout = async () => {
@@ -79,17 +82,20 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
     'About Us': <Users className="h-5 w-5" />,
     'Contact': <Mail className="h-5 w-5" />,
   };
+  
+  const currentLogo = resolvedTheme === 'dark' ? logoUrlDark : logoUrl;
 
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-2">
           <Image 
-            src={logoUrl}
+            src={currentLogo}
             alt={`${siteName} Logo`}
             width={40} 
             height={40} 
-            priority 
+            priority
+            key={resolvedTheme} // Add key to force re-render on theme change
           />
           <span className="text-2xl font-headline font-bold text-primary">
             {siteName}
@@ -138,7 +144,7 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
                 <SheetTitle asChild>
                   <Link href="/" className="text-xl font-headline font-bold text-primary flex items-center space-x-2">
                      <Image 
-                        src={logoUrl}
+                        src={currentLogo}
                         alt={`${siteName} Logo`}
                         width={32}
                         height={32}

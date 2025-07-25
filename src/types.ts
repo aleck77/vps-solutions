@@ -155,6 +155,7 @@ export interface ContactInfo {
 
 export type SocialLinkName = 'Facebook' | 'Twitter' | 'LinkedIn';
 export interface SocialLink {
+  id?: string; // for dnd-kit
   name: SocialLinkName;
   href: string;
 }

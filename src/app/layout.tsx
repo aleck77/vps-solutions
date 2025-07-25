@@ -45,12 +45,13 @@ export default async function RootLayout({
   
   const siteName = generalSettings?.siteName || "VHost Solutions";
   const logoUrl = generalSettings?.logoUrl || "/images/vhost-logo.svg";
+  const logoUrlDark = "/images/vhost-logo-dark.svg"; // Path to the new dark logo
 
   return (
     <html lang="en" suppressHydrationWarning>
        <head>
         {/* Updated favicon link to SVG */}
-        <link rel="icon" href={logoUrl} type="image/svg+xml" />
+        <link rel="icon" href="/images/vhost-logo.svg" type="image/svg+xml" />
         <GoogleAnalytics />
       </head>
       {/* font-body and font-headline are applied via globals.css using Tailwind's @layer base */}
@@ -62,7 +63,12 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <Header navItems={headerNavItems} siteName={siteName} logoUrl={logoUrl} />
+            <Header 
+              navItems={headerNavItems} 
+              siteName={siteName} 
+              logoUrl={logoUrl} 
+              logoUrlDark={logoUrlDark} 
+            />
             <main className="flex-grow container mx-auto px-4 py-8">
               {children}
             </main>

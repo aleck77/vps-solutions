@@ -10,7 +10,6 @@ import { notFound } from 'next/navigation';
 const locales = ['en', 'uk'];
 
 export async function generateMetadata({params}: {params: {locale: string}}, parent: ResolvingMetadata): Promise<Metadata> {
-  // Correctly awaiting params before using them
   const { locale } = params; 
   unstable_setRequestLocale(locale);
   const generalSettings = await getGeneralSettings();
@@ -31,7 +30,7 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
-  params
+  params,
 }: {
   children: ReactNode;
   params: { locale: string };

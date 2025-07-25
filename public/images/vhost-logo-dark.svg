@@ -1,6 +1,6 @@
 <svg width="56" height="60" viewBox="0 0 56 60" fill="none" xmlns="http://www.w3.org/2000/svg">
     <!-- V (left part, currentColor) -->
-    <path d="M10 10 L21.95 49.9" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M10 10 L21.95 49.9" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
     <!-- H (left leg, also right part of V, blue) -->
     <path d="M22.05 49.9 L34 10" stroke="#3182CE" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
     <!-- H (crossbar, blue) -->

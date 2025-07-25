@@ -21,6 +21,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { MenuItem } from '@/types';
 import { getAuthInstance } from '@/lib/firebase';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useTheme } from 'next-themes';
 
 
 // A client component to render a single navigation link.
@@ -59,6 +61,13 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
   const { toast } = useToast();
   const mobileMenuDescriptionId = React.useId();
 
+  const [mounted, setMounted] = React.useState(false);
+  const { resolvedTheme } = useTheme();
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleLogout = async () => {
     const auth = getAuthInstance(); 
     try {
@@ -79,18 +88,25 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
     'Contact': <Mail className="h-5 w-5" />,
   };
 
+  const currentLogoUrl = mounted && resolvedTheme === 'dark' ? '/images/vhost-logo-dark.svg' : logoUrl;
+  
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center space-x-2">
-          <Image 
-            src={logoUrl}
-            alt={`${siteName} Logo`}
-            width={40} 
-            height={40} 
-            priority 
-          />
-          <span className="text-2xl font-headline font-bold text-primary">
+        <Link href="/" className="flex items-center space-x-2 text-primary dark:text-foreground">
+           {mounted ? (
+            <Image 
+              src={currentLogoUrl}
+              alt={`${siteName} Logo`}
+              width={40} 
+              height={40} 
+              priority
+              key={currentLogoUrl} // Add key to force re-render on src change
+            />
+          ) : (
+            <div style={{ width: 40, height: 40 }} /> // Placeholder to prevent layout shift
+          )}
+          <span className="text-2xl font-headline font-bold">
             {siteName}
           </span>
         </Link>
@@ -112,13 +128,15 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
                 <Link href="/admin/login">Admin Login</Link>
             </Button>
           ) : null }
+          <ThemeToggle />
           <Button asChild variant="default">
             <Link href="/order">Get Started</Link>
           </Button>
         </nav>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
+          <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">

@@ -146,6 +146,7 @@ export const footerContentSchema = z.object({
   ).min(1, { message: 'Footer must have at least one content block.' }),
   copyright: z.string().min(5, { message: 'Copyright text is required.' }),
   socialLinks: z.array(z.object({
+    id: z.string().optional(),
     name: z.enum(['Facebook', 'Twitter', 'LinkedIn']),
     href: z.string().url({ message: 'Please enter a valid URL.' }),
   })).min(1, { message: 'At least one social link is required.' }),

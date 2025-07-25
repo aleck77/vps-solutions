@@ -1,0 +1,14 @@
+
+{
+  "Header": {
+    "home": "Home",
+    "blog": "Blog",
+    "orderVps": "Order VPS",
+    "aboutUs": "About Us",
+    "contact": "Contact",
+    "getStarted": "Get Started",
+    "dashboard": "Dashboard",
+    "adminLogin": "Admin Login",
+    "logout": "Logout"
+  }
+}

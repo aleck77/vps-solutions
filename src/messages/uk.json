@@ -1,0 +1,14 @@
+
+{
+  "Header": {
+    "home": "Головна",
+    "blog": "Блог",
+    "orderVps": "Замовити VPS",
+    "aboutUs": "Про нас",
+    "contact": "Контакти",
+    "getStarted": "Почати",
+    "dashboard": "Панель",
+    "adminLogin": "Вхід для адміна",
+    "logout": "Вийти"
+  }
+}

@@ -45,7 +45,6 @@ export default async function RootLayout({
   
   const siteName = generalSettings?.siteName || "VHost Solutions";
   const logoUrl = generalSettings?.logoUrl || "/images/vhost-logo.svg";
-  const logoUrlDark = "/images/vhost-logo-dark.svg"; // Path to the new dark logo
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -67,7 +66,6 @@ export default async function RootLayout({
               navItems={headerNavItems} 
               siteName={siteName} 
               logoUrl={logoUrl} 
-              logoUrlDark={logoUrlDark} 
             />
             <main className="flex-grow container mx-auto px-4 py-8">
               {children}

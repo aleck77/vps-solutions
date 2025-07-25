@@ -10,7 +10,7 @@ import { notFound } from 'next/navigation';
 const locales = ['en', 'uk'];
 
 export async function generateMetadata({params}: {params: {locale: string}}, parent: ResolvingMetadata): Promise<Metadata> {
-  const { locale } = params; 
+  const { locale } = await params; 
   unstable_setRequestLocale(locale);
   const generalSettings = await getGeneralSettings();
   const siteName = generalSettings?.siteName || 'VHost Solutions';
@@ -35,7 +35,7 @@ export default async function LocaleLayout({
   children: ReactNode;
   params: { locale: string };
 }) {
-  const { locale } = params;
+  const { locale } = await params;
   if (!locales.includes(locale)) {
     notFound();
   }

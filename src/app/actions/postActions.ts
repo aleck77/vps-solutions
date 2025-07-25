@@ -9,6 +9,7 @@ import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
+import { redirect } from 'next/navigation';
 
 interface CreatePostResult {
   success: boolean;
@@ -140,8 +141,13 @@ export async function updatePostAction(
     tags: processedTags,
     published,
   };
+  
+  const { content: fullContent, ...restForLogging } = postUpdateData;
+  console.log('[updatePostAction] Prepared data for Firestore update (content truncated):', {
+      ...restForLogging,
+      content: fullContent.substring(0, 100) + '...',
+  });
 
-  console.log('[updatePostAction] Prepared data for Firestore update:', JSON.stringify(postUpdateData, null, 2));
 
   try {
     const updateResult = await updateBlogPost(postId, postUpdateData);

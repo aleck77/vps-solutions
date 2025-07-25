@@ -83,7 +83,7 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center space-x-2 text-primary dark:text-primary-foreground">
+        <Link href="/" className="flex items-center space-x-2 text-primary">
           <Image 
             src={logoUrl}
             alt={`${siteName} Logo`}
@@ -136,7 +136,7 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
             >
               <SheetHeader className="p-6 pb-4 border-b">
                 <SheetTitle asChild>
-                  <Link href="/" className="text-xl font-headline font-bold text-primary dark:text-primary-foreground flex items-center space-x-2">
+                  <Link href="/" className="text-xl font-headline font-bold text-primary flex items-center space-x-2">
                      <Image 
                         src={logoUrl}
                         alt={`${siteName} Logo`}

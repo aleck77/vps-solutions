@@ -3,7 +3,6 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { getAdminFirestore, AdminFieldValue } from '@/app/actions/adminActions';
 import { vpsPlanSchema, type VpsPlanFormValues } from '@/lib/schemas';
 import type { VPSPlan } from '@/types';
@@ -49,7 +48,7 @@ export async function createPlanAction(
     return { success: false, message: `Failed to create plan: ${error.message}` };
   }
 
-  redirect('/admin/plans');
+  return { success: true, message: `Plan "${validatedFields.data.name}" created successfully.` };
 }
 
 export async function updatePlanAction(
@@ -94,7 +93,7 @@ export async function updatePlanAction(
     return { success: false, message: `Failed to update plan: ${error.message}` };
   }
 
-  redirect('/admin/plans');
+  return { success: true, message: `Plan "${validatedFields.data.name}" updated successfully.` };
 }
 
 export async function deletePlanAction(planId: string): Promise<{ success: boolean; message: string }> {

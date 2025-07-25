@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useActionState, startTransition } from 'react';
@@ -39,15 +40,17 @@ export default function NewPagePage() {
   }, [titleValue, form]);
 
   useEffect(() => {
-    if (state?.success === false && state.message) {
+    if (state?.success === true) {
+      toast({ title: 'Success', description: state.message });
+      router.push('/admin/pages');
+    } else if (state?.success === false && state.message) {
       toast({
         title: 'Error Creating Page',
         description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),
         variant: 'destructive',
       });
     }
-    // Successful creation is handled by redirect in the action
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   return (
     <div className="container mx-auto py-10">

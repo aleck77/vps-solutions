@@ -38,14 +38,17 @@ export default function NewPlanPage() {
   const [state, formAction] = useActionState(createPlanAction, undefined);
 
   useEffect(() => {
-    if (state?.success === false) {
-        toast({
-            title: 'Error Creating Plan',
-            description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),
-            variant: 'destructive',
-        });
+    if (state?.success === true) {
+      toast({ title: 'Success', description: state.message });
+      router.push('/admin/plans');
+    } else if (state?.success === false) {
+      toast({
+        title: 'Error Creating Plan',
+        description: state.message + (state.errors ? ` ${state.errors.map((e) => e.message).join(', ')}` : ''),
+        variant: 'destructive',
+      });
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   return (
     <div className="container mx-auto py-10">

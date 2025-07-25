@@ -10,7 +10,8 @@ import { notFound } from 'next/navigation';
 const locales = ['en', 'uk'];
 
 export async function generateMetadata({params}: {params: {locale: string}}, parent: ResolvingMetadata): Promise<Metadata> {
-  const { locale } = params;
+  // Correctly awaiting params before using them
+  const { locale } = params; 
   unstable_setRequestLocale(locale);
   const generalSettings = await getGeneralSettings();
   const siteName = generalSettings?.siteName || 'VHost Solutions';

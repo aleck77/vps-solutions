@@ -151,12 +151,13 @@ export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
             >
               <SheetHeader className="p-6 pb-4 border-b">
                 <SheetTitle asChild>
-                  <Link href="/" className="text-xl font-headline font-bold text-primary flex items-center space-x-2">
+                  <Link href="/" className="text-xl font-headline font-bold text-primary dark:text-foreground flex items-center space-x-2">
                      <Image 
-                        src={logoUrl}
+                        src={currentLogoUrl}
                         alt={`${siteName} Logo`}
                         width={32}
                         height={32}
+                        key={`mobile-${currentLogoUrl}`}
                       />
                       <span>{siteName}</span>
                   </Link>

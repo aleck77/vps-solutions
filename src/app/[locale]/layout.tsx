@@ -69,7 +69,7 @@ export default async function LocaleLayout({
   const logoUrl = generalSettings?.logoUrl || '/images/vhost-logo.svg';
 
   return (
-    <NextIntlClientProvider messages={messages}>
+    <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="flex flex-col min-h-screen">
         <Header navItems={headerNav?.items || []} siteName={siteName} logoUrl={logoUrl} />
         <main className="flex-grow container mx-auto px-4 py-8">

@@ -1,17 +1,18 @@
 import type { Metadata, ResolvingMetadata } from 'next';
-import { getMessages, unstable_setRequestLocale } from 'next-intl/server';
-import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, setRequestLocale } from 'next-intl/server';
+import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import type { ReactNode } from 'react';
 import { getNavigationMenu, getGeneralSettings, getFooterContent } from '@/lib/firestoreBlog';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { notFound } from 'next/navigation';
+import {notFound} from 'next/navigation';
+import {routing} from '@/i18n/routing';
 
 const locales = ['en', 'uk'];
 
 export async function generateMetadata({params}: {params: {locale: string}}, parent: ResolvingMetadata): Promise<Metadata> {
   const { locale } = await params; 
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
   const generalSettings = await getGeneralSettings();
   const siteName = generalSettings?.siteName || 'VHost Solutions';
   
@@ -30,21 +31,22 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
-  params,
+  params
 }: {
   children: ReactNode;
-  params: { locale: string };
+  params: Promise<{locale: string}>;
 }) {
-  const { locale } = await params;
-  if (!locales.includes(locale)) {
+  // Ensure that the incoming `locale` is valid
+  const {locale} = await params;
+  if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
   
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
 
   let messages;
   try {
-    messages = await getMessages();
+    messages = await getMessages( {locale});
   } catch (error) {
     console.error("Could not get messages for next-intl, check configuration:", error);
     notFound();

@@ -6,7 +6,7 @@ import { getVpsPlans, getHomepageContent } from '@/lib/firestoreBlog';
 import type { VPSPlan, HomepageContent, HomepageContentBlock } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import DynamicLucideIcon from '@/components/common/DynamicLucideIcon';
-import {unstable_setRequestLocale} from 'next-intl/server';
+import {setRequestLocale} from 'next-intl/server';
 
 type Props = {
   params: {locale: string};
@@ -130,7 +130,7 @@ function PricingCardSkeleton() {
 // --- Main Page Component ---
 export default async function HomePage({params}: Props) {
   const { locale } = await params;
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
   const plans = await getVpsPlans();
   const homepageData = await getHomepageContent();
   const content = homepageData || defaultContent;

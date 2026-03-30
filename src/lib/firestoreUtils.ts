@@ -1,6 +1,6 @@
 
 'use server';
-import { collection, getDocs, limit, query } from 'firebase/firestore';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { getDb } from '@/lib/firebase'; // Import getDb
 
 export async function testFirestoreConnection(): Promise<{ success: boolean; message: string; count?: number }> {
@@ -8,7 +8,8 @@ export async function testFirestoreConnection(): Promise<{ success: boolean; mes
   try {
     const db = getDb(); // Get Firestore instance by calling getDb()
     const postsCollection = collection(db, 'posts');
-    const q = query(postsCollection, limit(1));
+    // FIX: Added where('published', '==', true) to comply with Firestore security rules
+    const q = query(postsCollection, where('published', '==', true), limit(1));
     const snapshot = await getDocs(q);
     console.log(`Firestore connection test successful. Found ${snapshot.size} documents in 'posts' (checked limit 1).`);
     return { success: true, message: 'Successfully connected to Firestore.', count: snapshot.size };

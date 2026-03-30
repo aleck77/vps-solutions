@@ -3,14 +3,13 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore'; // Client SDK Timestamp
 import { getAdminFirestore } from '@/app/actions/adminActions'; 
 import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { addBlogPost, updateBlogPost, getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { NewBlogPost, BlogPost } from '@/types';
 import { slugify } from '@/lib/utils';
-import { marked } from 'marked';
+import { redirect } from 'next/navigation';
 
 interface CreatePostResult {
   success: boolean;
@@ -52,15 +51,7 @@ export async function createPostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
-  let htmlContent: string;
-  try {
-    htmlContent = await marked.parse(content);
-  } catch (parseError) {
-    console.error('Error parsing Markdown to HTML:', parseError);
-    return { success: false, message: 'Failed to process post content (Markdown parsing error).' };
-  }
-
-
+  // We are now storing raw Markdown. The conversion to HTML happens on the client.
   const processedTags = tags
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
@@ -74,7 +65,7 @@ export async function createPostAction(
     author,
     category: categorySlug,
     excerpt,
-    content: htmlContent,
+    content: content, // Store raw Markdown
     imageUrl,
     tags: processedTags,
     published,
@@ -83,8 +74,9 @@ export async function createPostAction(
     updatedAt: now, 
   };
 
+  let postId: string | null;
   try {
-    const postId = await addBlogPost(newPostData); 
+    postId = await addBlogPost(newPostData); 
 
     if (postId) {
       revalidatePath('/blog');
@@ -104,7 +96,7 @@ export async function createPostAction(
     return { success: false, message };
   }
 
-  redirect('/admin/posts');
+  return { success: true, message: `Post "${title}" created successfully.`, postId };
 }
 
 
@@ -131,14 +123,7 @@ export async function updatePostAction(
 
   const { title, slug, author, category, excerpt, content, imageUrl, tags, published } = validatedFields.data;
 
-  let htmlContent: string;
-  try {
-    htmlContent = await marked.parse(content);
-  } catch (parseError: any) {
-    console.error('[updatePostAction] Error parsing Markdown to HTML during update:', parseError);
-    return { success: false, message: `Failed to process post content (Markdown parsing error): ${parseError.message}` };
-  }
-
+  // We are now storing raw Markdown. The conversion to HTML happens on the client.
   const processedTags = tags
     ? tags.split(',').map(tag => slugify(tag.trim())).filter(tag => tag.length > 0)
     : [];
@@ -151,13 +136,18 @@ export async function updatePostAction(
     author,
     category: categorySlug,
     excerpt,
-    content: htmlContent,
+    content: content, // Store raw Markdown
     imageUrl,
     tags: processedTags,
     published,
   };
+  
+  const { content: fullContent, ...restForLogging } = postUpdateData;
+  console.log('[updatePostAction] Prepared data for Firestore update (content truncated):', {
+      ...restForLogging,
+      content: fullContent.substring(0, 100) + '...',
+  });
 
-  console.log('[updatePostAction] Prepared data for Firestore update:', JSON.stringify(postUpdateData, null, 2));
 
   try {
     const updateResult = await updateBlogPost(postId, postUpdateData);
@@ -192,7 +182,7 @@ export async function updatePostAction(
     return { success: false, message: `Unexpected error during post update: ${error.message || 'Unknown error'}` };
   }
 
-  redirect('/admin/posts');
+  return { success: true, message: `Post "${title}" updated successfully.` };
 }
 
 

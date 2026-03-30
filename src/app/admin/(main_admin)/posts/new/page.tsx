@@ -11,6 +11,7 @@ import { postFormSchema, type PostFormValues } from '@/lib/schemas';
 import { createPostAction } from '@/app/actions/postActions';
 import { blogCategories } from '@/types';
 import Image from 'next/image'; 
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ import { ArrowLeft, PlusCircle, Sparkles, FileText, Loader2, Image as ImageIcon,
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent, type GeneratePostContentInput } from '@/ai/flows/generate-post-content-flow';
 import { generatePostImage } from '@/ai/flows/generate-post-image-flow';
+import { uploadPageImageAction } from '@/app/actions/uploadActions';
 
 
 export default function NewPostPage() {
@@ -88,14 +90,17 @@ export default function NewPostPage() {
   
 
   useEffect(() => {
-    if (state?.success === false && state.message) {
+    if (state?.success === true) {
+      toast({ title: 'Success!', description: state.message });
+      router.push('/admin/posts');
+    } else if (state?.success === false && state.message) {
       toast({
         title: 'Error Creating Post',
         description: state.message + (state.errors ? ` ${state.errors.map((e: any) => e.message).join(', ')}` : ''),
         variant: 'destructive',
       });
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   const handleGenerateTitles = () => {
     if (!topicForTitle.trim()) {
@@ -207,52 +212,13 @@ export default function NewPostPage() {
 
     startTransition(async () => {
       try {
-        const postTitleSlug = slugify(postTitle) || 'untitled-image';
-        const timestamp = Date.now();
-        const filename = `${postTitleSlug}-${timestamp}.png`; 
-
-        const payload = {
-          imageDataUri: aiGeneratedPreviewUri, 
-          postTitle: postTitle,
-          filename: filename,
-        };
-        
-        const response = await fetch('https://n8n.artelegis.com.ua/webhook/wp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const responseText = await response.text();
-
-        if (!response.ok) {
-          let errorDetail = `HTTP error! status: ${response.status}. Raw Response: ${responseText.substring(0, 500)}`;
-          try {
-            const errorJson = JSON.parse(responseText);
-            errorDetail = errorJson.error || errorJson.message || JSON.stringify(errorJson);
-          } catch (e) { /* Not JSON */ }
-          throw new Error(`Upload failed: ${errorDetail}`);
-        }
-
-        let result;
-        try {
-          result = JSON.parse(responseText);
-        } catch (jsonError: any) {
-          throw new Error(`Upload failed: Could not parse JSON response from server. Server said: ${responseText.substring(0,500)}`);
-        }
-        
-        if (result && typeof result.success === 'boolean') {
-          if (result.success && result.imageUrl) {
-            form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
-            setAiGeneratedPreviewUri(null); 
-            toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
-          } else {
-             throw new Error(result.error || result.message || 'Upload failed: n8n reported an error.');
-          }
+        const result = await uploadPageImageAction(aiGeneratedPreviewUri, postTitle);
+        if (result.success && result.imageUrl) {
+          form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
+          setAiGeneratedPreviewUri(null);
+          toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
         } else {
-           throw new Error('Upload failed: Invalid response structure from server.');
+          throw new Error(result.message || 'Upload failed via action.');
         }
       } catch (error: any) {
         console.error('Error uploading image:', error);
@@ -271,12 +237,6 @@ export default function NewPostPage() {
     setImageGenError(null);
     setUploadError(null);
     toast({ title: 'Image Reset', description: 'AI generated image cleared. Image URL reset to placeholder.' });
-  };
-  
-  const processFormSubmit = (data: PostFormValues) => {
-    startTransition(() => {
-      formAction(data);
-    });
   };
   
   const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
@@ -352,7 +312,7 @@ export default function NewPostPage() {
           </div>
         
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(processFormSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))} className="space-y-8">
               <FormField
                 control={form.control}
                 name="title"
@@ -610,10 +570,10 @@ export default function NewPostPage() {
                   <FormItem>
                     <FormLabel>Content (Markdown)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Write your blog post content here in Markdown..." className="min-h-[250px]" {...field} disabled={isPendingSubmit || isGeneratingContent} />
+                      <MarkdownEditor {...field} />
                     </FormControl>
                      <FormDescription>
-                      The main content of the blog post. Write in Markdown. It will be converted to HTML.
+                      The main content of the blog post. Write in Markdown. It will be converted to HTML automatically on the blog page.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

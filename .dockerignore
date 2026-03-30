@@ -1,0 +1,14 @@
+.git
+.github
+.idx
+.vscode
+node_modules
+.next
+*.md
+README.md
+service-account-key.json
+.env*.local
+.env
+firebase-debug.log
+firestore-debug.log
+docs

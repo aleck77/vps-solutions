@@ -1,175 +1,152 @@
 
 'use client';
 
-import { useState, startTransition } from 'react';
 import { useAuth } from '@/lib/authContext';
-import { getAuthInstance } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { seedDatabaseAction } from '@/app/actions/adminActions';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { seedDatabaseAction } from '@/app/actions/adminActions'; 
-import { Newspaper, Zap } from 'lucide-react'; 
-import { testBasicGeneration, type TestBasicGenerationOutput } from '@/ai/flows/test-basic-generation-flow';
+import { useState } from 'react';
+import Link from 'next/link';
+import { BookOpen, Newspaper, Settings, Wrench, ListTree, Server } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+
+function ManagementCard({ title, description, href, icon, linkText }: { title: string, description: string, href: string, icon: React.ReactNode, linkText: string }) {
+  return (
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+      <div className="p-6 pt-0">
+        <Button asChild>
+          <Link href={href}>{linkText}</Link>
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 
 export default function AdminDashboardPage() {
-  const { user, loading, isAdmin } = useAuth();
-  const auth = getAuthInstance();
-  const router = useRouter();
+  const { user, loading } = useAuth();
   const { toast } = useToast();
   const [isSeeding, setIsSeeding] = useState(false);
-  const [isTestingGen, setIsTestingGen] = useState(false);
-  const [testGenResult, setTestGenResult] = useState<string | null>(null);
 
-
-  console.log('[AdminDashboardPage] State update: user:', user, 'loading:', loading, 'isAdmin:', isAdmin);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-      router.push('/admin/login');
-    } catch (error: any) {
-      toast({ title: 'Logout Failed', description: error.message, variant: 'destructive' });
-      console.error('Logout error:', error);
-    }
-  };
-
-  const handleSeedDatabase = () => {
+  const handleSeed = async () => {
     setIsSeeding(true);
-    console.log('[AdminDashboardPage] Calling seedDatabaseAction...');
-    startTransition(async () => {
-      try {
-        const result = await seedDatabaseAction();
-        console.log('[AdminDashboardPage] seedDatabaseAction result:', result);
-        if (result.success) {
-          toast({ title: 'Success!', description: result.message });
-        } else {
-          toast({ title: 'Error Seeding', description: result.message, variant: 'destructive' });
-        }
-      } catch (error: any) {
-        console.error('[AdminDashboardPage] Error calling seedDatabaseAction:', error);
-        toast({ title: 'Operation Failed', description: error.message || 'An unexpected error occurred.', variant: 'destructive' });
-      } finally {
-        setIsSeeding(false);
-      }
-    });
-  };
-
-  const handleTestBasicGeneration = () => {
-    setIsTestingGen(true);
-    setTestGenResult(null);
-    console.log('[AdminDashboardPage] Calling testBasicGeneration...');
-    startTransition(async () => {
-      try {
-        const result: TestBasicGenerationOutput = await testBasicGeneration();
-        console.log('[AdminDashboardPage] testBasicGeneration result:', result);
-        if (result.success) {
-          setTestGenResult(`Success: ${result.generatedText}`);
-          toast({ title: 'AI Test Success!', description: result.generatedText });
-        } else {
-          setTestGenResult(`Failed: ${result.generatedText}`);
-          toast({ title: 'AI Test Failed', description: result.generatedText, variant: 'destructive' });
-        }
-      } catch (error: any) {
-        console.error('[AdminDashboardPage] Error calling testBasicGeneration:', error);
-        const errorMessage = error.message || 'An unexpected error occurred during AI test.';
-        setTestGenResult(`Error: ${errorMessage}`);
-        toast({ title: 'AI Test Error', description: errorMessage, variant: 'destructive' });
-      } finally {
-        setIsTestingGen(false);
-      }
-    });
+    const result = await seedDatabaseAction();
+    if (result.success) {
+      toast({
+        title: result.message,
+        description: (
+          <ul className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+            {result.details?.map((detail, index) => (
+              <li key={index} className="text-sm text-white">{detail}</li>
+            ))}
+          </ul>
+        ),
+      });
+    } else {
+      toast({
+        title: 'Error Seeding Database',
+        description: result.message,
+        variant: 'destructive',
+      });
+    }
+    setIsSeeding(false);
   };
 
 
   if (loading) {
-    console.log('[AdminDashboardPage] Auth data is loading. Rendering loading message.');
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-primary">Admin Dashboard: Loading user data...</p>
-      </div>
+        <div className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-screen w-full" />
+        </div>
     );
   }
 
   if (!user) {
-    console.log('[AdminDashboardPage] Auth data loaded, but no user found. Rendering user not found message (should be redirected by guard).');
-    return (
-       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-destructive">Admin Dashboard: User not found.</p>
-        <p className="text-muted-foreground">You might be redirected to login if authentication failed or is incomplete.</p>
-      </div>
-    );
+    // This case should be handled by the AdminRouteGuard, but as a fallback:
+    return <p>Redirecting to login...</p>;
   }
 
-  console.log('[AdminDashboardPage] User is authenticated and data loaded. Rendering dashboard content for:', user.email, 'Is Admin:', isAdmin);
   return (
-    <div className="container mx-auto py-10">
-      <Card className="mx-auto max-w-2xl shadow-lg">
+    <div className="space-y-6">
+      <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-3xl text-primary">Admin Dashboard</CardTitle>
-          <CardDescription>Welcome to the VHost Solutions admin panel.</CardDescription>
+          <CardTitle>Admin Dashboard</CardTitle>
+          <CardDescription>Welcome, {user.email}. This is the main admin dashboard.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <p className="text-lg">
-            Hello, <span className="font-semibold text-accent">{user.email}</span>!
-            (Admin status: {isAdmin ? 'Yes' : 'No'})
-          </p>
-          
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-headline text-xl font-semibold">Content Management</h3>
-              <Button asChild variant="outline" className="mt-2" disabled={!isAdmin}>
-                <Link href="/admin/posts" className="flex items-center">
-                  <Newspaper className="h-4 w-4 mr-2" />
-                  Manage Blog Posts
-                </Link>
-              </Button>
-              <p className="text-sm text-muted-foreground mt-1">
-                Create, edit, and manage blog posts. (Requires admin rights)
-              </p>
-            </div>
-            <div>
-              <h3 className="font-headline text-xl font-semibold">Database Operations</h3>
-              <Button 
-                variant="outline"
-                onClick={handleSeedDatabase}
-                disabled={isSeeding || !isAdmin} 
-                className="mt-2"
-              >
-                {isSeeding ? 'Seeding...' : 'Seed Database'}
-              </Button>
-              <p className="text-sm text-muted-foreground mt-1">
-                This button will trigger the database seeding process. (Requires admin rights)
-              </p>
-            </div>
-            <div>
-              <h3 className="font-headline text-xl font-semibold">AI Test</h3>
-              <Button
-                variant="outline"
-                onClick={handleTestBasicGeneration}
-                disabled={isTestingGen || !isAdmin}
-                className="mt-2 flex items-center"
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                {isTestingGen ? 'Testing AI...' : 'Test Basic AI Generation'}
-              </Button>
-              {testGenResult && (
-                <p className={`text-sm mt-2 p-2 rounded-md ${testGenResult.startsWith('Success:') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {testGenResult}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground mt-1">
-                This button attempts a direct call to the AI model via Genkit's ai.generate(). (Requires admin rights & API key)
-              </p>
-            </div>
-          </div>
-
-          <Button onClick={handleLogout} variant="destructive" className="w-full sm:w-auto mt-4">
-            Logout
-          </Button>
+        <CardContent>
+           <Tabs defaultValue="management" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="management">Content Management</TabsTrigger>
+              <TabsTrigger value="tools">Site Tools</TabsTrigger>
+            </TabsList>
+            <TabsContent value="management" className="mt-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <ManagementCard 
+                        title="Manage Blog Posts"
+                        description="Create, edit, and delete blog articles."
+                        href="/admin/posts"
+                        icon={<Newspaper className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Go to Posts"
+                    />
+                     <ManagementCard 
+                        title="Manage Site Pages"
+                        description="Edit static pages like About Us."
+                        href="/admin/pages"
+                        icon={<BookOpen className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Manage Pages"
+                    />
+                     <ManagementCard 
+                        title="Manage Navigation"
+                        description="Control header and footer menus."
+                        href="/admin/navigation"
+                        icon={<ListTree className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Manage Menus"
+                    />
+                    <ManagementCard 
+                        title="Manage VPS Plans"
+                        description="Edit pricing and features of VPS plans."
+                        href="/admin/plans"
+                        icon={<Server className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Manage Plans"
+                    />
+                     <ManagementCard 
+                        title="Site Settings"
+                        description="Manage global settings like homepage content, header, footer, and contact info."
+                        href="/admin/settings"
+                        icon={<Wrench className="h-5 w-5 text-muted-foreground" />}
+                        linkText="Edit Settings"
+                    />
+                </div>
+            </TabsContent>
+            <TabsContent value="tools" className="mt-6">
+               <Card className="border-dashed">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Site Tools</CardTitle>
+                    <CardDescription>
+                    Use these tools for site-wide operations. Be careful, these actions can be destructive.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <h3 className="font-semibold mb-2">Database Seeding</h3>
+                    <p className="text-sm text-muted-foreground mb-3">Populate your Firestore database with initial data (posts, categories, pages, menus, plans). This should only be run once on a fresh database.</p>
+                    <Button onClick={handleSeed} disabled={isSeeding} variant="outline">
+                    {isSeeding ? 'Seeding...' : 'Seed Database'}
+                    </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

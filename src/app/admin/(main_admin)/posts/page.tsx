@@ -300,7 +300,7 @@ export default function PostsAdminPage() {
                     <TableCell className="font-medium max-w-xs truncate" title={post.title}>{post.title}</TableCell>
                     <TableCell>{getCategoryDisplayName(post.category)}</TableCell>
                     <TableCell>{post.author}</TableCell>
-                    <TableCell>{(post.date instanceof Date ? post.date : post.date.toDate()).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(post.date).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Badge variant={post.published ? 'default' : 'secondary'} className="flex items-center w-fit">
                         {post.published ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
@@ -329,7 +329,7 @@ export default function PostsAdminPage() {
 
       {postToDelete && (
         <AlertDialog open={!!postToDelete} onOpenChange={() => setPostToDelete(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent aria-describedby="alert-dialog-single-delete-description">
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription id="alert-dialog-single-delete-description">
@@ -349,7 +349,7 @@ export default function PostsAdminPage() {
 
       {showBulkDeleteDialog && selectedPostIds.size > 0 && (
          <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-          <AlertDialogContent>
+          <AlertDialogContent aria-describedby="alert-dialog-bulk-delete-description">
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Bulk Delete</AlertDialogTitle>
               <AlertDialogDescription id="alert-dialog-bulk-delete-description">

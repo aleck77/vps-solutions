@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Server, Briefcase, Newspaper, Users, Mail, Menu, LogIn, LogOut } from 'lucide-react';
+import { Server, Newspaper, Users, Mail, Menu, LogIn, LogOut, Briefcase, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -16,28 +16,60 @@ import {
 } from '@/components/ui/sheet';
 import * as React from 'react';
 import { useAuth } from '@/lib/authContext';
-import { getAuthInstance } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import type { MenuItem } from '@/types';
+import { getAuthInstance } from '@/lib/firebase';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useTheme } from 'next-themes';
 
-const navLinks = [
-  { href: '/', label: 'Home', icon: <Server className="h-5 w-5" /> },
-  { href: '/blog', label: 'Blog', icon: <Newspaper className="h-5 w-5" /> },
-  { href: '/order', label: 'Order VPS', icon: <Briefcase className="h-5 w-5" /> },
-  { href: '/about', label: 'About Us', icon: <Users className="h-5 w-5" /> },
-  { href: '/contact', label: 'Contact', icon: <Mail className="h-5 w-5" /> },
-];
 
-const mobileMenuDescriptionId = "mobile-menu-description";
+// A client component to render a single navigation link.
+function NavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="text-foreground hover:text-primary transition-colors font-medium">
+      {label}
+    </Link>
+  );
+}
 
-export default function Header() {
-  const { user, loading } = useAuth();
-  const auth = getAuthInstance();
+// A client component to render a single mobile navigation link.
+function MobileNavLink({ href, label, icon }: { href: string; label: string; icon: React.ReactNode }) {
+  return (
+    <SheetClose asChild>
+      <Link
+        href={href}
+        className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium"
+      >
+        {icon}
+        <span>{label}</span>
+      </Link>
+    </SheetClose>
+  );
+}
+
+interface HeaderProps {
+  navItems: MenuItem[];
+  siteName: string;
+  logoUrl: string;
+}
+
+export default function Header({ navItems, siteName, logoUrl }: HeaderProps) {
+  const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const mobileMenuDescriptionId = React.useId();
+
+  const [mounted, setMounted] = React.useState(false);
+  const { resolvedTheme } = useTheme();
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
+    const auth = getAuthInstance(); 
     try {
       await signOut(auth);
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
@@ -48,48 +80,63 @@ export default function Header() {
     }
   };
 
-  const adminNavLink = { href: '/admin/dashboard', label: 'Admin', icon: <LogIn className="h-5 w-5" /> };
-  const allNavLinks = [...navLinks, adminNavLink];
+  const iconMap: { [key: string]: React.ReactNode } = {
+    'Home': <Server className="h-5 w-5" />,
+    'Blog': <Newspaper className="h-5 w-5" />,
+    'Order VPS': <Briefcase className="h-5 w-5" />,
+    'About Us': <Users className="h-5 w-5" />,
+    'Contact': <Mail className="h-5 w-5" />,
+  };
 
+  const currentLogoUrl = mounted && resolvedTheme === 'dark' ? '/images/vhost-logo-dark.svg' : logoUrl;
+  
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center space-x-2">
-          <Image 
-            src="/images/vhost-logo.svg"
-            alt="VHost Solutions Logo" 
-            width={40} 
-            height={40} 
-            priority 
-          />
-          <span className="text-2xl font-headline font-bold text-primary">
-            VHost Solutions
+        <Link href="/" className="flex items-center space-x-2 text-primary dark:text-foreground">
+           {mounted ? (
+            <Image 
+              src={currentLogoUrl}
+              alt={`${siteName} Logo`}
+              width={40} 
+              height={40} 
+              priority
+              key={currentLogoUrl} // Add key to force re-render on src change
+            />
+          ) : (
+            <div style={{ width: 40, height: 40 }} /> // Placeholder to prevent layout shift
+          )}
+          <span className="text-2xl font-headline font-bold">
+            {siteName}
           </span>
         </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex space-x-4 items-center">
-          {navLinks.map((link) => (
-            <Link key={link.label} href={link.href} className="text-foreground hover:text-primary transition-colors font-medium">
-              {link.label}
-            </Link>
+          {navItems.map((link) => (
+            <NavLink key={link.label} href={link.href} label={link.label} />
           ))}
+          {!loading && isAdmin && (
+            <NavLink href="/admin/dashboard" label="Dashboard" />
+          )}
           {!loading && user ? (
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="h-4 w-4 mr-2" /> Logout
             </Button>
-          ) : (
-            <Link href="/admin/dashboard" className="text-foreground hover:text-primary transition-colors font-medium">
-              Admin
-            </Link>
-          )}
+          ) : !loading ? (
+             <Button asChild variant="ghost">
+                <Link href="/admin/login">Admin Login</Link>
+            </Button>
+          ) : null }
+          <ThemeToggle />
           <Button asChild variant="default">
             <Link href="/order">Get Started</Link>
           </Button>
         </nav>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
+          <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">
@@ -106,53 +153,50 @@ export default function Header() {
                 <SheetTitle asChild>
                   <Link href="/" className="text-xl font-headline font-bold text-primary flex items-center space-x-2">
                      <Image 
-                        src="/images/vhost-logo.svg"
-                        alt="VHost Solutions Logo"
+                        src={logoUrl}
+                        alt={`${siteName} Logo`}
                         width={32}
                         height={32}
                       />
-                      <span>VHost Solutions</span>
+                      <span>{siteName}</span>
                   </Link>
                 </SheetTitle>
                 <SheetDescription id={mobileMenuDescriptionId} className="sr-only">
-                  Mobile navigation menu for VHost Solutions. Contains links to Home, Blog, Order VPS, About Us, Contact, and Admin pages.
+                  Mobile navigation menu for {siteName}.
                 </SheetDescription>
               </SheetHeader>
               <div className="p-6">
                 <nav className="flex flex-col space-y-3">
-                  {navLinks.map((link) => (
-                    <SheetClose asChild key={link.label}>
-                      <Link
-                        href={link.href}
-                        className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium"
-                      >
-                        {link.icon}
-                        <span>{link.label}</span>
-                      </Link>
-                    </SheetClose>
+                  {navItems.map((link) => (
+                    <MobileNavLink key={link.label} href={link.href} label={link.label} icon={iconMap[link.label] || <Server className="h-5 w-5" />} />
                   ))}
                   <div className="pt-2 border-t">
-                    {!loading && user ? (
-                      <SheetClose asChild>
+                    {!loading && isAdmin ? (
+                       <>
+                        <MobileNavLink href="/admin/dashboard" label="Dashboard" icon={<LayoutDashboard className="h-5 w-5"/>} />
+                        <SheetClose asChild>
+                           <button
+                            onClick={handleLogout}
+                            className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium w-full text-left"
+                          >
+                            <LogOut className="h-5 w-5" />
+                            <span>Logout</span>
+                          </button>
+                        </SheetClose>
+                       </>
+                    ) : !loading && user ? ( // Logged in but not admin
+                       <SheetClose asChild>
                          <button
-                          onClick={handleLogout}
-                          className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium w-full text-left"
-                        >
-                          <LogOut className="h-5 w-5" />
-                          <span>Logout</span>
-                        </button>
-                      </SheetClose>
-                    ) : (
-                      <SheetClose asChild>
-                         <Link
-                          href="/admin/dashboard"
-                          className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium"
-                        >
-                          <LogIn className="h-5 w-5" />
-                          <span>Admin Login</span>
-                        </Link>
-                      </SheetClose>
-                    )}
+                           onClick={handleLogout}
+                           className="flex items-center space-x-3 p-3 rounded-md hover:bg-muted transition-colors text-lg font-medium w-full text-left"
+                         >
+                           <LogOut className="h-5 w-5" />
+                           <span>Logout</span>
+                         </button>
+                       </SheetClose>
+                    ) : !loading ? ( // Not logged in
+                      <MobileNavLink href="/admin/login" label="Admin Login" icon={<LogIn className="h-5 w-5" />} />
+                    ) : null}
                   </div>
                   <SheetClose asChild>
                     <Button asChild variant="default" className="mt-6 w-full text-lg py-3">

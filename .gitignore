@@ -45,3 +45,9 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# tasks
+*task-*
+*task-*.md
+
+service-account-key.json

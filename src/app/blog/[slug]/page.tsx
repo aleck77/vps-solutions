@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/firestoreBlog';
 import type { BlogPost } from '@/types';
@@ -11,6 +11,7 @@ import { CalendarDays, UserCircle, Tag } from 'lucide-react';
 import EditPostLinkClient from '@/components/blog/EditPostLinkClient';
 import RecommendedPosts from '@/components/blog/RecommendedPosts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { marked } from 'marked';
 
 // Skeleton component for loading state
 function PostSkeleton() {
@@ -38,7 +39,7 @@ function PostSkeleton() {
   );
 }
 
-export default function PostPage() {
+function PostPageContent() {
   const params = useParams();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
@@ -72,6 +73,19 @@ export default function PostPage() {
     fetchPost();
   }, [slug]);
 
+  const parsedContent = useMemo(() => {
+    if (!post?.content) return '';
+    try {
+      // Note: `marked` can be vulnerable to XSS if not configured properly.
+      // For this prototype, we trust the content from our Markdown editor.
+      // In a production app, consider using a sanitizer like DOMPurify.
+      return marked.parse(post.content);
+    } catch (e) {
+      console.error("Markdown parsing error:", e);
+      return '<p>Error: Could not parse content.</p>';
+    }
+  }, [post?.content]);
+
   if (loading) {
     return <PostSkeleton />;
   }
@@ -81,13 +95,13 @@ export default function PostPage() {
   }
 
   return (
-    <div className="grid md:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
         <div className="md:col-span-8 lg:col-span-9">
             <article className="prose dark:prose-invert lg:prose-xl max-w-none bg-card p-6 sm:p-8 rounded-lg shadow-lg">
                 <header className="mb-8 border-b pb-6">
                 <h1 className="font-headline text-3xl sm:text-4xl font-bold text-primary !mb-3">{post.title}</h1>
                 <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-2">
-                    <span className="flex items-center"><CalendarDays className="h-4 w-4 mr-1.5" /> Published on {new Date(post.date as any).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    <span className="flex items-center"><CalendarDays className="h-4 w-4 mr-1.5" /> Published on {new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     <span className="flex items-center"><UserCircle className="h-4 w-4 mr-1.5" /> By {post.author}</span>
                     <Link href={`/blog/category/${post.category}`} className="flex items-center hover:underline text-accent">
                         <Tag className="h-4 w-4 mr-1.5" /> {post.category}
@@ -114,15 +128,23 @@ export default function PostPage() {
                     />
                 </div>
                 )}
-                <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div dangerouslySetInnerHTML={{ __html: parsedContent }} />
             </article>
             <div className="mt-8">
                 <EditPostLinkClient postId={post.id} />
             </div>
         </div>
-        <aside className="md:col-span-4 lg:col-span-3 space-y-6 sticky top-24">
+        <aside className="md:col-span-4 lg:col-span-3 space-y-6 md:sticky top-24">
              <RecommendedPosts currentPostId={post.id!} currentPostContent={post.content} />
         </aside>
     </div>
+  );
+}
+
+export default function PostPage() {
+  return (
+    <Suspense fallback={<PostSkeleton />}>
+      <PostPageContent />
+    </Suspense>
   );
 }

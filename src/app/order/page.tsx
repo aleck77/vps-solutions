@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, CreditCard, Server } from 'lucide-react';
-import { mockVpsPlans } from '@/data/vpsPlans';
+import { getVpsPlans } from '@/lib/firestoreBlog';
 import type { VPSPlan } from '@/types';
 import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState, Suspense } from 'react';
@@ -80,7 +80,7 @@ function OrderPageSkeleton() {
         <Skeleton className="h-10 w-1/2 mx-auto mb-4" />
         <Skeleton className="h-5 w-3/4 mx-auto" />
       </section>
-      <div className="grid md:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
         <div className="md:col-span-2 space-y-4">
           <Card className="shadow-lg">
             <CardHeader>
@@ -117,52 +117,69 @@ function OrderPageSkeleton() {
   );
 }
 
-
-function OrderPageComponent() {
+function OrderForm() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const initialPlanId = searchParams.get('plan') || (mockVpsPlans.length > 0 ? mockVpsPlans[0].id : '');
+  const [plans, setPlans] = useState<VPSPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const initialPlanId = searchParams.get('plan');
   
-  const [selectedPlan, setSelectedPlan] = useState<VPSPlan | undefined>(
-    mockVpsPlans.find(p => p.id === initialPlanId)
-  );
+  const [selectedPlan, setSelectedPlan] = useState<VPSPlan | undefined>();
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
-      planId: initialPlanId,
+      planId: '',
       name: '',
       email: '',
       companyName: '',
-      paymentMethod: 'crypto',
+      paymentMethod: 'crypto', // Set default to crypto as it's the only visible option now
     },
   });
 
   useEffect(() => {
-    const planFromUrl = searchParams.get('plan');
-    if (planFromUrl) {
-      const foundPlan = mockVpsPlans.find(p => p.id === planFromUrl);
-      form.setValue('planId', planFromUrl);
-      setSelectedPlan(foundPlan);
-    } else if (mockVpsPlans.length > 0 && !form.getValues('planId')) {
-      form.setValue('planId', mockVpsPlans[0].id);
-      setSelectedPlan(mockVpsPlans[0]);
+    async function fetchPlans() {
+      setIsLoading(true);
+      try {
+        const fetchedPlans = await getVpsPlans();
+        setPlans(fetchedPlans);
+
+        const planIdFromUrl = searchParams.get('plan');
+        let planToSelect = fetchedPlans[0];
+
+        if (planIdFromUrl) {
+          const foundPlan = fetchedPlans.find(p => p.id === planIdFromUrl);
+          if(foundPlan) planToSelect = foundPlan;
+        }
+
+        if (planToSelect) {
+            form.setValue('planId', planToSelect.id!);
+            setSelectedPlan(planToSelect);
+        }
+
+      } catch (error) {
+        toast({ title: "Error", description: "Could not load VPS plans.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [searchParams, form]);
+    fetchPlans();
+  }, [searchParams, form, toast]);
   
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'planId' && value.planId) {
-        setSelectedPlan(mockVpsPlans.find(p => p.id === value.planId));
+        setSelectedPlan(plans.find(p => p.id === value.planId));
       }
     });
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, plans]);
 
 
   async function onSubmit(data: OrderFormValues) {
     try {
-      const currentSelectedPlan = mockVpsPlans.find(p => p.id === data.planId);
+      const currentSelectedPlan = plans.find(p => p.id === data.planId);
       if (!currentSelectedPlan) {
         toast({
           title: 'Error',
@@ -178,11 +195,11 @@ function OrderPageComponent() {
           description: `Your VPS order (ID: ${result.orderId}) has been placed. We'll be in touch shortly.`,
         });
         form.reset({ 
-            planId: data.planId,
+            planId: data.planId, // Keep the selected plan
             name: '', 
             email: '', 
             companyName: '', 
-            paymentMethod: 'crypto'
+            paymentMethod: 'crypto' // Reset to crypto
         });
       } else {
         throw new Error('Order processing failed.');
@@ -196,6 +213,10 @@ function OrderPageComponent() {
     }
   }
 
+  if (isLoading) {
+    return <OrderPageSkeleton />;
+  }
+
   return (
     <div className="space-y-12">
       <section className="text-center py-12 bg-primary/5 rounded-lg">
@@ -205,7 +226,7 @@ function OrderPageComponent() {
         </p>
       </section>
 
-      <div className="grid md:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
         <Card className="md:col-span-2 shadow-lg">
           <CardHeader>
             <CardTitle className="font-headline text-2xl text-primary flex items-center">
@@ -230,8 +251,8 @@ function OrderPageComponent() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {mockVpsPlans.map((plan) => (
-                            <SelectItem key={plan.id} value={plan.id}>
+                          {plans.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id!}>
                               {plan.name} ({plan.cpu}, {plan.ram}) - ${plan.priceMonthly.toFixed(2)}/mo
                             </SelectItem>
                           ))}
@@ -314,7 +335,7 @@ function OrderPageComponent() {
         </Card>
 
         {selectedPlan && (
-          <Card className="sticky top-24 shadow-lg">
+          <Card className="md:sticky top-24 shadow-lg">
             <CardHeader>
               <CardTitle className="font-headline text-xl text-primary">{selectedPlan.name}</CardTitle>
               <CardDescription>Summary of your selected plan.</CardDescription>
@@ -344,8 +365,8 @@ function OrderPageComponent() {
             </CardFooter>
           </Card>
         )}
-         {!selectedPlan && mockVpsPlans.length > 0 && (
-          <Card className="sticky top-24 shadow-lg">
+         {!selectedPlan && plans.length > 0 && (
+          <Card className="md:sticky top-24 shadow-lg">
             <CardHeader>
               <CardTitle className="font-headline text-xl text-primary">Select a Plan</CardTitle>
               <CardDescription>Choose a plan to see its details here.</CardDescription>
@@ -360,10 +381,11 @@ function OrderPageComponent() {
   );
 }
 
+
 export default function OrderPage() {
   return (
     <Suspense fallback={<OrderPageSkeleton />}>
-      <OrderPageComponent />
+      <OrderForm />
     </Suspense>
-  );
+  )
 }

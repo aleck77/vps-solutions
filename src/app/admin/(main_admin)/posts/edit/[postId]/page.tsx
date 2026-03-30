@@ -14,6 +14,7 @@ import { updatePostAction } from '@/app/actions/postActions';
 import { getPostByIdForEditing } from '@/lib/firestoreBlog';
 import type { BlogPost } from '@/types';
 import { blogCategories } from '@/types';
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { generatePostTitle } from '@/ai/flows/generate-post-title-flow';
 import { generatePostContent, type GeneratePostContentInput } from '@/ai/flows/generate-post-content-flow';
 import { generatePostImage } from '@/ai/flows/generate-post-image-flow';
+import { uploadPageImageAction } from '@/app/actions/uploadActions';
 
 
 export default function EditPostPage() {
@@ -132,7 +134,7 @@ export default function EditPostPage() {
             imageUrl: fetchedPost.imageUrl,
             category: originalCategoryName,
             excerpt: fetchedPost.excerpt,
-            content: contentToSet,
+            content: fetchedPost.content, // This content is Markdown from DB
             tags: fetchedPost.tags?.join(', ') || '',
             published: fetchedPost.published,
           });
@@ -154,15 +156,17 @@ export default function EditPostPage() {
   }, [postId, form, router, toast]);
 
   useEffect(() => {
-    if (state?.success === false && state.message) {
+    if (state?.success === true) {
+      toast({ title: 'Success!', description: state.message });
+      router.push('/admin/posts');
+    } else if (state?.success === false) {
       toast({
         title: 'Error Updating Post',
         description: state.message + (state.errors ? ` ${state.errors.map((e: any) => e.message).join(', ')}` : ''),
         variant: 'destructive',
       });
     }
-    // No success redirect here, as useActionState handles redirect from the server action
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   const handleGenerateTitles = () => {
     if (!topicForTitle.trim()) {
@@ -271,50 +275,13 @@ export default function EditPostPage() {
 
     startTransition(async () => {
       try {
-        const postTitleSlug = slugify(postTitle) || 'untitled-image';
-        const timestamp = Date.now();
-        const filename = `${postTitleSlug}-${timestamp}.png`;
-
-        const payload = {
-          imageDataUri: aiGeneratedPreviewUri,
-          postTitle: postTitle,
-          filename: filename,
-        };
-        
-        const response = await fetch('https://n8n.artelegis.com.ua/webhook/wp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        const responseText = await response.text();
-
-        if (!response.ok) {
-          let errorDetail = `HTTP error! status: ${response.status}. Raw Response: ${responseText.substring(0, 500)}`;
-          try {
-            const errorJson = JSON.parse(responseText);
-            errorDetail = errorJson.error || errorJson.message || JSON.stringify(errorJson);
-          } catch (e) { /* Not JSON */ }
-          throw new Error(`Upload failed: ${errorDetail}`);
-        }
-        
-        let result;
-        try {
-          result = JSON.parse(responseText);
-        } catch (jsonError: any) {
-          throw new Error(`Upload failed: Could not parse JSON response from server. Server said: ${responseText.substring(0,500)}`);
-        }
-
-        if (result && typeof result.success === 'boolean') {
-          if (result.success && result.imageUrl) {
-            form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
-            setAiGeneratedPreviewUri(null);
-            toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
-          } else {
-            throw new Error(result.error || result.message || 'Upload failed: n8n reported an error.');
-          }
+        const result = await uploadPageImageAction(aiGeneratedPreviewUri, postTitle);
+        if (result.success && result.imageUrl) {
+          form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
+          setAiGeneratedPreviewUri(null);
+          toast({ title: 'Upload Successful', description: 'Image uploaded and URL updated!' });
         } else {
-           throw new Error('Upload failed: Invalid response structure from server.');
+          throw new Error(result.message || 'Upload failed via action.');
         }
       } catch (error: any) {
         const detailedError = error.message || 'An unknown error occurred during upload.';
@@ -335,13 +302,6 @@ export default function EditPostPage() {
   };
   
   const imagePreviewSrc = aiGeneratedPreviewUri || currentImageUrlFromForm;
-
-  const processFormSubmit = (data: PostFormValues) => {
-    startTransition(() => {
-      formAction(data);
-    });
-  };
-
 
   if (isLoadingPost) {
     return (
@@ -439,7 +399,7 @@ export default function EditPostPage() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(processFormSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit((data) => startTransition(() => formAction(data)))} className="space-y-8">
               <FormField
                 control={form.control}
                 name="title"
@@ -668,14 +628,9 @@ export default function EditPostPage() {
                   <FormItem>
                     <FormLabel>Content (Markdown)</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Write your blog post content here in Markdown or generate with AI..." 
-                        className="min-h-[250px]" 
-                        {...field} 
-                        disabled={isPendingSubmit || isGeneratingContent} 
-                      />
+                      <MarkdownEditor {...field} />
                     </FormControl>
-                    <FormDescription>The main content of the blog post. Write in Markdown. It will be converted to HTML on save.</FormDescription>
+                    <FormDescription>The main content of the blog post. Write in Markdown. It will be converted to HTML when displayed on the blog.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

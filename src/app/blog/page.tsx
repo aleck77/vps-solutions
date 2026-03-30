@@ -8,9 +8,8 @@ import type { BlogPost } from '@/types';
 import { useEffect, useState } from 'react';
 import { getAllPublishedPosts } from '@/lib/firestoreBlog'; 
 import { Skeleton } from '@/components/ui/skeleton'; 
-// import { useFormState, useFormStatus } from 'react-dom'; // Changed from useFormState
-import { useActionState as useReactActionState } from 'react'; // Import from 'react' with an alias
-import { useFormStatus } from 'react-dom'; // useFormStatus is still from react-dom
+import { useActionState as useReactActionState } from 'react'; 
+import { useFormStatus } from 'react-dom'; 
 import { subscribeToNewsletter } from '@/app/actions/newsletterActions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,9 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 function NewsletterForm() {
   const { toast } = useToast();
   const initialState = { message: '', error: false };
-  // Updated to useActionState (now useReactActionState)
   const [state, formAction, isPending] = useReactActionState(subscribeToNewsletter, initialState);
-  // const { pending } = useFormStatus(); // This would be for form elements, isPending from useActionState is for the action
   const [email, setEmail] = useState('');
 
   useEffect(() => {
@@ -68,7 +65,6 @@ export default function BlogPage() {
         setPosts(fetchedPosts);
       } catch (error) {
         console.error("Failed to fetch posts:", error);
-        // Optionally, set an error state here to display to the user
       }
       setIsLoading(false);
     }
@@ -84,7 +80,7 @@ export default function BlogPage() {
         </p>
       </section>
 
-      <div className="grid md:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         <div className="md:col-span-9">
            <CategoryFilter />
           {isLoading ? (
@@ -102,7 +98,6 @@ export default function BlogPage() {
           ) : (
             <p className="text-center text-muted-foreground py-10">No blog posts found.</p>
           )}
-          {/* TODO: Add Pagination component here if many posts */}
         </div>
         <aside className="md:col-span-3 space-y-6">
           <div className="p-4 bg-muted rounded-lg shadow">

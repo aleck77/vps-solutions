@@ -1,9 +1,8 @@
-
 'use client';
 
 import type { User } from 'firebase/auth';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import * as React from 'react';
 import { getAuthInstance } from '@/lib/firebase';
 import { onAuthStateChanged, getIdTokenResult } from 'firebase/auth';
 
@@ -15,16 +14,16 @@ interface AuthContextType {
   isAdmin: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   console.log('%c[AuthProvider Component] Instance created/rendering starts. Version: Patched', 'color: blue; font-weight: bold;');
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [authInstance, setAuthInstance] = useState<ReturnType<typeof getAuthInstance> | null>(null);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [authInstance, setAuthInstance] = React.useState<ReturnType<typeof getAuthInstance> | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     console.log('%c[AuthProvider Effect1] Mount: Initializing auth instance... Version: Patched', 'color: green;');
     let isMounted = true;
     try {
@@ -46,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     console.log(`%c[AuthProvider Effect2] Dependency change or mount. authInstance is: ${authInstance ? 'DEFINED' : 'NULL'}. Current loading state: ${loading}. Version: Patched`, 'color: purple;');
 
     if (!authInstance) {
@@ -99,10 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authInstance]); // Removed loading and isAdmin from deps, onAuthStateChanged should handle setting them appropriately.
+  }, [authInstance]);
 
   // This log will show the actual state values that the provider will pass down on this render pass.
-  useEffect(() => {
+  React.useEffect(() => {
     console.log(`%c[AuthProvider STATE_RENDER_PASS] loading: ${loading}, user: ${user ? user.email : 'null'}, isAdmin: ${isAdmin}. Version: Patched`, 'color: magenta; font-weight: bold;');
   });
 
@@ -116,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider. Version: Patched');
   }

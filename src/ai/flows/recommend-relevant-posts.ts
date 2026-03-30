@@ -42,16 +42,17 @@ export type RecommendRelevantPostsOutput = z.infer<
 export async function recommendRelevantPosts(
   input: RecommendRelevantPostsInput
 ): Promise<RecommendRelevantPostsOutput> {
-  try {
-    return await recommendRelevantPostsFlow(input);
-  } catch (error: any) { 
-    console.warn(
-      '[recommendRelevantPosts] AI-based recommendRelevantPostsFlow failed. Falling back to mock recommendations.',
-      error.message 
-    );
-    const mockRecs = input.availablePosts.slice(0, 3);
-    return { recommendedPosts: mockRecs };
-  }
+  // AI временно отключён — лимит Gemini API исчерпан
+  // try {
+  //   return await recommendRelevantPostsFlow(input);
+  // } catch (error: any) { 
+  //   console.warn(
+  //     '[recommendRelevantPosts] AI-based recommendRelevantPostsFlow failed. Falling back to mock recommendations.',
+  //     error.message 
+  //   );
+  const mockRecs = input.availablePosts.slice(0, 3);
+  return { recommendedPosts: mockRecs };
+  
 }
 
 const analyzeRelevanceTool = ai.defineTool({

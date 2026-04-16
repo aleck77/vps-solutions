@@ -2,7 +2,9 @@
 
 # dependencies
 .idx/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
 /node_modules
 /.pnp
 .pnp.*
